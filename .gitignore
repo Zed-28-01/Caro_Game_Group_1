@@ -1,41 +1,17 @@
-# Prerequisites
-*.d
+# Visual Studio
+.vs/
+*.user
+*.suo
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Build output
+x64/
+Debug/
+Release/
+ipch/
 
-# Precompiled Headers
-*.gch
-*.pch
-
-# Linker files
-*.ilk
-
-# Debugger Files
-*.pdb
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
+# Executables and object files
 *.exe
-*.out
-*.app
-
-# debug information files
-*.dwo
+*.obj
+*.pdb
+*.ilk
+*.aps
