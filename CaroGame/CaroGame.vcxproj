@@ -21,6 +21,17 @@
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\board.h" />
+    <ClInclude Include="..\include\bot.h" />
+    <ClInclude Include="..\include\game_types.h" />
+    <ClInclude Include="..\include\language.h" />
+    <ClInclude Include="..\include\menu.h" />
+    <ClInclude Include="..\include\render.h" />
+    <ClInclude Include="..\include\save_load.h" />
+    <ClInclude Include="..\include\sound.h" />
+    <ClInclude Include="..\include\timer.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
