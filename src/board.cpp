@@ -191,7 +191,6 @@ GameResult boardEvaluateResult(const GameState& state, int lastRow, int lastCol,
 // UNDO
 // ============================================================
 
-// Huy nuoc cuoi 
 // PVP : Huy 1 nuoc, PVC: Huy 2 nuoc
 // Tra ve: so nuoc da huy
 int boardUndo(GameState& state) {
