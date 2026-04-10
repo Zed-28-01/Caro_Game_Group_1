@@ -1,18 +1,18 @@
-#include <SFML/Graphics.hpp>
+﻿#include "menu.h"
+#include "render.h"
 
-int main()
-{
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Caro Game - Test");
-    while (window.isOpen())
-    {
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-                window.close();
-        }
-        window.clear(sf::Color::Black);
-        window.display();
+int main() {
+    sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT),
+        "Caro Game - Group 1",
+        sf::Style::Close);
+    window.setFramerateLimit(60);
+
+    GameResources res;
+    if (!renderLoadResources(res)) {
+        return -1; // Khong load duoc font → thoat
     }
+
+    gameRun(window, res);
+
     return 0;
 }

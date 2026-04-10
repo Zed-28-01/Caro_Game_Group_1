@@ -32,7 +32,6 @@
 #define MAX_TURN_TIME   15          // 15 giay moi luot
 
 // Mau sac (SFML Colors) - Theme mac dinh
-// Ban co the thay doi cac gia tri nay de tao theme khac
 #define COLOR_BACKGROUND    sf::Color(245, 222, 179)    // Wheat - nen chinh
 #define COLOR_BOARD_BG      sf::Color(222, 184, 135)    // BurlyWood - nen ban co
 #define COLOR_GRID_LINE     sf::Color(139, 90, 43)      // Brown - duong ke
