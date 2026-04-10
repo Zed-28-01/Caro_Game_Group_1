@@ -22,6 +22,9 @@
     <ClCompile Include="..\src\language.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\board.cpp" />
+    <ClCompile Include="..\src\menu.cpp" />
+    <ClCompile Include="..\src\render.cpp" />
+    <ClCompile Include="..\src\timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\board.h" />
@@ -121,6 +124,8 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\libs\SFML\include;$(SolutionDir)..\include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8
+ %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -138,6 +143,8 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\libs\SFML\include;$(SolutionDir)..\include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8
+ %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
