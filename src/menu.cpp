@@ -322,22 +322,36 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
         float deltaTime = clock.restart().asSeconds();
 
         // Cap nhat timer (che do Speed)
+ // Cap nhat timer (che do Speed)
         if (state.style == STYLE_SPEED && result == RESULT_NONE) {
             timerUpdate(state.timer, deltaTime);
 
+            // --- XỬ LÝ HẾT GIỜ LƯỢT NÀY ---
             if (timerIsTurnExpired(state.timer)) {
-                boardSwitchTurn(state);
-                timerResetTurn(state.timer);
+                if (state.isPlayer1Turn) {
+                    result = RESULT_PLAYER2_WIN; // P1 hết giờ -> P2 thắng
+                    state.player2.totalWins++;
+                }
+                else {
+                    result = RESULT_PLAYER1_WIN; // P2 hết giờ -> P1 thắng
+                    state.player1.totalWins++;
+                }
+
+                // FIX: Trả thẳng về màn hình Game Over ngay lập tức!
+                return handleGameOver(window, res, state, result);
             }
 
-            if (timerIsGameExpired(state.timer)) {
-                // Het gio: ai di nhieu hon thi thua
+            // --- KIỂM TRA HẾT GIỜ CẢ VÁN ---
+            if (timerIsGameExpired(state.timer) && result == RESULT_NONE) {
                 if (state.player1.moves > state.player2.moves)
                     result = RESULT_PLAYER2_WIN;
                 else if (state.player2.moves > state.player1.moves)
                     result = RESULT_PLAYER1_WIN;
                 else
                     result = RESULT_DRAW;
+
+                // FIX: Trả thẳng về màn hình Game Over ngay lập tức!
+                return handleGameOver(window, res, state, result);
             }
         }
 
