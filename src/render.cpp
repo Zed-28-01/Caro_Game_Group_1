@@ -155,26 +155,24 @@ void renderHint(sf::RenderWindow& window, int row, int col) {
 void renderWinLine(sf::RenderWindow& window, const WinLine& winLine) {
     if (winLine.count < WIN_COUNT) return;
 
-    sf::Vector2f start = renderBoardToPixel(winLine.positions[0][0],
-        winLine.positions[0][1]);
-    sf::Vector2f end = renderBoardToPixel(winLine.positions[WIN_COUNT - 1][0],
-        winLine.positions[WIN_COUNT - 1][1]);
+    // Duyệt qua từng tọa độ của 5 quân chiến thắng
+    for (int i = 0; i < WIN_COUNT; i++) {
+        int r = winLine.positions[i][0];
+        int c = winLine.positions[i][1];
 
-    sf::RectangleShape line;
-    sf::Vector2f diff = end - start;
-    float length = std::sqrt(diff.x * diff.x + diff.y * diff.y);
-    line.setSize(sf::Vector2f(length, 6.f));
-    line.setOrigin(0.f, 3.f);
-    line.setPosition(start);
-    line.setFillColor(COLOR_WIN_LINE);
+        // Tạo một hình vuông vừa vặn với ô cờ (trừ đi 2 pixel để không đè mất lưới bàn cờ)
+        sf::RectangleShape cellBg(sf::Vector2f(CELL_SIZE - 2.f, CELL_SIZE - 2.f));
+        cellBg.setOrigin((CELL_SIZE - 2.f) / 2.f, (CELL_SIZE - 2.f) / 2.f);
 
-    // Xoay duong thang theo dung huong
-    float angle = std::atan2(diff.y, diff.x) * 180.f / 3.14159f;
-    line.setRotation(angle);
+        // Lấy tọa độ tâm của ô cờ
+        cellBg.setPosition(renderBoardToPixel(r, c));
 
-    window.draw(line);
+        // Tô màu nền: Vàng sáng với độ trong suốt (Alpha = 150) để chữ X/O vẫn nổi bật
+        cellBg.setFillColor(sf::Color(255, 255, 0, 150));
+
+        window.draw(cellBg);
+    }
 }
-
 
 
 
@@ -483,7 +481,7 @@ void renderGameOver(sf::RenderWindow& window, const GameState& state,
 
     // Vẫn giữ overlay làm mờ bàn cờ
     sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-    overlay.setFillColor(sf::Color(0, 0, 0, 150));
+    overlay.setFillColor(sf::Color(0, 0, 0, 100));
     window.draw(overlay);
 
     float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + 40.f;

@@ -338,7 +338,7 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                 }
 
                 // FIX: Trả thẳng về màn hình Game Over ngay lập tức!
-                return handleGameOver(window, res, state, result);
+                return handleGameOver(window, res, state, result, winLine);
             }
 
             // --- KIỂM TRA HẾT GIỜ CẢ VÁN ---
@@ -351,7 +351,7 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                     result = RESULT_DRAW;
 
                 // FIX: Trả thẳng về màn hình Game Over ngay lập tức!
-                return handleGameOver(window, res, state, result);
+                return handleGameOver(window, res, state, result, winLine);
             }
         }
 
@@ -420,7 +420,8 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
 
             // Nhan bat ky phim nao khi da ket thuc → chuyen sang GameOver
             if (event.type == sf::Event::KeyPressed && result != RESULT_NONE) {
-                return handleGameOver(window, res, state, result);
+                // Truyền thêm &winLine vào đây
+                return handleGameOver(window, res, state, result, winLine);
             }
         }
 
@@ -487,7 +488,7 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
 // ============================================================
 
 GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
-    GameState& state, GameResult result) {
+    GameState& state, GameResult result, const WinLine& winLine) {
     int menuIndex = 0; // 0 = Yes (choi tiep), 1 = No (ve menu)
 
     while (window.isOpen()) {
@@ -524,7 +525,7 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
             }
         }
 
-        renderGameplay(window, state, res, nullptr, -1, -1, false);
+        renderGameplay(window, state, res, (result != RESULT_DRAW) ? &winLine : nullptr, -1, -1, false);
         renderGameOver(window, state, res, result, menuIndex);
         window.display();
     }
