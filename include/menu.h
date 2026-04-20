@@ -54,9 +54,9 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
 
 // Xu ly man hinh ket thuc van
 // Tra ve: GameScreen (choi tiep, ve menu, ...)
+// menu.h
 GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
-                          GameState& state, GameResult result);
-
+    GameState& state, GameResult result, const WinLine& winLine);
 // ============================================================
 // XU LY SAVE / LOAD / SETTINGS
 // ============================================================

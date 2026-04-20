@@ -28,8 +28,8 @@
 #define WIN_COUNT       5           // So quan lien tiep de thang
 
 // Thoi gian (giay)
-#define MAX_GAME_TIME   300         // 5 phut moi van
-#define MAX_TURN_TIME   15          // 15 giay moi luot
+#define MAX_GAME_TIME   600         // 10 phut moi van
+#define MAX_TURN_TIME   20          // 20 giay moi luot
 
 // Mau sac (SFML Colors) - Theme mac dinh
 #define COLOR_BACKGROUND    sf::Color(245, 222, 179)    // Wheat - nen chinh

@@ -322,22 +322,36 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
         float deltaTime = clock.restart().asSeconds();
 
         // Cap nhat timer (che do Speed)
+ // Cap nhat timer (che do Speed)
         if (state.style == STYLE_SPEED && result == RESULT_NONE) {
             timerUpdate(state.timer, deltaTime);
 
+            // --- XỬ LÝ HẾT GIỜ LƯỢT NÀY ---
             if (timerIsTurnExpired(state.timer)) {
-                boardSwitchTurn(state);
-                timerResetTurn(state.timer);
+                if (state.isPlayer1Turn) {
+                    result = RESULT_PLAYER2_WIN; // P1 hết giờ -> P2 thắng
+                    state.player2.totalWins++;
+                }
+                else {
+                    result = RESULT_PLAYER1_WIN; // P2 hết giờ -> P1 thắng
+                    state.player1.totalWins++;
+                }
+
+                // FIX: Trả thẳng về màn hình Game Over ngay lập tức!
+                return handleGameOver(window, res, state, result, winLine);
             }
 
-            if (timerIsGameExpired(state.timer)) {
-                // Het gio: ai di nhieu hon thi thua
+            // --- KIỂM TRA HẾT GIỜ CẢ VÁN ---
+            if (timerIsGameExpired(state.timer) && result == RESULT_NONE) {
                 if (state.player1.moves > state.player2.moves)
                     result = RESULT_PLAYER2_WIN;
                 else if (state.player2.moves > state.player1.moves)
                     result = RESULT_PLAYER1_WIN;
                 else
                     result = RESULT_DRAW;
+
+                // FIX: Trả thẳng về màn hình Game Over ngay lập tức!
+                return handleGameOver(window, res, state, result, winLine);
             }
         }
 
@@ -406,7 +420,8 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
 
             // Nhan bat ky phim nao khi da ket thuc → chuyen sang GameOver
             if (event.type == sf::Event::KeyPressed && result != RESULT_NONE) {
-                return handleGameOver(window, res, state, result);
+                // Truyền thêm &winLine vào đây
+                return handleGameOver(window, res, state, result, winLine);
             }
         }
 
@@ -473,7 +488,7 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
 // ============================================================
 
 GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
-    GameState& state, GameResult result) {
+    GameState& state, GameResult result, const WinLine& winLine) {
     int menuIndex = 0; // 0 = Yes (choi tiep), 1 = No (ve menu)
 
     while (window.isOpen()) {
@@ -510,7 +525,7 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
             }
         }
 
-        renderGameplay(window, state, res, nullptr, -1, -1, false);
+        renderGameplay(window, state, res, (result != RESULT_DRAW) ? &winLine : nullptr, -1, -1, false);
         renderGameOver(window, state, res, result, menuIndex);
         window.display();
     }

@@ -69,7 +69,7 @@ bool renderLoadResources(GameResources& res) {
 
     res.bgMusic.openFromFile("../assets/sounds/bgm.ogg");
 
-    return true;  
+    return true;
 }
 
 
@@ -100,28 +100,38 @@ void renderBoard(sf::RenderWindow& window, const GameResources& res) {
 // Ve cac quan co da danh
 void renderPieces(sf::RenderWindow& window, const GameState& state,
     const GameResources& res) {
-    float radius = CELL_SIZE / 2.f - 4.f;  // Bán kính quân cờ, chừa lề 4px
+
+    int fontSize = (int)(CELL_SIZE - 10.f);
 
     for (int r = 0; r < BOARD_SIZE; r++) {
         for (int c = 0; c < BOARD_SIZE; c++) {
             int val = state.board[r][c].value;
-            if (val == 0) continue;  // O trong, bo qua
+            if (val == 0) continue;
 
-            sf::CircleShape piece(radius);
-            piece.setOrigin(radius, radius);  // Goc o tam
+            sf::Text pieceText;
+            pieceText.setFont(res.mainFont);
+            pieceText.setCharacterSize(fontSize);
+
+            if (val == -1) {
+                pieceText.setString("X");
+                pieceText.setFillColor(COLOR_PLAYER_X);  // Do - Player 1
+            }
+            else {
+                pieceText.setString("O");
+                pieceText.setFillColor(COLOR_PLAYER_O);  // Xanh - Player 2
+            }
+
+            sf::FloatRect bounds = pieceText.getLocalBounds();
+            pieceText.setOrigin(bounds.left + bounds.width / 2.f,
+                bounds.top + bounds.height / 2.f);
+
             sf::Vector2f pos = renderBoardToPixel(r, c);
-            piece.setPosition(pos);
+            pieceText.setPosition(pos);
 
-            if (val == -1)
-                piece.setFillColor(COLOR_PLAYER_X);  // Do - Player 1
-            else
-                piece.setFillColor(COLOR_PLAYER_O);  // Xanh - Player 2
-
-            window.draw(piece);
+            window.draw(pieceText);
         }
     }
 }
-
 // Ve highlight o cursor dang chon
 void renderCursor(sf::RenderWindow& window, int row, int col) {
     sf::RectangleShape cell(sf::Vector2f(CELL_SIZE - 2.f, CELL_SIZE - 2.f));
@@ -132,7 +142,7 @@ void renderCursor(sf::RenderWindow& window, int row, int col) {
     window.draw(cell);
 }
 
-// Ve highlight goi y (hint) - mau khac cursor
+
 void renderHint(sf::RenderWindow& window, int row, int col) {
     sf::CircleShape hint(CELL_SIZE / 2.f - 8.f);
     hint.setOrigin(CELL_SIZE / 2.f - 8.f, CELL_SIZE / 2.f - 8.f);
@@ -142,51 +152,44 @@ void renderHint(sf::RenderWindow& window, int row, int col) {
     window.draw(hint);
 }
 
-// Ve duong thang noi 5 quan
 void renderWinLine(sf::RenderWindow& window, const WinLine& winLine) {
     if (winLine.count < WIN_COUNT) return;
 
-    // Lay diem dau va cuoi
-    sf::Vector2f start = renderBoardToPixel(winLine.positions[0][0],
-        winLine.positions[0][1]);
-    sf::Vector2f end = renderBoardToPixel(winLine.positions[WIN_COUNT - 1][0],
-        winLine.positions[WIN_COUNT - 1][1]);
+    // Duyệt qua từng tọa độ của 5 quân chiến thắng
+    for (int i = 0; i < WIN_COUNT; i++) {
+        int r = winLine.positions[i][0];
+        int c = winLine.positions[i][1];
 
-    // Ve duong thang day
-    sf::RectangleShape line;
-    sf::Vector2f diff = end - start;
-    float length = std::sqrt(diff.x * diff.x + diff.y * diff.y);
-    line.setSize(sf::Vector2f(length, 6.f));  // Dai = khoang cach, day 6px
-    line.setOrigin(0.f, 3.f);                 // Can giua theo chieu doc
-    line.setPosition(start);
-    line.setFillColor(COLOR_WIN_LINE);
+        // Tạo một hình vuông vừa vặn với ô cờ (trừ đi 2 pixel để không đè mất lưới bàn cờ)
+        sf::RectangleShape cellBg(sf::Vector2f(CELL_SIZE - 2.f, CELL_SIZE - 2.f));
+        cellBg.setOrigin((CELL_SIZE - 2.f) / 2.f, (CELL_SIZE - 2.f) / 2.f);
 
-    // Xoay duong thang theo dung huong
-    float angle = std::atan2(diff.y, diff.x) * 180.f / 3.14159f;
-    line.setRotation(angle);
+        // Lấy tọa độ tâm của ô cờ
+        cellBg.setPosition(renderBoardToPixel(r, c));
 
-    window.draw(line);
+        // Tô màu nền: Vàng sáng với độ trong suốt (Alpha = 150) để chữ X/O vẫn nổi bật
+        cellBg.setFillColor(sf::Color(255, 255, 0, 150));
+
+        window.draw(cellBg);
+    }
 }
 
 
 
-
 // VE PLAYER PANEL
-
 void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
     const GameResources& res) {
-    float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + 40.f;  // X = 680
-    float panelW = WINDOW_WIDTH - panelX - 20.f;                     // Chieu rong panel
+    float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + 40.f;
+    float panelW = WINDOW_WIDTH - panelX - 20.f;
 
-    // --- Ve khung 2 nguoi choi ---
     for (int i = 0; i < 2; i++) {
         const Player& p = (i == 0) ? state.player1 : state.player2;
         bool isActive = (i == 0) ? state.isPlayer1Turn : !state.isPlayer1Turn;
         sf::Color pieceColor = (i == 0) ? COLOR_PLAYER_X : COLOR_PLAYER_O;
 
-        float boxY = 80.f + i * 200.f;  // P1 o tren, P2 o duoi
+        // FIX: Đẩy Player 1 lên 60.f (bằng mép trên bàn cờ). Khoảng cách 2 khung là 190.f
+        float boxY = 60.f + i * 190.f;
 
-        // Nen khung nguoi choi
         sf::RectangleShape box(sf::Vector2f(panelW, 170.f));
         box.setPosition(panelX, boxY);
         box.setFillColor(isActive ? sf::Color(60, 80, 100) : sf::Color(40, 55, 70));
@@ -194,14 +197,19 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
         box.setOutlineColor(isActive ? pieceColor : sf::Color(100, 100, 100));
         window.draw(box);
 
-        // Quan co mau
-        sf::CircleShape dot(12.f);
-        dot.setOrigin(12.f, 12.f);
-        dot.setPosition(panelX + 25.f, boxY + 30.f);
-        dot.setFillColor(pieceColor);
-        window.draw(dot);
+        // Chữ X/O
+        sf::Text pieceIcon;
+        pieceIcon.setFont(res.mainFont);
+        pieceIcon.setString((i == 0) ? "X" : "O");
+        pieceIcon.setCharacterSize(28);
+        pieceIcon.setFillColor(pieceColor);
 
-        // Ten nguoi choi
+        sf::FloatRect bounds = pieceIcon.getLocalBounds();
+        pieceIcon.setOrigin(bounds.left + bounds.width / 2.f,
+            bounds.top + bounds.height / 2.f);
+        pieceIcon.setPosition(panelX + 25.f, boxY + 30.f);
+        window.draw(pieceIcon);
+
         sf::Text nameText;
         nameText.setFont(res.mainFont);
         nameText.setString(p.name.empty() ? (i == 0 ? "Player 1" : "Player 2") : p.name);
@@ -210,7 +218,6 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
         nameText.setPosition(panelX + 50.f, boxY + 18.f);
         window.draw(nameText);
 
-        // So nuoc di
         sf::Text movesText;
         movesText.setFont(res.mainFont);
         movesText.setString("Nuoc di: " + std::to_string(p.moves));
@@ -219,7 +226,6 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
         movesText.setPosition(panelX + 15.f, boxY + 65.f);
         window.draw(movesText);
 
-        // So van thang
         sf::Text winsText;
         winsText.setFont(res.mainFont);
         winsText.setString("Thang: " + std::to_string(p.totalWins));
@@ -228,7 +234,6 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
         winsText.setPosition(panelX + 15.f, boxY + 95.f);
         window.draw(winsText);
 
-        // Nhan "LUOT CUA BAN" neu dang active
         if (isActive) {
             renderTextCentered(window, res.mainFont, ">>> LUOT CUA BAN <<<",
                 14, panelX + panelW / 2.f, boxY + 140.f,
@@ -241,33 +246,34 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
 // VE TIMER
 
 // Thanh dem gio luot hien tai (progress bar)
+// 2. CHỈNH THANH TIMER (Đổi màu chữ "THOI GIAN LUOT")
 void renderTurnTimer(sf::RenderWindow& window, const GameResources& res,
     float percentage) {
     float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + 40.f;
     float panelW = WINDOW_WIDTH - panelX - 20.f;
-    float barY = 490.f;
+
+    float barY = 450.f;
     float barH = 24.f;
 
-    // Nen xam
     sf::RectangleShape bg(sf::Vector2f(panelW, barH));
     bg.setPosition(panelX, barY);
     bg.setFillColor(sf::Color(60, 60, 60));
     window.draw(bg);
 
-    // Thanh con lai - doi mau khi sap het gio
     sf::Color barColor = (percentage > 0.3f) ? COLOR_TIMER_BAR : COLOR_TIMER_LOW;
     sf::RectangleShape bar(sf::Vector2f(panelW * percentage, barH));
     bar.setPosition(panelX, barY);
     bar.setFillColor(barColor);
     window.draw(bar);
 
-    // Label
+    // FIX: Đổi màu chữ thành xám đậm (40, 40, 40) thay vì (200, 200, 200)
     renderTextCentered(window, res.mainFont, "THOI GIAN LUOT",
         13, panelX + panelW / 2.f, barY - 14.f,
-        sf::Color(200, 200, 200));
+        sf::Color(40, 40, 40));
 }
 
-// Hien thi thoi gian van con lai
+
+// 3. CHỈNH TEXT THỜI GIAN VÁN (Đổi màu chữ "Thoi gian van")
 void renderGameTimer(sf::RenderWindow& window, const GameResources& res,
     float secondsLeft) {
     float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + 40.f;
@@ -279,12 +285,11 @@ void renderGameTimer(sf::RenderWindow& window, const GameResources& res,
     char buf[16];
     snprintf(buf, sizeof(buf), "%02d:%02d", mins, secs);
 
+    // FIX: Đổi màu chữ thành xám đậm (40, 40, 40) thay vì White
     renderTextCentered(window, res.mainFont, "Thoi gian van: " + std::string(buf),
-        16, panelX + panelW / 2.f, 545.f,
-        sf::Color::White);
+        16, panelX + panelW / 2.f, 505.f,
+        sf::Color(40, 40, 40));
 }
-
-
 // VE MENU
 
 // Ham noi bo: ve 1 menu chung (tieu de + danh sach lua chon)
@@ -469,14 +474,22 @@ void renderGameplay(sf::RenderWindow& window, const GameState& state,
 
 
 // VE MAN HINH KET THUC
-
+// VE MAN HINH KET THUC (Đã dời xuống để không đè timer)
 void renderGameOver(sf::RenderWindow& window, const GameState& state,
     const GameResources& res, GameResult result,
     int menuIndex) {
-    // Overlay toi
+
+    // Vẫn giữ overlay làm mờ bàn cờ
     sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-    overlay.setFillColor(sf::Color(0, 0, 0, 180));
+    overlay.setFillColor(sf::Color(0, 0, 0, 100));
     window.draw(overlay);
+
+    float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + 40.f;
+    float panelW = WINDOW_WIDTH - panelX - 20.f;
+
+    float centerX = panelX + panelW / 2.f;
+    // Nhích lên xíu cho vừa vặn với khoảng trống mới
+    float startY = 550.f;
 
     TextStrings txt = langGetText(langGetCurrent());
 
@@ -496,26 +509,28 @@ void renderGameOver(sf::RenderWindow& window, const GameState& state,
         resultColor = sf::Color::Yellow;
     }
 
-    renderTextCentered(window, res.titleFont, resultStr, 42,
-        WINDOW_WIDTH / 2.f, 250.f, resultColor);
+    // Tên người thắng
+    renderTextCentered(window, res.titleFont, resultStr, 34,
+        centerX, startY, resultColor);
 
-    // Thong ke
+    // Thong ke (Tỉ số) - Ép khoảng cách lại còn 40.f (thay vì 45.f)
     std::string stats = state.player1.name + " " + std::to_string(state.player1.totalWins)
         + "  -  "
         + std::to_string(state.player2.totalWins) + " " + state.player2.name;
-    renderTextCentered(window, res.mainFont, stats, 22,
-        WINDOW_WIDTH / 2.f, 330.f, sf::Color::White);
+    renderTextCentered(window, res.mainFont, stats, 20,
+        centerX, startY + 40.f, sf::Color::White);
 
-    // Lua chon tiep
+    // Lua chon tiep (Play again?) - Ép khoảng cách lại còn 75.f
     std::string items[] = { txt.yes, txt.no };
-    renderTextCentered(window, res.mainFont, txt.continueText, 20,
-        WINDOW_WIDTH / 2.f, 410.f, sf::Color(200, 200, 200));
+    renderTextCentered(window, res.mainFont, txt.continueText, 18,
+        centerX, startY + 75.f, sf::Color(200, 200, 200));
 
+    // Nút Yes / No - Ép khoảng cách lại còn 110.f
     for (int i = 0; i < 2; i++) {
         bool selected = (i == menuIndex);
         renderTextCentered(window, res.mainFont, items[i],
-            selected ? 26 : 22,
-            WINDOW_WIDTH / 2.f - 80.f + i * 160.f, 470.f,
+            selected ? 24 : 20,
+            centerX - 50.f + i * 100.f, startY + 110.f,
             selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT);
     }
 }
