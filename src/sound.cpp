@@ -1,4 +1,11 @@
 #include "sound.h"
+#include "language.h"
+#include <fstream>
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
+static const std::string SETTINGS_FILE = "../saves/settings.txt";
 
 // ============================================================
 // BIEN STATIC NOI BO
@@ -62,3 +69,48 @@ void soundPlayDraw(GameResources& res)   { playSfx(res.drawSfx); }
 
 void soundSetSFXEnabled(bool enabled) { sfxEnabled = enabled; }
 bool soundIsSFXEnabled() { return sfxEnabled; }
+int soundGetBGMVolume() { return bgmVolume; }
+
+// ============================================================
+// LUU / TAI SETTINGS
+// ============================================================
+void settingsLoad(GameResources& res) {
+    std::ifstream f(SETTINGS_FILE);
+    if (!f.is_open()) return;
+
+    std::string line;
+    while (std::getline(f, line)) {
+        size_t eq = line.find('=');
+        if (eq == std::string::npos) continue;
+        std::string key = line.substr(0, eq);
+        std::string val = line.substr(eq + 1);
+
+        try {
+            if (key == "language") {
+                langSetCurrent((Language)std::stoi(val));
+            }
+            else if (key == "bgm_volume") {
+                soundSetBGMVolume(res, std::stoi(val));
+            }
+            else if (key == "sfx_enabled") {
+                soundSetSFXEnabled(std::stoi(val) == 1);
+            }
+        }
+        catch (...) { /* bo qua line loi */ }
+    }
+}
+
+void settingsSave() {
+    // Dam bao thu muc saves/ ton tai
+    try {
+        fs::create_directories("../saves");
+    }
+    catch (...) {}
+
+    std::ofstream f(SETTINGS_FILE);
+    if (!f.is_open()) return;
+
+    f << "language=" << (int)langGetCurrent() << "\n";
+    f << "bgm_volume=" << bgmVolume << "\n";
+    f << "sfx_enabled=" << (sfxEnabled ? 1 : 0) << "\n";
+}

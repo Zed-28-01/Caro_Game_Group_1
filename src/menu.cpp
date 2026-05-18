@@ -329,8 +329,16 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
     bool showHint = false;
     int hintRow = -1, hintCol = -1;
 
-    // ===== BOT DI TRUOC NEU LA LUOT CUA BOT (vd: van 2+ trong PvC) =====
-    if (state.mode == MODE_PVC && !state.isPlayer1Turn) {
+    // Bien cho animation dat quan (POLISH)
+    int lastPlaceRow = -1, lastPlaceCol = -1;
+    float placeAnimTimer = 999.0f; // 999 = khong co animation dang chay
+    const float PLACE_ANIM_DURATION = 0.2f;
+
+    // ============================================================
+    // HELPER LAMBDA: Bot di 1 nuoc + check ket qua
+    // ============================================================
+    auto doBotMove = [&]() {
+        // Render frame "dang nghi" de nguoi thay
         renderGameplay(window, state, res, nullptr, -1, -1, false);
         window.display();
 
@@ -341,6 +349,8 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
 
         if (boardPlacePiece(state, botRow, botCol)) {
             soundPlayPlace(res);
+            lastPlaceRow = botRow; lastPlaceCol = botCol; placeAnimTimer = 0.0f;
+
             result = boardEvaluateResult(state, botRow, botCol, winLine);
             if (result != RESULT_NONE) {
                 if (result == RESULT_PLAYER1_WIN) state.player1.totalWins++;
@@ -353,29 +363,66 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                 if (state.style == STYLE_SPEED) timerResetTurn(state.timer);
             }
         }
+    };
+
+    // ============================================================
+    // HELPER LAMBDA: Nguoi choi dat quan tai (row, col)
+    // Goi tu ca phim Enter va Mouse Click
+    // ============================================================
+    auto doPlayerPlace = [&](int row, int col) {
+        if (result != RESULT_NONE) return;
+        if (boardPlacePiece(state, row, col)) {
+            soundPlayPlace(res);
+            showHint = false;
+            lastPlaceRow = row; lastPlaceCol = col; placeAnimTimer = 0.0f;
+
+            result = boardEvaluateResult(state, row, col, winLine);
+            if (result != RESULT_NONE) {
+                if (result == RESULT_PLAYER1_WIN) state.player1.totalWins++;
+                else if (result == RESULT_PLAYER2_WIN) state.player2.totalWins++;
+                if (result == RESULT_DRAW) soundPlayDraw(res);
+                else soundPlayWin(res);
+            }
+            else {
+                boardSwitchTurn(state);
+                if (state.style == STYLE_SPEED) timerResetTurn(state.timer);
+
+                // Bot phan ung neu PvC
+                if (state.mode == MODE_PVC && !state.isPlayer1Turn) {
+                    doBotMove();
+                }
+            }
+        }
+    };
+
+    // ===== BOT DI TRUOC NEU LA LUOT CUA BOT (vd: van 2+ trong PvC) =====
+    if (state.mode == MODE_PVC && !state.isPlayer1Turn) {
+        doBotMove();
     }
 
     while (window.isOpen()) {
         float deltaTime = clock.restart().asSeconds();
 
+        // Update animation timer
+        if (placeAnimTimer < PLACE_ANIM_DURATION)
+            placeAnimTimer += deltaTime;
+
         // Cap nhat timer (che do Speed)
- // Cap nhat timer (che do Speed)
         if (state.style == STYLE_SPEED && result == RESULT_NONE) {
             timerUpdate(state.timer, deltaTime);
 
             // --- XỬ LÝ HẾT GIỜ LƯỢT NÀY ---
             if (timerIsTurnExpired(state.timer)) {
                 if (state.isPlayer1Turn) {
-                    result = RESULT_PLAYER2_WIN; // P1 hết giờ -> P2 thắng
+                    result = RESULT_PLAYER2_WIN;
                     state.player2.totalWins++;
                 }
                 else {
-                    result = RESULT_PLAYER1_WIN; // P2 hết giờ -> P1 thắng
+                    result = RESULT_PLAYER1_WIN;
                     state.player1.totalWins++;
                 }
 
                 soundPlayWin(res);
-                // FIX: Trả thẳng về màn hình Game Over ngay lập tức!
                 return handleGameOver(window, res, state, result, winLine);
             }
 
@@ -390,7 +437,6 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
 
                 if (result == RESULT_DRAW) soundPlayDraw(res);
                 else soundPlayWin(res);
-                // FIX: Trả thẳng về màn hình Game Over ngay lập tức!
                 return handleGameOver(window, res, state, result, winLine);
             }
         }
@@ -400,6 +446,33 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            // ===== MOUSE SUPPORT =====
+            // Hover: di cursor theo chuot
+            if (event.type == sf::Event::MouseMoved && result == RESULT_NONE) {
+                int r, c;
+                if (renderPixelToBoard((float)event.mouseMove.x,
+                    (float)event.mouseMove.y, r, c)) {
+                    state.cursorRow = r;
+                    state.cursorCol = c;
+                }
+            }
+
+            // Click trai: dat quan
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Left
+                && result == RESULT_NONE) {
+                int r, c;
+                if (renderPixelToBoard((float)event.mouseButton.x,
+                    (float)event.mouseButton.y, r, c)) {
+                    doPlayerPlace(r, c);
+                }
+            }
+
+            // Click khi da ket thuc → chuyen GameOver
+            if (event.type == sf::Event::MouseButtonPressed && result != RESULT_NONE) {
+                return handleGameOver(window, res, state, result, winLine);
+            }
 
             if (event.type == sf::Event::KeyPressed && result == RESULT_NONE) {
                 switch (event.key.code) {
@@ -415,51 +488,7 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
 
                     // Dat quan
                 case sf::Keyboard::Enter:
-                    if (boardPlacePiece(state, state.cursorRow, state.cursorCol)) {
-                        soundPlayPlace(res);
-                        showHint = false;
-                        result = boardEvaluateResult(state, state.cursorRow,
-                            state.cursorCol, winLine);
-                        if (result != RESULT_NONE) {
-                            if (result == RESULT_PLAYER1_WIN)
-                                state.player1.totalWins++;
-                            else if (result == RESULT_PLAYER2_WIN)
-                                state.player2.totalWins++;
-                            if (result == RESULT_DRAW) soundPlayDraw(res);
-                            else soundPlayWin(res);
-                        }
-                        else {
-                            boardSwitchTurn(state);
-                            if (state.style == STYLE_SPEED)
-                                timerResetTurn(state.timer);
-                            // ===== BOT TURN (PvC) =====
-                            if (state.mode == MODE_PVC && !state.isPlayer1Turn) {
-                                // Ve frame "dang nghi" de nguoi thay
-                                renderGameplay(window, state, res, nullptr, -1, -1, false);
-                                window.display();
-
-                                int botRow, botCol;
-                                botGetMove(state, state.difficulty, botRow, botCol);
-                                state.cursorRow = botRow;
-                                state.cursorCol = botCol;
-
-                                if (boardPlacePiece(state, botRow, botCol)) {
-                                    soundPlayPlace(res);
-                                    result = boardEvaluateResult(state, botRow, botCol, winLine);
-                                    if (result != RESULT_NONE) {
-                                        if (result == RESULT_PLAYER1_WIN) state.player1.totalWins++;
-                                        else if (result == RESULT_PLAYER2_WIN) state.player2.totalWins++;
-                                        if (result == RESULT_DRAW) soundPlayDraw(res);
-                                        else soundPlayWin(res);
-                                    }
-                                    else {
-                                        boardSwitchTurn(state);
-                                        if (state.style == STYLE_SPEED) timerResetTurn(state.timer);
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    doPlayerPlace(state.cursorRow, state.cursorCol);
                     break;
 
                     // Undo
@@ -495,7 +524,7 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                         timerResume(state.timer);
 
                     if (pauseResult != SCREEN_PLAYING) return pauseResult;
-                    clock.restart(); // Reset clock sau khi pause
+                    clock.restart();
                     break;
                 }
 
@@ -503,9 +532,8 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                 }
             }
 
-            // Nhan bat ky phim nao khi da ket thuc → chuyen sang GameOver
+            // Nhan bat ky phim nao khi da ket thuc → chuyen GameOver
             if (event.type == sf::Event::KeyPressed && result != RESULT_NONE) {
-                // Truyền thêm &winLine vào đây
                 return handleGameOver(window, res, state, result, winLine);
             }
         }
@@ -514,6 +542,14 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
         renderGameplay(window, state, res,
             (result != RESULT_NONE) ? &winLine : nullptr,
             hintRow, hintCol, showHint);
+
+        // ===== PLACE ANIMATION =====
+        if (placeAnimTimer < PLACE_ANIM_DURATION && lastPlaceRow >= 0) {
+            float progress = placeAnimTimer / PLACE_ANIM_DURATION;
+            int player = state.board[lastPlaceRow][lastPlaceCol].value;
+            renderPlaceEffect(window, lastPlaceRow, lastPlaceCol, player, progress);
+        }
+
         window.display();
     }
     return SCREEN_MAIN_MENU;
@@ -791,9 +827,9 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
 
 GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
     int menuIndex = 0;
-    // STATIC → giu gia tri giua cac lan vao Settings
-    static int volume = 50;
-    static bool sfxOn = true;
+    // Doc gia tri hien tai tu sound module (da load tu file lúc khoi dong)
+    int volume = soundGetBGMVolume();
+    bool sfxOn = soundIsSFXEnabled();
 
     while (window.isOpen()) {
         sf::Event event;
@@ -813,10 +849,14 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
                     break;
                 case sf::Keyboard::Enter:
                     soundPlaySelect(res);
-                    if (menuIndex == 0) langToggle();         // Doi ngon ngu
+                    if (menuIndex == 0) {
+                        langToggle();
+                        settingsSave();           // Persist language
+                    }
                     if (menuIndex == 2) {
-                        sfxOn = !sfxOn;                       // Toggle SFX
+                        sfxOn = !sfxOn;
                         soundSetSFXEnabled(sfxOn);
+                        settingsSave();           // Persist SFX
                     }
                     if (menuIndex == 3) return SCREEN_MAIN_MENU; // Back
                     break;
@@ -824,12 +864,14 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
                     if (menuIndex == 1 && volume > 0) {
                         volume -= 10;
                         soundSetBGMVolume(res, volume);
+                        settingsSave();           // Persist volume
                     }
                     break;
                 case sf::Keyboard::Right:
                     if (menuIndex == 1 && volume < 100) {
                         volume += 10;
                         soundSetBGMVolume(res, volume);
+                        settingsSave();           // Persist volume
                     }
                     break;
                 case sf::Keyboard::Escape:

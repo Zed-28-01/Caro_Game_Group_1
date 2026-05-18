@@ -1,5 +1,6 @@
 ﻿#include "menu.h"
 #include "render.h"
+#include "sound.h"
 #include <cstdlib>
 #include <ctime>
 
@@ -16,6 +17,9 @@ int main() {
     if (!renderLoadResources(res)) {
         return -1; // Khong load duoc font → thoat
     }
+
+    // Load settings (language, volume, sfx) tu file - phai goi SAU loadResources
+    settingsLoad(res);
 
     gameRun(window, res);
 

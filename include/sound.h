@@ -47,4 +47,19 @@ void soundSetSFXEnabled(bool enabled);
 // Kiem tra hieu ung am thanh co bat khong
 bool soundIsSFXEnabled();
 
+// Lay am luong BGM hien tai (0-100)
+int soundGetBGMVolume();
+
+// ============================================================
+// LUU / TAI SETTINGS (persist giua cac lan chay game)
+// ============================================================
+
+// Doc settings.txt va apply vao language/sound modules
+// Goi 1 lan trong main() sau khi loadResources
+void settingsLoad(GameResources& res);
+
+// Ghi settings hien tai (language, bgm volume, sfx on/off) ra file
+// Goi sau moi lan user thay doi trong Settings menu
+void settingsSave();
+
 #endif // SOUND_H
