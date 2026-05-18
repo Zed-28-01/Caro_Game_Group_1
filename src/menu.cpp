@@ -3,12 +3,19 @@
 #include "render.h"
 #include "timer.h"
 #include "language.h"
+#include "bot.h"
+#include "save_load.h"
+#include "sound.h"
 
 
 // GAME LOOP CHINH
 void gameRun(sf::RenderWindow& window, GameResources& res) {
     GameState state;
     boardResetAll(state);
+
+    // Khoi tao am thanh + phat nhac nen
+    soundLoadAll(res);
+    soundPlayBGM(res, true);
 
     GameScreen currentScreen = SCREEN_MAIN_MENU;
 
@@ -83,6 +90,7 @@ GameScreen handleMainMenu(sf::RenderWindow& window, GameResources& res,
                     menuIndex = (menuIndex + 1) % MENU_COUNT;
                     break;
                 case sf::Keyboard::Enter:
+                    soundPlaySelect(res);
                     switch (menuIndex) {
                     case 0: return SCREEN_MODE_SELECT;   // New Game
                     case 1: return SCREEN_LOAD;           // Load Game
@@ -129,6 +137,7 @@ GameScreen handleModeSelect(sf::RenderWindow& window, GameResources& res,
                     menuIndex = (menuIndex + 1) % MENU_COUNT;
                     break;
                 case sf::Keyboard::Enter:
+                    soundPlaySelect(res);
                     if (menuIndex == 0) {
                         state.mode = MODE_PVP;
                         return SCREEN_STYLE_SELECT;
@@ -178,6 +187,7 @@ GameScreen handleDifficultySelect(sf::RenderWindow& window, GameResources& res,
                     menuIndex = (menuIndex + 1) % MENU_COUNT;
                     break;
                 case sf::Keyboard::Enter:
+                    soundPlaySelect(res);
                     if (menuIndex == 0) { state.difficulty = BOT_EASY;   return SCREEN_STYLE_SELECT; }
                     if (menuIndex == 1) { state.difficulty = BOT_MEDIUM; return SCREEN_STYLE_SELECT; }
                     if (menuIndex == 2) { state.difficulty = BOT_HARD;   return SCREEN_STYLE_SELECT; }
@@ -223,6 +233,7 @@ GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
                     menuIndex = (menuIndex + 1) % MENU_COUNT;
                     break;
                 case sf::Keyboard::Enter:
+                    soundPlaySelect(res);
                     if (menuIndex == 0) { state.style = STYLE_BASIC; return SCREEN_INPUT_NAMES; }
                     if (menuIndex == 1) { state.style = STYLE_SPEED; return SCREEN_INPUT_NAMES; }
                     if (menuIndex == 2) {
@@ -318,6 +329,32 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
     bool showHint = false;
     int hintRow = -1, hintCol = -1;
 
+    // ===== BOT DI TRUOC NEU LA LUOT CUA BOT (vd: van 2+ trong PvC) =====
+    if (state.mode == MODE_PVC && !state.isPlayer1Turn) {
+        renderGameplay(window, state, res, nullptr, -1, -1, false);
+        window.display();
+
+        int botRow, botCol;
+        botGetMove(state, state.difficulty, botRow, botCol);
+        state.cursorRow = botRow;
+        state.cursorCol = botCol;
+
+        if (boardPlacePiece(state, botRow, botCol)) {
+            soundPlayPlace(res);
+            result = boardEvaluateResult(state, botRow, botCol, winLine);
+            if (result != RESULT_NONE) {
+                if (result == RESULT_PLAYER1_WIN) state.player1.totalWins++;
+                else if (result == RESULT_PLAYER2_WIN) state.player2.totalWins++;
+                if (result == RESULT_DRAW) soundPlayDraw(res);
+                else soundPlayWin(res);
+            }
+            else {
+                boardSwitchTurn(state);
+                if (state.style == STYLE_SPEED) timerResetTurn(state.timer);
+            }
+        }
+    }
+
     while (window.isOpen()) {
         float deltaTime = clock.restart().asSeconds();
 
@@ -337,6 +374,7 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                     state.player1.totalWins++;
                 }
 
+                soundPlayWin(res);
                 // FIX: Trả thẳng về màn hình Game Over ngay lập tức!
                 return handleGameOver(window, res, state, result, winLine);
             }
@@ -350,6 +388,8 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                 else
                     result = RESULT_DRAW;
 
+                if (result == RESULT_DRAW) soundPlayDraw(res);
+                else soundPlayWin(res);
                 // FIX: Trả thẳng về màn hình Game Over ngay lập tức!
                 return handleGameOver(window, res, state, result, winLine);
             }
@@ -376,6 +416,7 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                     // Dat quan
                 case sf::Keyboard::Enter:
                     if (boardPlacePiece(state, state.cursorRow, state.cursorCol)) {
+                        soundPlayPlace(res);
                         showHint = false;
                         result = boardEvaluateResult(state, state.cursorRow,
                             state.cursorCol, winLine);
@@ -384,11 +425,39 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                                 state.player1.totalWins++;
                             else if (result == RESULT_PLAYER2_WIN)
                                 state.player2.totalWins++;
+                            if (result == RESULT_DRAW) soundPlayDraw(res);
+                            else soundPlayWin(res);
                         }
                         else {
                             boardSwitchTurn(state);
                             if (state.style == STYLE_SPEED)
                                 timerResetTurn(state.timer);
+                            // ===== BOT TURN (PvC) =====
+                            if (state.mode == MODE_PVC && !state.isPlayer1Turn) {
+                                // Ve frame "dang nghi" de nguoi thay
+                                renderGameplay(window, state, res, nullptr, -1, -1, false);
+                                window.display();
+
+                                int botRow, botCol;
+                                botGetMove(state, state.difficulty, botRow, botCol);
+                                state.cursorRow = botRow;
+                                state.cursorCol = botCol;
+
+                                if (boardPlacePiece(state, botRow, botCol)) {
+                                    soundPlayPlace(res);
+                                    result = boardEvaluateResult(state, botRow, botCol, winLine);
+                                    if (result != RESULT_NONE) {
+                                        if (result == RESULT_PLAYER1_WIN) state.player1.totalWins++;
+                                        else if (result == RESULT_PLAYER2_WIN) state.player2.totalWins++;
+                                        if (result == RESULT_DRAW) soundPlayDraw(res);
+                                        else soundPlayWin(res);
+                                    }
+                                    else {
+                                        boardSwitchTurn(state);
+                                        if (state.style == STYLE_SPEED) timerResetTurn(state.timer);
+                                    }
+                                }
+                            }
                         }
                     }
                     break;
@@ -398,6 +467,22 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                     boardUndo(state);
                     showHint = false;
                     break;
+
+                case sf::Keyboard::H:
+                    if (state.mode == MODE_PVC && state.isPlayer1Turn) {
+                        botGetHint(state, hintRow, hintCol);
+                        showHint = true;
+                    }
+                    break;
+
+                    // Save nhanh
+                case sf::Keyboard::L: {
+                    if (state.style == STYLE_SPEED) timerPause(state.timer);
+                    handleSaveScreen(window, res, state);
+                    if (state.style == STYLE_SPEED) timerResume(state.timer);
+                    clock.restart();
+                    break;
+                }
 
                     // Pause
                 case sf::Keyboard::Escape: {
@@ -461,6 +546,7 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
                     menuIndex = (menuIndex + 1) % 3;
                     break;
                 case sf::Keyboard::Enter:
+                    soundPlaySelect(res);
                     if (menuIndex == 0) return SCREEN_PLAYING;     // Resume
                     if (menuIndex == 1) {
                         handleSaveScreen(window, res, state);
@@ -508,6 +594,7 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
                     menuIndex = 1;
                     break;
                 case sf::Keyboard::Enter:
+                    soundPlaySelect(res);
                     if (menuIndex == 0) {
                         // Choi van tiep theo
                         boardResetRound(state);
@@ -533,39 +620,166 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
 }
 
 // ============================================================
-// SAVE / LOAD (don gian - chua co save_load.cpp)
+// SAVE SCREEN
 // ============================================================
 
 GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
-    // Tam thoi: hien thong bao roi quay lai
-    sf::Clock timer;
-    while (timer.getElapsedTime().asSeconds() < 1.5f && window.isOpen()) {
+    std::string saveList[MAX_SAVE_FILES];
+    int count = saveGetList(saveList, MAX_SAVE_FILES);
+    int selectedIndex = 0;
+    std::string inputName = "";
+    std::string message = "";
+    sf::Clock messageClock;
+
+    while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) window.close();
-            if (event.type == sf::Event::KeyPressed) return SCREEN_PLAYING;
+
+            if (event.type == sf::Event::KeyPressed) {
+                switch (event.key.code) {
+                case sf::Keyboard::Escape:
+                    return SCREEN_PLAYING; // Quay lai game
+
+                case sf::Keyboard::Up:
+                    if (selectedIndex > 0) selectedIndex--;
+                    break;
+                case sf::Keyboard::Down:
+                    if (selectedIndex < count - 1) selectedIndex++;
+                    break;
+
+                case sf::Keyboard::Enter:
+                    if (!inputName.empty()) {
+                        if (saveFileExists(inputName)) {
+                            message = "File da ton tai!";
+                        }
+                        else if (saveCountFiles() >= MAX_SAVE_FILES) {
+                            message = "Da dat gioi han 15 file!";
+                        }
+                        else if (saveGame(state, inputName)) {
+                            saveAddToList(inputName);
+                            message = "Luu thanh cong!";
+                            count = saveGetList(saveList, MAX_SAVE_FILES);
+                            inputName = "";
+                        }
+                        else {
+                            message = "Loi luu file!";
+                        }
+                        messageClock.restart();
+                    }
+                    break;
+
+                case sf::Keyboard::Delete:
+                    if (count > 0 && selectedIndex < count) {
+                        saveDeleteFile(saveList[selectedIndex]);
+                        count = saveGetList(saveList, MAX_SAVE_FILES);
+                        if (selectedIndex >= count && count > 0)
+                            selectedIndex = count - 1;
+                        message = "Da xoa file!";
+                        messageClock.restart();
+                    }
+                    break;
+
+                case sf::Keyboard::BackSpace:
+                    if (!inputName.empty()) inputName.pop_back();
+                    break;
+
+                default: break;
+                }
+            }
+
+            // Nhap ten file
+            if (event.type == sf::Event::TextEntered) {
+                if (event.text.unicode >= 32 && event.text.unicode < 128
+                    && event.text.unicode != '\r' && event.text.unicode != '\b') {
+                    char ch = static_cast<char>(event.text.unicode);
+                    // Loai bo ky tu khong hop le cho ten file Windows
+                    if (ch != '\\' && ch != '/' && ch != ':' && ch != '*'
+                        && ch != '?' && ch != '"' && ch != '<' && ch != '>'
+                        && ch != '|') {
+                        if (inputName.size() < 20) inputName += ch;
+                    }
+                }
+            }
         }
-        window.clear(COLOR_MENU_BG);
-        renderTextCentered(window, res.mainFont, "Save - Coming soon!", 24,
-            WINDOW_WIDTH / 2.f, WINDOW_HEIGHT / 2.f, sf::Color::White);
+
+        renderSaveScreen(window, res, saveList, count, inputName, selectedIndex);
+
+        // Hien thong bao 2 giay
+        if (!message.empty() && messageClock.getElapsedTime().asSeconds() < 2.0f) {
+            renderTextCentered(window, res.mainFont, message, 18,
+                WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 80.f,
+                sf::Color::Yellow);
+        }
         window.display();
     }
-    return SCREEN_PLAYING;
+    return SCREEN_MAIN_MENU;
 }
+
+// ============================================================
+// LOAD SCREEN
+// ============================================================
 
 GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
-    sf::Clock timer;
-    while (timer.getElapsedTime().asSeconds() < 1.5f && window.isOpen()) {
+    std::string saveList[MAX_SAVE_FILES];
+    int count = saveGetList(saveList, MAX_SAVE_FILES);
+    int selectedIndex = 0;
+    std::string message = "";
+    sf::Clock messageClock;
+
+    while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) window.close();
-            if (event.type == sf::Event::KeyPressed) return SCREEN_MAIN_MENU;
+
+            if (event.type == sf::Event::KeyPressed) {
+                switch (event.key.code) {
+                case sf::Keyboard::Escape:
+                    return SCREEN_MAIN_MENU;
+
+                case sf::Keyboard::Up: case sf::Keyboard::W:
+                    if (selectedIndex > 0) selectedIndex--;
+                    break;
+                case sf::Keyboard::Down: case sf::Keyboard::S:
+                    if (selectedIndex < count - 1) selectedIndex++;
+                    break;
+
+                case sf::Keyboard::Enter:
+                    if (count > 0 && selectedIndex < count) {
+                        if (loadGame(state, saveList[selectedIndex])) {
+                            return SCREEN_PLAYING; // Resume game
+                        }
+                        else {
+                            message = "Loi tai file!";
+                            messageClock.restart();
+                        }
+                    }
+                    break;
+
+                case sf::Keyboard::Delete:
+                    if (count > 0 && selectedIndex < count) {
+                        saveDeleteFile(saveList[selectedIndex]);
+                        count = saveGetList(saveList, MAX_SAVE_FILES);
+                        if (selectedIndex >= count && count > 0)
+                            selectedIndex = count - 1;
+                    }
+                    break;
+
+                default: break;
+                }
+            }
         }
-        window.clear(COLOR_MENU_BG);
-        renderTextCentered(window, res.mainFont, "Load - Coming soon!", 24,
-            WINDOW_WIDTH / 2.f, WINDOW_HEIGHT / 2.f, sf::Color::White);
+
+        renderLoadScreen(window, res, saveList, count, selectedIndex);
+
+        // Hien thong bao loi
+        if (!message.empty() && messageClock.getElapsedTime().asSeconds() < 2.0f) {
+            renderTextCentered(window, res.mainFont, message, 18,
+                WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 80.f,
+                sf::Color::Red);
+        }
         window.display();
     }
     return SCREEN_MAIN_MENU;
@@ -577,8 +791,9 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
 
 GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
     int menuIndex = 0;
-    int volume = 50;
-    bool sfxOn = true;
+    // STATIC → giu gia tri giua cac lan vao Settings
+    static int volume = 50;
+    static bool sfxOn = true;
 
     while (window.isOpen()) {
         sf::Event event;
@@ -597,15 +812,25 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
                     menuIndex = (menuIndex + 1) % 4;
                     break;
                 case sf::Keyboard::Enter:
+                    soundPlaySelect(res);
                     if (menuIndex == 0) langToggle();         // Doi ngon ngu
-                    if (menuIndex == 2) sfxOn = !sfxOn;       // Toggle SFX
+                    if (menuIndex == 2) {
+                        sfxOn = !sfxOn;                       // Toggle SFX
+                        soundSetSFXEnabled(sfxOn);
+                    }
                     if (menuIndex == 3) return SCREEN_MAIN_MENU; // Back
                     break;
                 case sf::Keyboard::Left:
-                    if (menuIndex == 1 && volume > 0) volume -= 10;
+                    if (menuIndex == 1 && volume > 0) {
+                        volume -= 10;
+                        soundSetBGMVolume(res, volume);
+                    }
                     break;
                 case sf::Keyboard::Right:
-                    if (menuIndex == 1 && volume < 100) volume += 10;
+                    if (menuIndex == 1 && volume < 100) {
+                        volume += 10;
+                        soundSetBGMVolume(res, volume);
+                    }
                     break;
                 case sf::Keyboard::Escape:
                     return SCREEN_MAIN_MENU;
