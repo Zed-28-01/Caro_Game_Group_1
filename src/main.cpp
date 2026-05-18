@@ -1,7 +1,12 @@
 ﻿#include "menu.h"
 #include "render.h"
+#include <cstdlib>
+#include <ctime>
 
 int main() {
+    // Seed random cho bot Easy (neu khong se luon cho cung 1 ket qua)
+    std::srand((unsigned)std::time(nullptr));
+
     sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT),
         "Caro Game - Group 1",
         sf::Style::Close);
