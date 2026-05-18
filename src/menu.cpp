@@ -68,16 +68,62 @@ void gameRun(sf::RenderWindow& window, GameResources& res) {
 // MAIN MENU
 // ============================================================
 
+// Helper: hit-test menu items can giua man hinh (dung cho menu chuan)
+// Tra ve index cua item duoc hover, hoac -1 neu khong trung
+static int menuHitTest(float mx, float my, float startY, float step,
+    int itemCount, float halfW = 200.f, float halfH = 22.f) {
+    if (mx < WINDOW_WIDTH / 2.f - halfW || mx > WINDOW_WIDTH / 2.f + halfW)
+        return -1;
+    for (int i = 0; i < itemCount; i++) {
+        float itemY = startY + i * step;
+        if (my > itemY - halfH && my < itemY + halfH)
+            return i;
+    }
+    return -1;
+}
+
 GameScreen handleMainMenu(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
     int menuIndex = 0;
     const int MENU_COUNT = 6;
+
+    // Lambda: thuc thi nuoc duoc chon
+    auto confirm = [&]() -> GameScreen {
+        soundPlaySelect(res);
+        switch (menuIndex) {
+        case 0: return SCREEN_MODE_SELECT;
+        case 1: return SCREEN_LOAD;
+        case 2: return SCREEN_SETTINGS;
+        case 3: return SCREEN_HELP;
+        case 4: return SCREEN_ABOUT;
+        case 5: window.close(); return SCREEN_MAIN_MENU;
+        }
+        return SCREEN_MAIN_MENU;
+    };
 
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            // MOUSE HOVER
+            if (event.type == sf::Event::MouseMoved) {
+                int hit = menuHitTest((float)event.mouseMove.x,
+                    (float)event.mouseMove.y, 280.f, 60.f, MENU_COUNT);
+                if (hit >= 0) menuIndex = hit;
+            }
+
+            // MOUSE CLICK
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Left) {
+                int hit = menuHitTest((float)event.mouseButton.x,
+                    (float)event.mouseButton.y, 280.f, 60.f, MENU_COUNT);
+                if (hit >= 0) {
+                    menuIndex = hit;
+                    return confirm();
+                }
+            }
 
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
@@ -90,16 +136,7 @@ GameScreen handleMainMenu(sf::RenderWindow& window, GameResources& res,
                     menuIndex = (menuIndex + 1) % MENU_COUNT;
                     break;
                 case sf::Keyboard::Enter:
-                    soundPlaySelect(res);
-                    switch (menuIndex) {
-                    case 0: return SCREEN_MODE_SELECT;   // New Game
-                    case 1: return SCREEN_LOAD;           // Load Game
-                    case 2: return SCREEN_SETTINGS;       // Settings
-                    case 3: return SCREEN_HELP;           // Help
-                    case 4: return SCREEN_ABOUT;          // About
-                    case 5: window.close(); return SCREEN_MAIN_MENU; // Exit
-                    }
-                    break;
+                    return confirm();
                 default: break;
                 }
             }
@@ -120,11 +157,31 @@ GameScreen handleModeSelect(sf::RenderWindow& window, GameResources& res,
     int menuIndex = 0;
     const int MENU_COUNT = 3;
 
+    auto confirm = [&]() -> GameScreen {
+        soundPlaySelect(res);
+        if (menuIndex == 0) { state.mode = MODE_PVP; return SCREEN_STYLE_SELECT; }
+        if (menuIndex == 1) { state.mode = MODE_PVC; return SCREEN_DIFFICULTY; }
+        if (menuIndex == 2) return SCREEN_MAIN_MENU;
+        return SCREEN_MAIN_MENU;
+    };
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            if (event.type == sf::Event::MouseMoved) {
+                int hit = menuHitTest((float)event.mouseMove.x,
+                    (float)event.mouseMove.y, UI_MENU_START_Y, UI_MENU_STEP, MENU_COUNT);
+                if (hit >= 0) menuIndex = hit;
+            }
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Left) {
+                int hit = menuHitTest((float)event.mouseButton.x,
+                    (float)event.mouseButton.y, UI_MENU_START_Y, UI_MENU_STEP, MENU_COUNT);
+                if (hit >= 0) { menuIndex = hit; return confirm(); }
+            }
 
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
@@ -137,17 +194,7 @@ GameScreen handleModeSelect(sf::RenderWindow& window, GameResources& res,
                     menuIndex = (menuIndex + 1) % MENU_COUNT;
                     break;
                 case sf::Keyboard::Enter:
-                    soundPlaySelect(res);
-                    if (menuIndex == 0) {
-                        state.mode = MODE_PVP;
-                        return SCREEN_STYLE_SELECT;
-                    }
-                    if (menuIndex == 1) {
-                        state.mode = MODE_PVC;
-                        return SCREEN_DIFFICULTY;
-                    }
-                    if (menuIndex == 2) return SCREEN_MAIN_MENU; // Back
-                    break;
+                    return confirm();
                 case sf::Keyboard::Escape:
                     return SCREEN_MAIN_MENU;
                 default: break;
@@ -170,11 +217,33 @@ GameScreen handleDifficultySelect(sf::RenderWindow& window, GameResources& res,
     int menuIndex = 0;
     const int MENU_COUNT = 5;
 
+    auto confirm = [&]() -> GameScreen {
+        soundPlaySelect(res);
+        if (menuIndex == 0) { state.difficulty = BOT_EASY;   return SCREEN_STYLE_SELECT; }
+        if (menuIndex == 1) { state.difficulty = BOT_MEDIUM; return SCREEN_STYLE_SELECT; }
+        if (menuIndex == 2) { state.difficulty = BOT_HARD;   return SCREEN_STYLE_SELECT; }
+        if (menuIndex == 3) { state.difficulty = BOT_EXPERT; return SCREEN_STYLE_SELECT; }
+        if (menuIndex == 4) return SCREEN_MODE_SELECT;
+        return SCREEN_MODE_SELECT;
+    };
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            if (event.type == sf::Event::MouseMoved) {
+                int hit = menuHitTest((float)event.mouseMove.x,
+                    (float)event.mouseMove.y, UI_MENU_START_Y, UI_MENU_STEP, MENU_COUNT);
+                if (hit >= 0) menuIndex = hit;
+            }
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Left) {
+                int hit = menuHitTest((float)event.mouseButton.x,
+                    (float)event.mouseButton.y, UI_MENU_START_Y, UI_MENU_STEP, MENU_COUNT);
+                if (hit >= 0) { menuIndex = hit; return confirm(); }
+            }
 
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
@@ -187,13 +256,7 @@ GameScreen handleDifficultySelect(sf::RenderWindow& window, GameResources& res,
                     menuIndex = (menuIndex + 1) % MENU_COUNT;
                     break;
                 case sf::Keyboard::Enter:
-                    soundPlaySelect(res);
-                    if (menuIndex == 0) { state.difficulty = BOT_EASY;   return SCREEN_STYLE_SELECT; }
-                    if (menuIndex == 1) { state.difficulty = BOT_MEDIUM; return SCREEN_STYLE_SELECT; }
-                    if (menuIndex == 2) { state.difficulty = BOT_HARD;   return SCREEN_STYLE_SELECT; }
-                    if (menuIndex == 3) { state.difficulty = BOT_EXPERT; return SCREEN_STYLE_SELECT; }
-                    if (menuIndex == 4) return SCREEN_MODE_SELECT; // Back
-                    break;
+                    return confirm();
                 case sf::Keyboard::Escape:
                     return SCREEN_MODE_SELECT;
                 default: break;
@@ -216,11 +279,33 @@ GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
     int menuIndex = 0;
     const int MENU_COUNT = 3;
 
+    auto confirm = [&]() -> GameScreen {
+        soundPlaySelect(res);
+        if (menuIndex == 0) { state.style = STYLE_BASIC; return SCREEN_INPUT_NAMES; }
+        if (menuIndex == 1) { state.style = STYLE_SPEED; return SCREEN_INPUT_NAMES; }
+        if (menuIndex == 2) {
+            return (state.mode == MODE_PVC) ? SCREEN_DIFFICULTY : SCREEN_MODE_SELECT;
+        }
+        return SCREEN_MAIN_MENU;
+    };
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            if (event.type == sf::Event::MouseMoved) {
+                int hit = menuHitTest((float)event.mouseMove.x,
+                    (float)event.mouseMove.y, UI_MENU_START_Y, UI_MENU_STEP, MENU_COUNT);
+                if (hit >= 0) menuIndex = hit;
+            }
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Left) {
+                int hit = menuHitTest((float)event.mouseButton.x,
+                    (float)event.mouseButton.y, UI_MENU_START_Y, UI_MENU_STEP, MENU_COUNT);
+                if (hit >= 0) { menuIndex = hit; return confirm(); }
+            }
 
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
@@ -233,13 +318,7 @@ GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
                     menuIndex = (menuIndex + 1) % MENU_COUNT;
                     break;
                 case sf::Keyboard::Enter:
-                    soundPlaySelect(res);
-                    if (menuIndex == 0) { state.style = STYLE_BASIC; return SCREEN_INPUT_NAMES; }
-                    if (menuIndex == 1) { state.style = STYLE_SPEED; return SCREEN_INPUT_NAMES; }
-                    if (menuIndex == 2) {
-                        return (state.mode == MODE_PVC) ? SCREEN_DIFFICULTY : SCREEN_MODE_SELECT;
-                    }
-                    break;
+                    return confirm();
                 case sf::Keyboard::Escape:
                     return (state.mode == MODE_PVC) ? SCREEN_DIFFICULTY : SCREEN_MODE_SELECT;
                 default: break;
@@ -564,6 +643,18 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
 GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
     int menuIndex = 0;
+    const int MENU_COUNT = 3;
+
+    auto confirm = [&]() -> GameScreen {
+        soundPlaySelect(res);
+        if (menuIndex == 0) return SCREEN_PLAYING;
+        if (menuIndex == 1) {
+            handleSaveScreen(window, res, state);
+            return SCREEN_PLAYING;
+        }
+        if (menuIndex == 2) return SCREEN_MAIN_MENU;
+        return SCREEN_PLAYING;
+    };
 
     while (window.isOpen()) {
         sf::Event event;
@@ -571,33 +662,38 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
             if (event.type == sf::Event::Closed)
                 window.close();
 
+            // Pause menu
+            if (event.type == sf::Event::MouseMoved) {
+                int hit = menuHitTest((float)event.mouseMove.x,
+                    (float)event.mouseMove.y, UI_PAUSE_START_Y, UI_PAUSE_STEP, MENU_COUNT);
+                if (hit >= 0) menuIndex = hit;
+            }
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Left) {
+                int hit = menuHitTest((float)event.mouseButton.x,
+                    (float)event.mouseButton.y, UI_PAUSE_START_Y, UI_PAUSE_STEP, MENU_COUNT);
+                if (hit >= 0) { menuIndex = hit; return confirm(); }
+            }
+
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
                 case sf::Keyboard::Up:
                 case sf::Keyboard::W:
-                    menuIndex = (menuIndex - 1 + 3) % 3;
+                    menuIndex = (menuIndex - 1 + MENU_COUNT) % MENU_COUNT;
                     break;
                 case sf::Keyboard::Down:
                 case sf::Keyboard::S:
-                    menuIndex = (menuIndex + 1) % 3;
+                    menuIndex = (menuIndex + 1) % MENU_COUNT;
                     break;
                 case sf::Keyboard::Enter:
-                    soundPlaySelect(res);
-                    if (menuIndex == 0) return SCREEN_PLAYING;     // Resume
-                    if (menuIndex == 1) {
-                        handleSaveScreen(window, res, state);
-                        return SCREEN_PLAYING;                      // Save roi tiep tuc
-                    }
-                    if (menuIndex == 2) return SCREEN_MAIN_MENU;    // Quit
-                    break;
+                    return confirm();
                 case sf::Keyboard::Escape:
-                    return SCREEN_PLAYING; // Resume
+                    return SCREEN_PLAYING;
                 default: break;
                 }
             }
         }
 
-        // Ve gameplay phia sau + overlay pause
         renderGameplay(window, state, res, nullptr, -1, -1, false);
         renderPauseMenu(window, res, menuIndex);
         window.display();
@@ -613,11 +709,56 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
     GameState& state, GameResult result, const WinLine& winLine) {
     int menuIndex = 0; // 0 = Yes (choi tiep), 1 = No (ve menu)
 
+    // Vi tri nut Yes/No - TINH TU CUNG CONG THUC voi renderGameOver
+    // de bao dam dong bo khi user thay doi layout
+    const float panelX = UI_BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + UI_PANEL_GAP_LEFT;
+    const float panelW = WINDOW_WIDTH - panelX - UI_PANEL_GAP_RIGHT;
+    const float centerX = panelX + panelW / 2.f;
+    const float yesX = centerX - UI_GAMEOVER_BTN_GAP_X;
+    const float noX = centerX + UI_GAMEOVER_BTN_GAP_X;
+    const float btnY = UI_GAMEOVER_START_Y + UI_GAMEOVER_BTN_DY;
+    const float btnHalfW = UI_GAMEOVER_BTN_HALF_W;
+    const float btnHalfH = UI_GAMEOVER_BTN_HALF_H;
+
+    auto confirm = [&]() -> GameScreen {
+        soundPlaySelect(res);
+        if (menuIndex == 0) {
+            boardResetRound(state);
+            if (state.style == STYLE_SPEED)
+                timerStart(state.timer, MAX_GAME_TIME, MAX_TURN_TIME);
+            return SCREEN_PLAYING;
+        }
+        return SCREEN_MAIN_MENU;
+    };
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            // Mouse hover: detect Yes/No
+            if (event.type == sf::Event::MouseMoved) {
+                float mx = (float)event.mouseMove.x;
+                float my = (float)event.mouseMove.y;
+                if (my > btnY - btnHalfH && my < btnY + btnHalfH) {
+                    if (mx > yesX - btnHalfW && mx < yesX + btnHalfW) menuIndex = 0;
+                    else if (mx > noX - btnHalfW && mx < noX + btnHalfW) menuIndex = 1;
+                }
+            }
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Left) {
+                float mx = (float)event.mouseButton.x;
+                float my = (float)event.mouseButton.y;
+                if (my > btnY - btnHalfH && my < btnY + btnHalfH) {
+                    if (mx > yesX - btnHalfW && mx < yesX + btnHalfW) {
+                        menuIndex = 0; return confirm();
+                    }
+                    if (mx > noX - btnHalfW && mx < noX + btnHalfW) {
+                        menuIndex = 1; return confirm();
+                    }
+                }
+            }
 
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
@@ -630,17 +771,7 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
                     menuIndex = 1;
                     break;
                 case sf::Keyboard::Enter:
-                    soundPlaySelect(res);
-                    if (menuIndex == 0) {
-                        // Choi van tiep theo
-                        boardResetRound(state);
-                        if (state.style == STYLE_SPEED)
-                            timerStart(state.timer, MAX_GAME_TIME, MAX_TURN_TIME);
-                        return SCREEN_PLAYING;
-                    }
-                    else {
-                        return SCREEN_MAIN_MENU;
-                    }
+                    return confirm();
                 case sf::Keyboard::Escape:
                     return SCREEN_MAIN_MENU;
                 default: break;
@@ -668,15 +799,76 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
     std::string message = "";
     sf::Clock messageClock;
 
+    // Lambda: thuc hien luu (Enter hoac click nut Save)
+    auto doSave = [&]() {
+        if (inputName.empty()) return;
+        if (saveFileExists(inputName)) {
+            message = "File da ton tai!";
+        }
+        else if (saveCountFiles() >= MAX_SAVE_FILES) {
+            message = "Da dat gioi han 15 file!";
+        }
+        else if (saveGame(state, inputName)) {
+            saveAddToList(inputName);
+            message = "Luu thanh cong!";
+            count = saveGetList(saveList, MAX_SAVE_FILES);
+            inputName = "";
+        }
+        else {
+            message = "Loi luu file!";
+        }
+        messageClock.restart();
+    };
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) window.close();
 
+            // Mouse: click vao file trong list → copy ten vao input (de re-save / rename)
+            // Save list: Y = 200 + i * 35, width 500, height 30, X center WINDOW_WIDTH/2
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Left) {
+                float mx = (float)event.mouseButton.x;
+                float my = (float)event.mouseButton.y;
+                // Hit-test save list
+                for (int i = 0; i < count; i++) {
+                    float itemY = UI_SAVE_LIST_START_Y + i * UI_LIST_STEP;
+                    if (mx > WINDOW_WIDTH / 2.f - UI_LIST_HALF_WIDTH
+                        && mx < WINDOW_WIDTH / 2.f + UI_LIST_HALF_WIDTH
+                        && my > itemY - UI_LIST_HALF_HEIGHT && my < itemY + UI_LIST_HALF_HEIGHT) {
+                        selectedIndex = i;
+                        inputName = saveList[i];  // Copy ten de re-save
+                        break;
+                    }
+                }
+            }
+
+            // Right click: xoa file dang chon
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Right) {
+                float mx = (float)event.mouseButton.x;
+                float my = (float)event.mouseButton.y;
+                for (int i = 0; i < count; i++) {
+                    float itemY = UI_SAVE_LIST_START_Y + i * UI_LIST_STEP;
+                    if (mx > WINDOW_WIDTH / 2.f - UI_LIST_HALF_WIDTH
+                        && mx < WINDOW_WIDTH / 2.f + UI_LIST_HALF_WIDTH
+                        && my > itemY - UI_LIST_HALF_HEIGHT && my < itemY + UI_LIST_HALF_HEIGHT) {
+                        saveDeleteFile(saveList[i]);
+                        count = saveGetList(saveList, MAX_SAVE_FILES);
+                        if (selectedIndex >= count && count > 0)
+                            selectedIndex = count - 1;
+                        message = "Da xoa file!";
+                        messageClock.restart();
+                        break;
+                    }
+                }
+            }
+
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
                 case sf::Keyboard::Escape:
-                    return SCREEN_PLAYING; // Quay lai game
+                    return SCREEN_PLAYING;
 
                 case sf::Keyboard::Up:
                     if (selectedIndex > 0) selectedIndex--;
@@ -686,24 +878,7 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
                     break;
 
                 case sf::Keyboard::Enter:
-                    if (!inputName.empty()) {
-                        if (saveFileExists(inputName)) {
-                            message = "File da ton tai!";
-                        }
-                        else if (saveCountFiles() >= MAX_SAVE_FILES) {
-                            message = "Da dat gioi han 15 file!";
-                        }
-                        else if (saveGame(state, inputName)) {
-                            saveAddToList(inputName);
-                            message = "Luu thanh cong!";
-                            count = saveGetList(saveList, MAX_SAVE_FILES);
-                            inputName = "";
-                        }
-                        else {
-                            message = "Loi luu file!";
-                        }
-                        messageClock.restart();
-                    }
+                    doSave();
                     break;
 
                 case sf::Keyboard::Delete:
@@ -730,7 +905,6 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
                 if (event.text.unicode >= 32 && event.text.unicode < 128
                     && event.text.unicode != '\r' && event.text.unicode != '\b') {
                     char ch = static_cast<char>(event.text.unicode);
-                    // Loai bo ky tu khong hop le cho ten file Windows
                     if (ch != '\\' && ch != '/' && ch != ':' && ch != '*'
                         && ch != '?' && ch != '"' && ch != '<' && ch != '>'
                         && ch != '|') {
@@ -742,7 +916,12 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
 
         renderSaveScreen(window, res, saveList, count, inputName, selectedIndex);
 
-        // Hien thong bao 2 giay
+        // Huong dan mouse o duoi
+        renderTextCentered(window, res.mainFont,
+            "Click trai: chon ten | Click phai: xoa file",
+            13, WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 20.f,
+            sf::Color(120, 120, 120));
+
         if (!message.empty() && messageClock.getElapsedTime().asSeconds() < 2.0f) {
             renderTextCentered(window, res.mainFont, message, 18,
                 WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 80.f,
@@ -765,10 +944,88 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
     std::string message = "";
     sf::Clock messageClock;
 
+    // Double-click detection
+    sf::Clock dblClickClock;
+    int lastClickIndex = -1;
+    const float DBL_CLICK_TIME = 0.4f;
+
+    auto doLoad = [&]() -> bool {
+        if (count > 0 && selectedIndex < count) {
+            if (loadGame(state, saveList[selectedIndex])) {
+                return true;
+            }
+            message = "Loi tai file!";
+            messageClock.restart();
+        }
+        return false;
+    };
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) window.close();
+
+            // Mouse hover: highlight item
+            if (event.type == sf::Event::MouseMoved) {
+                float mx = (float)event.mouseMove.x;
+                float my = (float)event.mouseMove.y;
+                for (int i = 0; i < count; i++) {
+                    float itemY = UI_LOAD_LIST_START_Y + i * UI_LIST_STEP;
+                    if (mx > WINDOW_WIDTH / 2.f - UI_LIST_HALF_WIDTH
+                        && mx < WINDOW_WIDTH / 2.f + UI_LIST_HALF_WIDTH
+                        && my > itemY - UI_LIST_HALF_HEIGHT && my < itemY + UI_LIST_HALF_HEIGHT) {
+                        selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            // Click trai: chon, double-click → load
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Left) {
+                float mx = (float)event.mouseButton.x;
+                float my = (float)event.mouseButton.y;
+                for (int i = 0; i < count; i++) {
+                    float itemY = UI_LOAD_LIST_START_Y + i * UI_LIST_STEP;
+                    if (mx > WINDOW_WIDTH / 2.f - UI_LIST_HALF_WIDTH
+                        && mx < WINDOW_WIDTH / 2.f + UI_LIST_HALF_WIDTH
+                        && my > itemY - UI_LIST_HALF_HEIGHT && my < itemY + UI_LIST_HALF_HEIGHT) {
+                        if (lastClickIndex == i
+                            && dblClickClock.getElapsedTime().asSeconds() < DBL_CLICK_TIME) {
+                            // Double-click → load
+                            selectedIndex = i;
+                            if (doLoad()) return SCREEN_PLAYING;
+                            lastClickIndex = -1;
+                        }
+                        else {
+                            // Single click → select
+                            selectedIndex = i;
+                            lastClickIndex = i;
+                            dblClickClock.restart();
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Click phai: xoa file
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Right) {
+                float mx = (float)event.mouseButton.x;
+                float my = (float)event.mouseButton.y;
+                for (int i = 0; i < count; i++) {
+                    float itemY = UI_LOAD_LIST_START_Y + i * UI_LIST_STEP;
+                    if (mx > WINDOW_WIDTH / 2.f - UI_LIST_HALF_WIDTH
+                        && mx < WINDOW_WIDTH / 2.f + UI_LIST_HALF_WIDTH
+                        && my > itemY - UI_LIST_HALF_HEIGHT && my < itemY + UI_LIST_HALF_HEIGHT) {
+                        saveDeleteFile(saveList[i]);
+                        count = saveGetList(saveList, MAX_SAVE_FILES);
+                        if (selectedIndex >= count && count > 0)
+                            selectedIndex = count - 1;
+                        break;
+                    }
+                }
+            }
 
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
@@ -783,15 +1040,7 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
                     break;
 
                 case sf::Keyboard::Enter:
-                    if (count > 0 && selectedIndex < count) {
-                        if (loadGame(state, saveList[selectedIndex])) {
-                            return SCREEN_PLAYING; // Resume game
-                        }
-                        else {
-                            message = "Loi tai file!";
-                            messageClock.restart();
-                        }
-                    }
+                    if (doLoad()) return SCREEN_PLAYING;
                     break;
 
                 case sf::Keyboard::Delete:
@@ -810,7 +1059,12 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
 
         renderLoadScreen(window, res, saveList, count, selectedIndex);
 
-        // Hien thong bao loi
+        // Huong dan mouse
+        renderTextCentered(window, res.mainFont,
+            "Click trai: chon | Double-click: tai | Click phai: xoa",
+            13, WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 20.f,
+            sf::Color(120, 120, 120));
+
         if (!message.empty() && messageClock.getElapsedTime().asSeconds() < 2.0f) {
             renderTextCentered(window, res.mainFont, message, 18,
                 WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 80.f,
@@ -831,11 +1085,66 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
     int volume = soundGetBGMVolume();
     bool sfxOn = soundIsSFXEnabled();
 
+    // Lambda: thuc hien action tren menuIndex hien tai
+    auto confirm = [&]() -> GameScreen {
+        soundPlaySelect(res);
+        if (menuIndex == 0) {
+            langToggle();
+            settingsSave();
+        }
+        else if (menuIndex == 2) {
+            sfxOn = !sfxOn;
+            soundSetSFXEnabled(sfxOn);
+            settingsSave();
+        }
+        else if (menuIndex == 3) return SCREEN_MAIN_MENU;
+        return SCREEN_SETTINGS;  // stay in settings
+    };
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            // Mouse hover: update menuIndex - Settings items
+            if (event.type == sf::Event::MouseMoved) {
+                int hit = menuHitTest((float)event.mouseMove.x,
+                    (float)event.mouseMove.y,
+                    UI_SETTINGS_START_Y, UI_SETTINGS_STEP, 4,
+                    UI_SETTINGS_HALF_WIDTH, 25.f);
+                if (hit >= 0) menuIndex = hit;
+            }
+
+            // Mouse click trai
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Left) {
+                float mx = (float)event.mouseButton.x;
+                float my = (float)event.mouseButton.y;
+                int hit = menuHitTest(mx, my,
+                    UI_SETTINGS_START_Y, UI_SETTINGS_STEP, 4,
+                    UI_SETTINGS_HALF_WIDTH, 25.f);
+                if (hit >= 0) {
+                    menuIndex = hit;
+                    // Volume row: click trai 1/2 = -10, phai 1/2 = +10
+                    if (menuIndex == 1) {
+                        if (mx < WINDOW_WIDTH / 2.f && volume > 0) {
+                            volume -= 10;
+                            soundSetBGMVolume(res, volume);
+                            settingsSave();
+                        }
+                        else if (mx >= WINDOW_WIDTH / 2.f && volume < 100) {
+                            volume += 10;
+                            soundSetBGMVolume(res, volume);
+                            settingsSave();
+                        }
+                    }
+                    else {
+                        GameScreen next = confirm();
+                        if (next != SCREEN_SETTINGS) return next;
+                    }
+                }
+            }
 
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
@@ -847,31 +1156,23 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
                 case sf::Keyboard::S:
                     menuIndex = (menuIndex + 1) % 4;
                     break;
-                case sf::Keyboard::Enter:
-                    soundPlaySelect(res);
-                    if (menuIndex == 0) {
-                        langToggle();
-                        settingsSave();           // Persist language
-                    }
-                    if (menuIndex == 2) {
-                        sfxOn = !sfxOn;
-                        soundSetSFXEnabled(sfxOn);
-                        settingsSave();           // Persist SFX
-                    }
-                    if (menuIndex == 3) return SCREEN_MAIN_MENU; // Back
+                case sf::Keyboard::Enter: {
+                    GameScreen next = confirm();
+                    if (next != SCREEN_SETTINGS) return next;
                     break;
+                }
                 case sf::Keyboard::Left:
                     if (menuIndex == 1 && volume > 0) {
                         volume -= 10;
                         soundSetBGMVolume(res, volume);
-                        settingsSave();           // Persist volume
+                        settingsSave();
                     }
                     break;
                 case sf::Keyboard::Right:
                     if (menuIndex == 1 && volume < 100) {
                         volume += 10;
                         soundSetBGMVolume(res, volume);
-                        settingsSave();           // Persist volume
+                        settingsSave();
                     }
                     break;
                 case sf::Keyboard::Escape:
@@ -882,6 +1183,13 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
         }
 
         renderSettings(window, res, menuIndex, langGetCurrent(), volume, sfxOn);
+
+        // Huong dan mouse cho Volume
+        renderTextCentered(window, res.mainFont,
+            "Volume: click ben trai giam, ben phai tang",
+            13, WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 20.f,
+            sf::Color(120, 120, 120));
+
         window.display();
     }
     return SCREEN_MAIN_MENU;
@@ -899,6 +1207,9 @@ GameScreen handleHelp(sf::RenderWindow& window, GameResources& res) {
             if (event.type == sf::Event::KeyPressed &&
                 event.key.code == sf::Keyboard::Escape)
                 return SCREEN_MAIN_MENU;
+            // Click bat ky → ve menu chinh
+            if (event.type == sf::Event::MouseButtonPressed)
+                return SCREEN_MAIN_MENU;
         }
         renderHelp(window, res);
         window.display();
@@ -911,6 +1222,9 @@ GameScreen handleAbout(sf::RenderWindow& window, GameResources& res) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) window.close();
+            // Click bat ky → ve menu chinh
+            if (event.type == sf::Event::MouseButtonPressed)
+                return SCREEN_MAIN_MENU;
             if (event.type == sf::Event::KeyPressed &&
                 event.key.code == sf::Keyboard::Escape)
                 return SCREEN_MAIN_MENU;

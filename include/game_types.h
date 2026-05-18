@@ -46,6 +46,72 @@
 #define COLOR_TIMER_LOW     sf::Color(231, 76, 60)      // Do - timer sap het
 
 // ============================================================
+// HANG SO LAYOUT UI (CHIA SE GIUA render.cpp VA menu.cpp)
+// Khi redesign UI: chi can sua o day, ca 2 file kia tu khop
+// ============================================================
+
+// Menu chuan (Main/Mode/Difficulty/Style) - items o giua man hinh
+#define UI_MENU_TITLE_Y         120.f   // Y cua tieu de
+#define UI_MENU_START_Y         280.f   // Y cua item dau tien
+#define UI_MENU_STEP            60.f    // Khoang cach giua cac items
+#define UI_MENU_HALF_WIDTH      200.f   // Nua chieu rong cho hit-test chuot
+#define UI_MENU_HALF_HEIGHT     22.f    // Nua chieu cao cho hit-test
+
+// Pause Menu (overlay khi nhan ESC trong game)
+#define UI_PAUSE_TITLE_Y        240.f
+#define UI_PAUSE_START_Y        340.f
+#define UI_PAUSE_STEP           55.f
+
+// Settings (Volume row co the rong hon cho de click)
+#define UI_SETTINGS_TITLE_Y     100.f
+#define UI_SETTINGS_START_Y     250.f
+#define UI_SETTINGS_STEP        60.f
+#define UI_SETTINGS_HALF_WIDTH  300.f
+
+// Save Screen
+#define UI_SAVE_TITLE_Y         60.f
+#define UI_SAVE_INPUT_Y         130.f   // Y cua o nhap ten
+#define UI_SAVE_LIST_START_Y    200.f   // Y cua file dau tien trong list
+
+// Load Screen
+#define UI_LOAD_TITLE_Y         60.f
+#define UI_LOAD_LIST_START_Y    150.f
+
+// Chung cho ca Save va Load list
+#define UI_LIST_STEP            35.f    // Khoang cach giua cac file
+#define UI_LIST_HALF_WIDTH      250.f
+#define UI_LIST_HALF_HEIGHT     15.f
+
+// ============================================================
+// GAMEPLAY LAYOUT - VI TRI BAN CO + PANEL + TIMER
+// ============================================================
+
+// Ban co (goc trai-tren)
+#define UI_BOARD_OFFSET_X       40.f
+#define UI_BOARD_OFFSET_Y       60.f
+
+// Panel nguoi choi (ben phai ban co)
+#define UI_PANEL_GAP_LEFT       40.f    // Khoang cach ban co → panel
+#define UI_PANEL_GAP_RIGHT      20.f    // Khoang cach panel → mep cua so
+#define UI_PANEL_BOX_Y_START    60.f    // Y cua box player 1 dau tien
+#define UI_PANEL_BOX_HEIGHT     170.f   // Chieu cao moi box player
+#define UI_PANEL_BOX_STEP       190.f   // Khoang cach giua 2 box (gap 20)
+
+// Timer (chi che do SPEED)
+#define UI_TIMER_BAR_Y          450.f   // Y cua thanh tien trinh timer luot
+#define UI_TIMER_BAR_HEIGHT     24.f
+#define UI_GAME_TIMER_Y         505.f   // Y cua text thoi gian van
+
+// Man hinh Game Over - text "Player X wins!" + nut Yes/No
+#define UI_GAMEOVER_START_Y     550.f   // Y cua text ket qua
+#define UI_GAMEOVER_STATS_DY    40.f    // Cach text ket qua bao nhieu (cho stats)
+#define UI_GAMEOVER_QUESTION_DY 75.f    // Cach text ket qua (cho "Choi tiep?")
+#define UI_GAMEOVER_BTN_DY      110.f   // Cach text ket qua (cho nut Yes/No)
+#define UI_GAMEOVER_BTN_GAP_X   50.f    // Khoang cach Yes/No tu tam panel
+#define UI_GAMEOVER_BTN_HALF_W  40.f    // Half-width cho hit-test
+#define UI_GAMEOVER_BTN_HALF_H  22.f    // Half-height cho hit-test
+
+// ============================================================
 // ENUM - Trang thai game
 // ============================================================
 
