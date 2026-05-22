@@ -326,6 +326,11 @@ void botHardMove(const GameState& state, int& outRow, int& outCol) {
         int score = botMinimax(board, 1, 3, INT_MIN, INT_MAX, false, BOT_PLAYER);
         board[r][c].value = 0;
 
+        // TIEBREAKER: cong center bonus (~max 28) - chi pha tie,
+        // khong meo mo quyet dinh vi pattern score >> 28
+        int centerDist = std::abs(r - BOARD_SIZE / 2) + std::abs(c - BOARD_SIZE / 2);
+        score += (BOARD_SIZE - centerDist) * 2;
+
         if (score > bestScore) {
             bestScore = score;
             outRow = r;
@@ -382,6 +387,10 @@ void botExpertMove(const GameState& state, int& outRow, int& outCol) {
         board[r][c].value = BOT_PLAYER;
         int score = botMinimax(board, 1, 4, INT_MIN, INT_MAX, false, BOT_PLAYER);
         board[r][c].value = 0;
+
+        // TIEBREAKER: center bonus
+        int centerDist = std::abs(r - BOARD_SIZE / 2) + std::abs(c - BOARD_SIZE / 2);
+        score += (BOARD_SIZE - centerDist) * 2;
 
         if (score > bestScore) {
             bestScore = score;

@@ -2,8 +2,10 @@
 #include "timer.h"
 #include "language.h"
 
-const float BOARD_OFFSET_X = 40.f;
-const float BOARD_OFFSET_Y = 60.f;
+// Su dung hang so chia se tu game_types.h cho de chinh sua sau nay
+// (UI_BOARD_OFFSET_X, UI_BOARD_OFFSET_Y)
+#define BOARD_OFFSET_X  UI_BOARD_OFFSET_X
+#define BOARD_OFFSET_Y  UI_BOARD_OFFSET_Y
 
 
 // TIEN ICH
@@ -179,18 +181,18 @@ void renderWinLine(sf::RenderWindow& window, const WinLine& winLine) {
 // VE PLAYER PANEL
 void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
     const GameResources& res) {
-    float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + 40.f;
-    float panelW = WINDOW_WIDTH - panelX - 20.f;
+    float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + UI_PANEL_GAP_LEFT;
+    float panelW = WINDOW_WIDTH - panelX - UI_PANEL_GAP_RIGHT;
 
     for (int i = 0; i < 2; i++) {
         const Player& p = (i == 0) ? state.player1 : state.player2;
         bool isActive = (i == 0) ? state.isPlayer1Turn : !state.isPlayer1Turn;
         sf::Color pieceColor = (i == 0) ? COLOR_PLAYER_X : COLOR_PLAYER_O;
 
-        // FIX: Đẩy Player 1 lên 60.f (bằng mép trên bàn cờ). Khoảng cách 2 khung là 190.f
-        float boxY = 60.f + i * 190.f;
+        // Player 1 o tren, Player 2 o duoi cach UI_PANEL_BOX_STEP
+        float boxY = UI_PANEL_BOX_Y_START + i * UI_PANEL_BOX_STEP;
 
-        sf::RectangleShape box(sf::Vector2f(panelW, 170.f));
+        sf::RectangleShape box(sf::Vector2f(panelW, UI_PANEL_BOX_HEIGHT));
         box.setPosition(panelX, boxY);
         box.setFillColor(isActive ? sf::Color(60, 80, 100) : sf::Color(40, 55, 70));
         box.setOutlineThickness(isActive ? 3.f : 1.f);
@@ -249,11 +251,11 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
 // 2. CHỈNH THANH TIMER (Đổi màu chữ "THOI GIAN LUOT")
 void renderTurnTimer(sf::RenderWindow& window, const GameResources& res,
     float percentage) {
-    float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + 40.f;
-    float panelW = WINDOW_WIDTH - panelX - 20.f;
+    float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + UI_PANEL_GAP_LEFT;
+    float panelW = WINDOW_WIDTH - panelX - UI_PANEL_GAP_RIGHT;
 
-    float barY = 450.f;
-    float barH = 24.f;
+    float barY = UI_TIMER_BAR_Y;
+    float barH = UI_TIMER_BAR_HEIGHT;
 
     sf::RectangleShape bg(sf::Vector2f(panelW, barH));
     bg.setPosition(panelX, barY);
@@ -276,8 +278,8 @@ void renderTurnTimer(sf::RenderWindow& window, const GameResources& res,
 // 3. CHỈNH TEXT THỜI GIAN VÁN (Đổi màu chữ "Thoi gian van")
 void renderGameTimer(sf::RenderWindow& window, const GameResources& res,
     float secondsLeft) {
-    float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + 40.f;
-    float panelW = WINDOW_WIDTH - panelX - 20.f;
+    float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + UI_PANEL_GAP_LEFT;
+    float panelW = WINDOW_WIDTH - panelX - UI_PANEL_GAP_RIGHT;
 
     int mins = (int)secondsLeft / 60;
     int secs = (int)secondsLeft % 60;
@@ -287,7 +289,7 @@ void renderGameTimer(sf::RenderWindow& window, const GameResources& res,
 
     // FIX: Đổi màu chữ thành xám đậm (40, 40, 40) thay vì White
     renderTextCentered(window, res.mainFont, "Thoi gian van: " + std::string(buf),
-        16, panelX + panelW / 2.f, 505.f,
+        16, panelX + panelW / 2.f, UI_GAME_TIMER_Y,
         sf::Color(40, 40, 40));
 }
 // VE MENU
@@ -302,7 +304,7 @@ static void renderMenuGeneric(sf::RenderWindow& window, const GameResources& res
 
     // Tieu de
     renderTextCentered(window, res.titleFont, title, 52,
-        WINDOW_WIDTH / 2.f, 120.f, sf::Color::White);
+        WINDOW_WIDTH / 2.f, UI_MENU_TITLE_Y, sf::Color::White);
 
     // Cac muc menu
     for (int i = 0; i < itemCount; i++) {
@@ -310,13 +312,14 @@ static void renderMenuGeneric(sf::RenderWindow& window, const GameResources& res
         sf::Color color = selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT;
         int fontSize = selected ? 30 : 26;
 
+        float itemY = UI_MENU_START_Y + i * UI_MENU_STEP;
         renderTextCentered(window, res.mainFont, items[i], fontSize,
-            WINDOW_WIDTH / 2.f, 280.f + i * 60.f, color);
+            WINDOW_WIDTH / 2.f, itemY, color);
 
         // Ve dau ">" truoc muc dang chon
         if (selected) {
             renderTextCentered(window, res.mainFont, ">", fontSize,
-                WINDOW_WIDTH / 2.f - 160.f, 280.f + i * 60.f,
+                WINDOW_WIDTH / 2.f - 160.f, itemY,
                 color);
         }
     }
@@ -370,7 +373,7 @@ void renderPauseMenu(sf::RenderWindow& window, const GameResources& res,
 
     // Tieu de
     renderTextCentered(window, res.titleFont, "PAUSE", 42,
-        WINDOW_WIDTH / 2.f, 240.f, sf::Color::White);
+        WINDOW_WIDTH / 2.f, UI_PAUSE_TITLE_Y, sf::Color::White);
 
     // Cac muc
     for (int i = 0; i < 3; i++) {
@@ -378,7 +381,7 @@ void renderPauseMenu(sf::RenderWindow& window, const GameResources& res,
         sf::Color color = selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT;
         renderTextCentered(window, res.mainFont, items[i],
             selected ? 28 : 24,
-            WINDOW_WIDTH / 2.f, 340.f + i * 55.f, color);
+            WINDOW_WIDTH / 2.f, UI_PAUSE_START_Y + i * UI_PAUSE_STEP, color);
     }
 }
 
@@ -484,12 +487,11 @@ void renderGameOver(sf::RenderWindow& window, const GameState& state,
     overlay.setFillColor(sf::Color(0, 0, 0, 100));
     window.draw(overlay);
 
-    float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + 40.f;
-    float panelW = WINDOW_WIDTH - panelX - 20.f;
+    float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + UI_PANEL_GAP_LEFT;
+    float panelW = WINDOW_WIDTH - panelX - UI_PANEL_GAP_RIGHT;
 
     float centerX = panelX + panelW / 2.f;
-    // Nhích lên xíu cho vừa vặn với khoảng trống mới
-    float startY = 550.f;
+    float startY = UI_GAMEOVER_START_Y;
 
     TextStrings txt = langGetText(langGetCurrent());
 
@@ -509,28 +511,29 @@ void renderGameOver(sf::RenderWindow& window, const GameState& state,
         resultColor = sf::Color::Yellow;
     }
 
-    // Tên người thắng
+    // Ten nguoi thang
     renderTextCentered(window, res.titleFont, resultStr, 34,
         centerX, startY, resultColor);
 
-    // Thong ke (Tỉ số) - Ép khoảng cách lại còn 40.f (thay vì 45.f)
+    // Thong ke ti so
     std::string stats = state.player1.name + " " + std::to_string(state.player1.totalWins)
         + "  -  "
         + std::to_string(state.player2.totalWins) + " " + state.player2.name;
     renderTextCentered(window, res.mainFont, stats, 20,
-        centerX, startY + 40.f, sf::Color::White);
+        centerX, startY + UI_GAMEOVER_STATS_DY, sf::Color::White);
 
-    // Lua chon tiep (Play again?) - Ép khoảng cách lại còn 75.f
+    // Cau hoi "Play again?"
     std::string items[] = { txt.yes, txt.no };
     renderTextCentered(window, res.mainFont, txt.continueText, 18,
-        centerX, startY + 75.f, sf::Color(200, 200, 200));
+        centerX, startY + UI_GAMEOVER_QUESTION_DY, sf::Color(200, 200, 200));
 
-    // Nút Yes / No - Ép khoảng cách lại còn 110.f
+    // Nut Yes / No
     for (int i = 0; i < 2; i++) {
         bool selected = (i == menuIndex);
+        float btnX = centerX - UI_GAMEOVER_BTN_GAP_X + i * (UI_GAMEOVER_BTN_GAP_X * 2);
         renderTextCentered(window, res.mainFont, items[i],
             selected ? 24 : 20,
-            centerX - 50.f + i * 100.f, startY + 110.f,
+            btnX, startY + UI_GAMEOVER_BTN_DY,
             selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT);
     }
 }
@@ -544,12 +547,12 @@ void renderSaveScreen(sf::RenderWindow& window, const GameResources& res,
     TextStrings txt = langGetText(langGetCurrent());
 
     renderTextCentered(window, res.titleFont, txt.saveGame, 38,
-        WINDOW_WIDTH / 2.f, 60.f, sf::Color::White);
+        WINDOW_WIDTH / 2.f, UI_SAVE_TITLE_Y, sf::Color::White);
 
     // O nhap ten save
     sf::RectangleShape inputBox(sf::Vector2f(400.f, 45.f));
     inputBox.setOrigin(200.f, 22.5f);
-    inputBox.setPosition(WINDOW_WIDTH / 2.f, 130.f);
+    inputBox.setPosition(WINDOW_WIDTH / 2.f, UI_SAVE_INPUT_Y);
     inputBox.setFillColor(sf::Color(60, 60, 80));
     inputBox.setOutlineThickness(2.f);
     inputBox.setOutlineColor(COLOR_MENU_HOVER);
@@ -557,13 +560,13 @@ void renderSaveScreen(sf::RenderWindow& window, const GameResources& res,
 
     renderTextCentered(window, res.mainFont,
         inputName.empty() ? txt.enterSaveName : inputName, 18,
-        WINDOW_WIDTH / 2.f, 130.f,
+        WINDOW_WIDTH / 2.f, UI_SAVE_INPUT_Y,
         inputName.empty() ? sf::Color(120, 120, 120) : sf::Color::White);
 
     // Danh sach file save
     for (int i = 0; i < saveCount; i++) {
         bool selected = (i == selectedIndex);
-        float y = 200.f + i * 35.f;
+        float y = UI_SAVE_LIST_START_Y + i * UI_LIST_STEP;
 
         if (selected) {
             sf::RectangleShape highlight(sf::Vector2f(500.f, 30.f));
@@ -592,7 +595,7 @@ void renderLoadScreen(sf::RenderWindow& window, const GameResources& res,
     TextStrings txt = langGetText(langGetCurrent());
 
     renderTextCentered(window, res.titleFont, txt.loadGame, 38,
-        WINDOW_WIDTH / 2.f, 60.f, sf::Color::White);
+        WINDOW_WIDTH / 2.f, UI_LOAD_TITLE_Y, sf::Color::White);
 
     if (saveCount == 0) {
         renderTextCentered(window, res.mainFont, txt.fileNotFound, 20,
@@ -601,7 +604,7 @@ void renderLoadScreen(sf::RenderWindow& window, const GameResources& res,
     else {
         for (int i = 0; i < saveCount; i++) {
             bool selected = (i == selectedIndex);
-            float y = 150.f + i * 35.f;
+            float y = UI_LOAD_LIST_START_Y + i * UI_LIST_STEP;
 
             if (selected) {
                 sf::RectangleShape highlight(sf::Vector2f(500.f, 30.f));
@@ -631,7 +634,7 @@ void renderSettings(sf::RenderWindow& window, const GameResources& res,
     TextStrings txt = langGetText(langGetCurrent());
 
     renderTextCentered(window, res.titleFont, txt.settings, 38,
-        WINDOW_WIDTH / 2.f, 100.f, sf::Color::White);
+        WINDOW_WIDTH / 2.f, UI_SETTINGS_TITLE_Y, sf::Color::White);
 
     // Ngon ngu
     std::string langStr = txt.language + ": " +
@@ -647,7 +650,7 @@ void renderSettings(sf::RenderWindow& window, const GameResources& res,
         bool selected = (i == menuIndex);
         renderTextCentered(window, res.mainFont, items[i],
             selected ? 26 : 22,
-            WINDOW_WIDTH / 2.f, 250.f + i * 60.f,
+            WINDOW_WIDTH / 2.f, UI_SETTINGS_START_Y + i * UI_SETTINGS_STEP,
             selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT);
     }
 }
