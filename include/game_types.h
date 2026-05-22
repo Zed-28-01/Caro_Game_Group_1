@@ -230,6 +230,14 @@ struct GameResources {
     sf::Texture xPieceTex;      // Texture quan X (neu co)
     sf::Texture oPieceTex;      // Texture quan O (neu co)
 
+    // Mascot textures - moi player co 3 trang thai
+    sf::Texture mascotP1Idle;   // Player 1: dang choi
+    sf::Texture mascotP1Win;    // Player 1: thang
+    sf::Texture mascotP1Over;   // Player 1: thua
+    sf::Texture mascotP2Idle;   // Player 2: dang choi
+    sf::Texture mascotP2Win;    // Player 2: thang
+    sf::Texture mascotP2Over;   // Player 2: thua
+
     sf::SoundBuffer moveSfx;    // Am thanh di chuyen cursor
     sf::SoundBuffer placeSfx;   // Am thanh dat quan
     sf::SoundBuffer winSfx;     // Am thanh thang

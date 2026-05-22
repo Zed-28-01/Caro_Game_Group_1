@@ -71,7 +71,8 @@ void renderInputNames(sf::RenderWindow& window, const GameResources& res,
 // - Hint highlight (neu dang hien goi y)
 void renderGameplay(sf::RenderWindow& window, const GameState& state,
                     const GameResources& res, const WinLine* winLine,
-                    int hintRow, int hintCol, bool showHint);
+                    int hintRow, int hintCol, bool showHint,
+                    GameResult result = RESULT_NONE);
 
 // Ve ban co (grid lines)
 void renderBoard(sf::RenderWindow& window, const GameResources& res);
@@ -99,7 +100,8 @@ void renderWinLine(sf::RenderWindow& window, const WinLine& winLine);
 // - So van thang
 // - Highlight nguoi dang di
 void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
-                       const GameResources& res);
+                       const GameResources& res,
+                       GameResult result = RESULT_NONE);
 
 // ============================================================
 // VE TIMER / PROGRESS BAR

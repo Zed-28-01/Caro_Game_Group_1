@@ -779,7 +779,7 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
             }
         }
 
-        renderGameplay(window, state, res, (result != RESULT_DRAW) ? &winLine : nullptr, -1, -1, false);
+        renderGameplay(window, state, res, (result != RESULT_DRAW) ? &winLine : nullptr, -1, -1, false, result);
         renderGameOver(window, state, res, result, menuIndex);
         window.display();
     }
