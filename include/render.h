@@ -51,11 +51,11 @@ void renderPauseMenu(sf::RenderWindow& window, const GameResources& res,
 // ============================================================
 
 // Ve form nhap ten nguoi choi
-// inputText: chuoi dang nhap hien tai
-// isPlayer1: dang nhap cho Player 1 hay 2
+// isPvC = true: chi hien 1 o (Player 1), Player 2 mac dinh = "May"/"Computer"
 void renderInputNames(sf::RenderWindow& window, const GameResources& res,
                       const std::string& name1, const std::string& name2,
-                      bool isEditingPlayer1, bool showError);
+                      bool isEditingPlayer1, bool showError,
+                      bool isPvC = false);
 
 // ============================================================
 // VE BAN CO & GAMEPLAY

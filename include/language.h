@@ -90,6 +90,35 @@ struct TextStrings {
     std::string guideHint;      // "H: Goi y (PvC)"
     std::string guidePause;     // "ESC: Tam dung"
     std::string guideSave;      // "L: Luu game"
+
+    // Ten ngon ngu (hien thi trong Settings)
+    std::string langVietnamese; // "Tieng Viet" / "Vietnamese"
+    std::string langEnglish;    // "Tieng Anh" / "English"
+
+    // Hint hint o cuoi man hinh Save/Load
+    std::string saveHintBottom; // "Enter: Luu | ESC: Quay lai"
+    std::string saveHintMouse;  // "Click trai: chon ten | Click phai: xoa file"
+    std::string loadHintBottom; // "Enter: Tai | Del: Xoa | ESC: Quay lai"
+    std::string loadHintMouse;  // "Click trai: chon | Double-click: tai | Click phai: xoa"
+    std::string settingsHint;   // "Volume: click ben trai giam, ben phai tang"
+
+    // Input name screen
+    std::string inputNameHintPvP;  // "Tab: Chuyen o | Enter: Xac nhan"
+    std::string inputNameHintPvC;  // "Enter: Xac nhan"
+    std::string botName;           // "May" / "Computer"
+
+    // Panel + timer (gameplay)
+    std::string yourTurn;          // ">>> LUOT CUA BAN <<<"
+    std::string turnTimeBar;       // "THOI GIAN LUOT"
+    std::string gameTimeLabel;     // "Thoi gian van: "
+
+    // Save/Load messages
+    std::string msgSaveOK;         // "Luu thanh cong!"
+    std::string msgSaveError;      // "Loi luu file!"
+    std::string msgFileExists;     // "File da ton tai!"
+    std::string msgMaxFiles;       // "Da dat gioi han 15 file!"
+    std::string msgFileDeleted;    // "Da xoa file!"
+    std::string msgLoadError;      // "Loi tai file!"
 };
 
 // ============================================================

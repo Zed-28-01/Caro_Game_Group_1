@@ -235,6 +235,7 @@ void renderWinLine(sf::RenderWindow& window, const WinLine& winLine) {
 // VE PLAYER PANEL
 void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
     const GameResources& res, GameResult result) {
+    TextStrings txt = langGetText(langGetCurrent());
     float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + UI_PANEL_GAP_LEFT;
     float panelW = WINDOW_WIDTH - panelX - UI_PANEL_GAP_RIGHT;
 
@@ -292,32 +293,38 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
         pieceIcon.setPosition(panelX + 25.f, boxY + 30.f);
         window.draw(pieceIcon);
 
+        // Ten nguoi choi (PHAI dung fromUtf8 de hien thi tieng Viet)
+        std::string nameStr = p.name.empty() ? (i == 0 ? "Player 1" : "Player 2") : p.name;
         sf::Text nameText;
         nameText.setFont(res.mainFont);
-        nameText.setString(p.name.empty() ? (i == 0 ? "Player 1" : "Player 2") : p.name);
+        nameText.setString(sf::String::fromUtf8(nameStr.begin(), nameStr.end()));
         nameText.setCharacterSize(20);
         nameText.setFillColor(sf::Color::White);
         nameText.setPosition(panelX + 50.f, boxY + 18.f);
         window.draw(nameText);
 
+        // So nuoc di
+        std::string movesStr = txt.moves + std::to_string(p.moves);
         sf::Text movesText;
         movesText.setFont(res.mainFont);
-        movesText.setString("Nuoc di: " + std::to_string(p.moves));
+        movesText.setString(sf::String::fromUtf8(movesStr.begin(), movesStr.end()));
         movesText.setCharacterSize(16);
         movesText.setFillColor(sf::Color(200, 200, 200));
         movesText.setPosition(panelX + 15.f, boxY + 65.f);
         window.draw(movesText);
 
+        // So van thang
+        std::string winsStr = txt.wins + std::to_string(p.totalWins);
         sf::Text winsText;
         winsText.setFont(res.mainFont);
-        winsText.setString("Thang: " + std::to_string(p.totalWins));
+        winsText.setString(sf::String::fromUtf8(winsStr.begin(), winsStr.end()));
         winsText.setCharacterSize(16);
         winsText.setFillColor(sf::Color(200, 200, 200));
         winsText.setPosition(panelX + 15.f, boxY + 95.f);
         window.draw(winsText);
 
         if (isActive) {
-            renderTextCentered(window, res.mainFont, ">>> LUOT CUA BAN <<<",
+            renderTextCentered(window, res.mainFont, txt.yourTurn,
                 14, panelX + panelW / 2.f, boxY + 140.f,
                 pieceColor);
         }
@@ -348,14 +355,15 @@ void renderTurnTimer(sf::RenderWindow& window, const GameResources& res,
     bar.setFillColor(barColor);
     window.draw(bar);
 
-    // FIX: Đổi màu chữ thành xám đậm (40, 40, 40) thay vì (200, 200, 200)
-    renderTextCentered(window, res.mainFont, "THOI GIAN LUOT",
+    // Text "THOI GIAN LUOT" - mau sang hon de doc tren background
+    TextStrings txt = langGetText(langGetCurrent());
+    renderTextCentered(window, res.mainFont, txt.turnTimeBar,
         13, panelX + panelW / 2.f, barY - 14.f,
-        sf::Color(40, 40, 40));
+        sf::Color(240, 240, 240));
 }
 
 
-// 3. CHỈNH TEXT THỜI GIAN VÁN (Đổi màu chữ "Thoi gian van")
+// Text thoi gian van (countdown 10:00)
 void renderGameTimer(sf::RenderWindow& window, const GameResources& res,
     float secondsLeft) {
     float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + UI_PANEL_GAP_LEFT;
@@ -367,10 +375,10 @@ void renderGameTimer(sf::RenderWindow& window, const GameResources& res,
     char buf[16];
     snprintf(buf, sizeof(buf), "%02d:%02d", mins, secs);
 
-    // FIX: Đổi màu chữ thành xám đậm (40, 40, 40) thay vì White
-    renderTextCentered(window, res.mainFont, "Thoi gian van: " + std::string(buf),
+    TextStrings txt = langGetText(langGetCurrent());
+    renderTextCentered(window, res.mainFont, txt.gameTimeLabel + std::string(buf),
         16, panelX + panelW / 2.f, UI_GAME_TIMER_Y,
-        sf::Color(40, 40, 40));
+        sf::Color(240, 240, 240));
 }
 // VE MENU
 
@@ -471,53 +479,83 @@ void renderPauseMenu(sf::RenderWindow& window, const GameResources& res,
 
 void renderInputNames(sf::RenderWindow& window, const GameResources& res,
     const std::string& name1, const std::string& name2,
-    bool isEditingPlayer1, bool showError) {
+    bool isEditingPlayer1, bool showError, bool isPvC) {
     renderBackdrop(window, res, true);
     TextStrings txt = langGetText(langGetCurrent());
 
-    renderTextCentered(window, res.titleFont, txt.enterName1, 30,
-        WINDOW_WIDTH / 2.f, 150.f, sf::Color::White);
+    if (isPvC) {
+        // PVC: chi 1 o nhap ten cho Player 1 (giua man hinh)
+        renderTextCentered(window, res.titleFont, txt.enterName1, 32,
+            WINDOW_WIDTH / 2.f, 220.f, sf::Color::White);
 
-    // O nhap ten Player 1
-    sf::RectangleShape box1(sf::Vector2f(400.f, 50.f));
-    box1.setOrigin(200.f, 25.f);
-    box1.setPosition(WINDOW_WIDTH / 2.f, 220.f);
-    box1.setFillColor(sf::Color(60, 60, 80));
-    box1.setOutlineThickness(isEditingPlayer1 ? 3.f : 1.f);
-    box1.setOutlineColor(isEditingPlayer1 ? COLOR_MENU_HOVER : sf::Color(100, 100, 100));
-    window.draw(box1);
+        sf::RectangleShape box1(sf::Vector2f(420.f, 56.f));
+        box1.setOrigin(210.f, 28.f);
+        box1.setPosition(WINDOW_WIDTH / 2.f, 310.f);
+        box1.setFillColor(sf::Color(60, 60, 80));
+        box1.setOutlineThickness(3.f);
+        box1.setOutlineColor(COLOR_MENU_HOVER);
+        window.draw(box1);
 
-    renderTextCentered(window, res.mainFont,
-        name1.empty() ? "Player 1" : name1, 22,
-        WINDOW_WIDTH / 2.f, 220.f,
-        name1.empty() ? sf::Color(120, 120, 120) : sf::Color::White);
+        renderTextCentered(window, res.mainFont,
+            name1.empty() ? "Player 1" : name1, 24,
+            WINDOW_WIDTH / 2.f, 310.f,
+            name1.empty() ? sf::Color(150, 150, 150) : sf::Color::White);
 
-    // O nhap ten Player 2
-    renderTextCentered(window, res.titleFont, txt.enterName2, 30,
-        WINDOW_WIDTH / 2.f, 320.f, sf::Color::White);
+        // Hien thong tin doi thu: "Doi thu: May"
+        renderTextCentered(window, res.mainFont,
+            txt.enterName2.substr(0, txt.enterName2.size() - 1) + " " + txt.botName,
+            18, WINDOW_WIDTH / 2.f, 380.f, sf::Color(180, 200, 220));
 
-    sf::RectangleShape box2(sf::Vector2f(400.f, 50.f));
-    box2.setOrigin(200.f, 25.f);
-    box2.setPosition(WINDOW_WIDTH / 2.f, 390.f);
-    box2.setFillColor(sf::Color(60, 60, 80));
-    box2.setOutlineThickness(!isEditingPlayer1 ? 3.f : 1.f);
-    box2.setOutlineColor(!isEditingPlayer1 ? COLOR_MENU_HOVER : sf::Color(100, 100, 100));
-    window.draw(box2);
+        if (showError) {
+            renderTextCentered(window, res.mainFont, txt.nameError, 18,
+                WINDOW_WIDTH / 2.f, 430.f, sf::Color::Red);
+        }
 
-    renderTextCentered(window, res.mainFont,
-        name2.empty() ? "Player 2" : name2, 22,
-        WINDOW_WIDTH / 2.f, 390.f,
-        name2.empty() ? sf::Color(120, 120, 120) : sf::Color::White);
-
-    // Thong bao loi
-    if (showError) {
-        renderTextCentered(window, res.mainFont, txt.nameError, 18,
-            WINDOW_WIDTH / 2.f, 460.f, sf::Color::Red);
+        renderTextCentered(window, res.mainFont, txt.inputNameHintPvC, 16,
+            WINDOW_WIDTH / 2.f, 500.f, sf::Color(220, 220, 220));
     }
+    else {
+        // PVP: 2 o nhap ten
+        renderTextCentered(window, res.titleFont, txt.enterName1, 30,
+            WINDOW_WIDTH / 2.f, 150.f, sf::Color::White);
 
-    // Huong dan
-    renderTextCentered(window, res.mainFont, "Tab: Chuyen o | Enter: Xac nhan", 16,
-        WINDOW_WIDTH / 2.f, 520.f, sf::Color(180, 180, 180));
+        sf::RectangleShape box1(sf::Vector2f(400.f, 50.f));
+        box1.setOrigin(200.f, 25.f);
+        box1.setPosition(WINDOW_WIDTH / 2.f, 220.f);
+        box1.setFillColor(sf::Color(60, 60, 80));
+        box1.setOutlineThickness(isEditingPlayer1 ? 3.f : 1.f);
+        box1.setOutlineColor(isEditingPlayer1 ? COLOR_MENU_HOVER : sf::Color(100, 100, 100));
+        window.draw(box1);
+
+        renderTextCentered(window, res.mainFont,
+            name1.empty() ? "Player 1" : name1, 22,
+            WINDOW_WIDTH / 2.f, 220.f,
+            name1.empty() ? sf::Color(150, 150, 150) : sf::Color::White);
+
+        renderTextCentered(window, res.titleFont, txt.enterName2, 30,
+            WINDOW_WIDTH / 2.f, 320.f, sf::Color::White);
+
+        sf::RectangleShape box2(sf::Vector2f(400.f, 50.f));
+        box2.setOrigin(200.f, 25.f);
+        box2.setPosition(WINDOW_WIDTH / 2.f, 390.f);
+        box2.setFillColor(sf::Color(60, 60, 80));
+        box2.setOutlineThickness(!isEditingPlayer1 ? 3.f : 1.f);
+        box2.setOutlineColor(!isEditingPlayer1 ? COLOR_MENU_HOVER : sf::Color(100, 100, 100));
+        window.draw(box2);
+
+        renderTextCentered(window, res.mainFont,
+            name2.empty() ? "Player 2" : name2, 22,
+            WINDOW_WIDTH / 2.f, 390.f,
+            name2.empty() ? sf::Color(150, 150, 150) : sf::Color::White);
+
+        if (showError) {
+            renderTextCentered(window, res.mainFont, txt.nameError, 18,
+                WINDOW_WIDTH / 2.f, 460.f, sf::Color::Red);
+        }
+
+        renderTextCentered(window, res.mainFont, txt.inputNameHintPvP, 16,
+            WINDOW_WIDTH / 2.f, 520.f, sf::Color(220, 220, 220));
+    }
 }
 
 
@@ -664,11 +702,13 @@ void renderSaveScreen(sf::RenderWindow& window, const GameResources& res,
             selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT);
     }
 
-    // Huong dan
-    renderTextCentered(window, res.mainFont,
-        "Enter: Luu | ESC: Quay lai", 14,
-        WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 40.f,
-        sf::Color(150, 150, 150));
+    // Huong dan (2 dong: keyboard + mouse, sang hon)
+    renderTextCentered(window, res.mainFont, txt.saveHintBottom, 15,
+        WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 55.f,
+        sf::Color(235, 235, 235));
+    renderTextCentered(window, res.mainFont, txt.saveHintMouse, 14,
+        WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 30.f,
+        sf::Color(210, 210, 210));
 }
 
 void renderLoadScreen(sf::RenderWindow& window, const GameResources& res,
@@ -703,10 +743,13 @@ void renderLoadScreen(sf::RenderWindow& window, const GameResources& res,
         }
     }
 
-    renderTextCentered(window, res.mainFont,
-        "Enter: Tai | Del: Xoa | ESC: Quay lai", 14,
-        WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 40.f,
-        sf::Color(150, 150, 150));
+    // Huong dan (keyboard + mouse, sang hon)
+    renderTextCentered(window, res.mainFont, txt.loadHintBottom, 15,
+        WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 55.f,
+        sf::Color(235, 235, 235));
+    renderTextCentered(window, res.mainFont, txt.loadHintMouse, 14,
+        WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 30.f,
+        sf::Color(210, 210, 210));
 }
 
 // VE SETTINGS / HELP / ABOUT
@@ -719,23 +762,66 @@ void renderSettings(sf::RenderWindow& window, const GameResources& res,
     renderTextCentered(window, res.titleFont, txt.settings, 38,
         WINDOW_WIDTH / 2.f, UI_SETTINGS_TITLE_Y, sf::Color::White);
 
-    // Ngon ngu
-    std::string langStr = txt.language + ": " +
-        (lang == LANG_VIETNAMESE ? "Tieng Viet" : "English");
-    // Am luong BGM
-    std::string volStr = txt.bgmVolume + ": " + std::to_string(volume) + "%";
-    // SFX
-    std::string sfxStr = txt.sfxToggle + ": " + (sfxOn ? txt.on : txt.off);
+    // Cac chuoi label
+    std::string langStr = txt.language + " " +
+        (lang == LANG_VIETNAMESE ? txt.langVietnamese : txt.langEnglish);
+    std::string sfxStr = txt.sfxToggle + " " + (sfxOn ? txt.on : txt.off);
 
-    std::string items[] = { langStr, volStr, sfxStr, txt.back };
-
+    // Render tung row
     for (int i = 0; i < 4; i++) {
         bool selected = (i == menuIndex);
-        renderTextCentered(window, res.mainFont, items[i],
-            selected ? 26 : 22,
-            WINDOW_WIDTH / 2.f, UI_SETTINGS_START_Y + i * UI_SETTINGS_STEP,
-            selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT);
+        sf::Color color = selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT;
+        int fontSize = selected ? 26 : 22;
+        float itemY = UI_SETTINGS_START_Y + i * UI_SETTINGS_STEP;
+
+        if (i == 1) {
+            // VOLUME ROW: label + slider bar
+            std::string volLabel = txt.bgmVolume + " " + std::to_string(volume) + "%";
+            renderTextCentered(window, res.mainFont, volLabel, fontSize,
+                WINDOW_WIDTH / 2.f, itemY - 14.f, color);
+
+            // Slider track + fill + handle
+            const float trackW = 360.f;
+            const float trackH = 8.f;
+            const float trackX = WINDOW_WIDTH / 2.f - trackW / 2.f;
+            const float trackY = itemY + 15.f;
+
+            // Track background (xam dam)
+            sf::RectangleShape track(sf::Vector2f(trackW, trackH));
+            track.setPosition(trackX, trackY);
+            track.setFillColor(sf::Color(80, 90, 110));
+            track.setOutlineThickness(1.f);
+            track.setOutlineColor(sf::Color(140, 150, 170));
+            window.draw(track);
+
+            // Filled portion (mau xanh sang)
+            sf::RectangleShape fill(sf::Vector2f(trackW * volume / 100.f, trackH));
+            fill.setPosition(trackX, trackY);
+            fill.setFillColor(selected ? sf::Color(80, 200, 255) : sf::Color(60, 150, 220));
+            window.draw(fill);
+
+            // Handle (tron, trang)
+            float handleR = selected ? 12.f : 10.f;
+            sf::CircleShape handle(handleR);
+            handle.setOrigin(handleR, handleR);
+            handle.setPosition(trackX + trackW * volume / 100.f, trackY + trackH / 2.f);
+            handle.setFillColor(sf::Color::White);
+            handle.setOutlineColor(selected ? sf::Color(80, 200, 255) : sf::Color(60, 150, 220));
+            handle.setOutlineThickness(3.f);
+            window.draw(handle);
+        }
+        else {
+            // Cac row khac: chi text
+            std::string content = (i == 0) ? langStr : (i == 2 ? sfxStr : txt.back);
+            renderTextCentered(window, res.mainFont, content, fontSize,
+                WINDOW_WIDTH / 2.f, itemY, color);
+        }
     }
+
+    // Settings hint o cuoi man hinh
+    renderTextCentered(window, res.mainFont, txt.settingsHint, 14,
+        WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 40.f,
+        sf::Color(230, 230, 230));
 }
 
 void renderHelp(sf::RenderWindow& window, const GameResources& res) {
