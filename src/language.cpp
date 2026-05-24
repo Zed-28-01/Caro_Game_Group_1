@@ -125,6 +125,7 @@ TextStrings langGetText(Language lang) {
         t.yourTurn = ">>> YOUR TURN <<<";
         t.turnTimeBar = "TURN TIME";
         t.gameTimeLabel = "Game time: ";
+        t.defeatText = "DEFEAT";
 
         // Save/Load messages
         t.msgSaveOK = "Game saved successfully!";
@@ -236,6 +237,7 @@ TextStrings langGetText(Language lang) {
         t.yourTurn = u8">>> LƯỢT CỦA BẠN <<<";
         t.turnTimeBar = u8"THỜI GIAN LƯỢT";
         t.gameTimeLabel = u8"Thời gian ván: ";
+        t.defeatText = u8"THUA CUỘC";
 
         // Save/Load messages
         t.msgSaveOK = u8"Lưu thành công!";

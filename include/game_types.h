@@ -238,6 +238,12 @@ struct GameResources {
     sf::Texture mascotP2Win;    // Player 2: thang
     sf::Texture mascotP2Over;   // Player 2: thua
 
+    // UI decoration textures (style polish)
+    sf::Texture logoCaroTex;     // Logo "CARO" sticker cho Main Menu
+    sf::Texture bannerWinTex;    // Banner "VICTORY" cho winner
+    sf::Texture bannerDefeatTex; // Banner "DEFEAT" cho loser
+    sf::Texture buttonFrameTex;  // Khung bo tron cho menu items
+
     sf::SoundBuffer moveSfx;    // Am thanh di chuyen cursor
     sf::SoundBuffer placeSfx;   // Am thanh dat quan
     sf::SoundBuffer winSfx;     // Am thanh thang

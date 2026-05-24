@@ -179,8 +179,11 @@ sf::Vector2f renderBoardToPixel(int row, int col);
 bool renderPixelToBoard(float x, float y, int& outRow, int& outCol);
 
 // Ve 1 text can giua tai vi tri (centerX, centerY)
+// Optional: them outline mau outlineColor day outlineThickness px (de chu noi bat tren background)
 void renderTextCentered(sf::RenderWindow& window, const sf::Font& font,
                         const std::string& text, int fontSize,
-                        float centerX, float centerY, sf::Color color);
+                        float centerX, float centerY, sf::Color color,
+                        sf::Color outlineColor = sf::Color::Transparent,
+                        float outlineThickness = 0.f);
 
 #endif // RENDER_H

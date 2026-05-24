@@ -111,6 +111,7 @@ struct TextStrings {
     std::string yourTurn;          // ">>> LUOT CUA BAN <<<"
     std::string turnTimeBar;       // "THOI GIAN LUOT"
     std::string gameTimeLabel;     // "Thoi gian van: "
+    std::string defeatText;        // "DEFEAT" / "THUA CUOC"
 
     // Save/Load messages
     std::string msgSaveOK;         // "Luu thanh cong!"

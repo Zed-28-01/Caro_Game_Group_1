@@ -31,20 +31,30 @@ bool renderPixelToBoard(float x, float y, int& outRow, int& outCol) {
 
 
 // Ve text can giua tai (centerX, centerY)
+// SNAP origin va position vao integer pixel de tranh sub-pixel blur
+// Co the them outline de chu noi bat tren background phuc tap
 void renderTextCentered(sf::RenderWindow& window, const sf::Font& font,
     const std::string& text, int fontSize,
-    float centerX, float centerY, sf::Color color) {
+    float centerX, float centerY, sf::Color color,
+    sf::Color outlineColor, float outlineThickness) {
     sf::Text t;
     t.setFont(font);
     t.setString(sf::String::fromUtf8(text.begin(), text.end()));
     t.setCharacterSize(fontSize);
     t.setFillColor(color);
 
+    // Outline (neu co) - giup chu noi bat tren background
+    if (outlineThickness > 0.f) {
+        t.setOutlineColor(outlineColor);
+        t.setOutlineThickness(outlineThickness);
+    }
+
     // Tinh kich thuoc thuc te cua doan chu
     sf::FloatRect bounds = t.getLocalBounds();
-    t.setOrigin(bounds.left + bounds.width / 2.f,
-        bounds.top + bounds.height / 2.f);
-    t.setPosition(centerX, centerY);
+    // SNAP origin va position vao integer pixel -> chu ro net hon
+    t.setOrigin(std::round(bounds.left + bounds.width / 2.f),
+        std::round(bounds.top + bounds.height / 2.f));
+    t.setPosition(std::round(centerX), std::round(centerY));
 
     window.draw(t); // ve len cua so game
 }
@@ -81,6 +91,16 @@ bool renderLoadResources(GameResources& res) {
     res.mascotP2Win.setSmooth(true);
     res.mascotP2Over.loadFromFile("../assets/textures/mascot_p2_Over.png");
     res.mascotP2Over.setSmooth(true);
+
+    // UI decoration textures (smooth de scale dep)
+    res.logoCaroTex.loadFromFile("../assets/textures/logo_caro.png");
+    res.logoCaroTex.setSmooth(true);
+    res.bannerWinTex.loadFromFile("../assets/textures/banner_winner.png");
+    res.bannerWinTex.setSmooth(true);
+    res.bannerDefeatTex.loadFromFile("../assets/textures/banner_defeat.png");
+    res.bannerDefeatTex.setSmooth(true);
+    res.buttonFrameTex.loadFromFile("../assets/textures/button_frame.png");
+    res.buttonFrameTex.setSmooth(true);
 
     // Sound
     res.moveSfx.loadFromFile("../assets/sounds/move.wav");
@@ -268,6 +288,7 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
             else                                    mascotTex = &res.mascotP2Idle;
         }
 
+        float mascotLeftX = panelX + panelW;  // fallback: rightmost
         if (mascotTex != nullptr && mascotTex->getSize().x > 0) {
             sf::Sprite mascot(*mascotTex);
             sf::Vector2u texSize = mascotTex->getSize();
@@ -276,8 +297,42 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
             mascot.setScale(scale, scale);
             float mascotW = texSize.x * scale;
             // Dat mascot ben phai box, can giua chieu doc
-            mascot.setPosition(panelX + panelW - mascotW - 8.f, boxY + 5.f);
+            float mascotX = panelX + panelW - mascotW - 8.f;
+            mascot.setPosition(mascotX, boxY + 5.f);
             window.draw(mascot);
+            mascotLeftX = mascotX;
+        }
+
+        // VICTORY / DEFEAT banner giua panel box (giua text info va mascot)
+        if (result != RESULT_NONE && result != RESULT_DRAW) {
+            bool thisPlayerWon = (i == 0 && result == RESULT_PLAYER1_WIN) ||
+                                 (i == 1 && result == RESULT_PLAYER2_WIN);
+
+            // Vung dat banner: giua khu text (left ~200) va mascot
+            float bannerCenterX = (panelX + 200.f + mascotLeftX) / 2.f;
+            float bannerCenterY = boxY + UI_PANEL_BOX_HEIGHT / 2.f;
+            const float bannerW = 200.f;
+
+            const sf::Texture* bannerTex = thisPlayerWon ? &res.bannerWinTex
+                                                          : &res.bannerDefeatTex;
+
+            if (bannerTex != nullptr && bannerTex->getSize().x > 0) {
+                // Texture VICTORY hoac DEFEAT
+                sf::Sprite banner(*bannerTex);
+                sf::Vector2u s = bannerTex->getSize();
+                banner.setOrigin(s.x / 2.f, s.y / 2.f);
+                float bScale = bannerW / s.x;
+                banner.setScale(bScale, bScale);
+                banner.setPosition(std::round(bannerCenterX), std::round(bannerCenterY));
+                window.draw(banner);
+            }
+            else if (!thisPlayerWon) {
+                // Fallback: neu thieu texture defeat -> dung text do
+                renderTextCentered(window, res.titleFont, txt.defeatText, 32,
+                    bannerCenterX, bannerCenterY,
+                    sf::Color(255, 70, 70),
+                    sf::Color(0, 0, 0, 230), 3.f);
+            }
         }
 
         // Chữ X/O
@@ -335,7 +390,6 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
 // VE TIMER
 
 // Thanh dem gio luot hien tai (progress bar)
-// 2. CHỈNH THANH TIMER (Đổi màu chữ "THOI GIAN LUOT")
 void renderTurnTimer(sf::RenderWindow& window, const GameResources& res,
     float percentage) {
     float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + UI_PANEL_GAP_LEFT;
@@ -344,22 +398,34 @@ void renderTurnTimer(sf::RenderWindow& window, const GameResources& res,
     float barY = UI_TIMER_BAR_Y;
     float barH = UI_TIMER_BAR_HEIGHT;
 
-    sf::RectangleShape bg(sf::Vector2f(panelW, barH));
-    bg.setPosition(panelX, barY);
-    bg.setFillColor(sf::Color(60, 60, 60));
+    // PLATE den mo phia sau ca khu vuc timer (label + bar + game time)
+    // Cao 90px de bao trum tu "THOI GIAN LUOT" den "Thoi gian van"
+    sf::RectangleShape timerPlate(sf::Vector2f(panelW, 90.f));
+    timerPlate.setPosition(panelX, barY - 32.f);
+    timerPlate.setFillColor(sf::Color(20, 30, 50, 180));  // dark blue, 70% opacity
+    timerPlate.setOutlineThickness(2.f);
+    timerPlate.setOutlineColor(sf::Color(80, 100, 140, 200));
+    window.draw(timerPlate);
+
+    // Background thanh bar (track)
+    sf::RectangleShape bg(sf::Vector2f(panelW - 20.f, barH));
+    bg.setPosition(panelX + 10.f, barY);
+    bg.setFillColor(sf::Color(40, 50, 70));
     window.draw(bg);
 
+    // Progress bar fill
     sf::Color barColor = (percentage > 0.3f) ? COLOR_TIMER_BAR : COLOR_TIMER_LOW;
-    sf::RectangleShape bar(sf::Vector2f(panelW * percentage, barH));
-    bar.setPosition(panelX, barY);
+    sf::RectangleShape bar(sf::Vector2f((panelW - 20.f) * percentage, barH));
+    bar.setPosition(panelX + 10.f, barY);
     bar.setFillColor(barColor);
     window.draw(bar);
 
-    // Text "THOI GIAN LUOT" - mau sang hon de doc tren background
+    // Text "THOI GIAN LUOT" - trang tinh + outline den day -> noi bat
     TextStrings txt = langGetText(langGetCurrent());
     renderTextCentered(window, res.mainFont, txt.turnTimeBar,
-        13, panelX + panelW / 2.f, barY - 14.f,
-        sf::Color(240, 240, 240));
+        16, panelX + panelW / 2.f, barY - 18.f,
+        sf::Color::White,
+        sf::Color(0, 0, 0, 220), 2.f);  // black outline 2px
 }
 
 
@@ -375,45 +441,88 @@ void renderGameTimer(sf::RenderWindow& window, const GameResources& res,
     char buf[16];
     snprintf(buf, sizeof(buf), "%02d:%02d", mins, secs);
 
+    // Doi mau chu theo thoi gian con lai (do khi sap het)
+    sf::Color textColor = (secondsLeft <= 30.f) ? sf::Color(255, 100, 100) : sf::Color::White;
+
     TextStrings txt = langGetText(langGetCurrent());
     renderTextCentered(window, res.mainFont, txt.gameTimeLabel + std::string(buf),
-        16, panelX + panelW / 2.f, UI_GAME_TIMER_Y,
-        sf::Color(240, 240, 240));
+        18, panelX + panelW / 2.f, UI_GAME_TIMER_Y,
+        textColor,
+        sf::Color(0, 0, 0, 220), 2.f);  // black outline 2px
 }
 // VE MENU
 
-// Ham noi bo: ve 1 menu chung (tieu de + danh sach lua chon)
+// Helper: ve khung button bo tron (texture button_frame.png)
+// centerY: vi tri Y trung tam button
+// selected: true = button highlight (sang vang), false = button thuong (mo)
+static void drawMenuButton(sf::RenderWindow& window, const GameResources& res,
+    float centerY, bool selected) {
+    if (res.buttonFrameTex.getSize().x == 0) return;
+
+    sf::Sprite frame(res.buttonFrameTex);
+    sf::Vector2u s = res.buttonFrameTex.getSize();
+    frame.setOrigin(s.x / 2.f, s.y / 2.f);
+
+    // Selected to ra to hon mot chut + sang hon
+    float btnW = selected ? 420.f : 380.f;
+    float btnH = selected ? 64.f : 56.f;
+    frame.setScale(btnW / s.x, btnH / s.y);
+    frame.setPosition(std::round(WINDOW_WIDTH / 2.f), std::round(centerY));
+    frame.setColor(selected ? sf::Color(255, 240, 180, 255)   // golden warm
+                            : sf::Color(200, 200, 220, 200)); // soft white
+    window.draw(frame);
+}
+
+// Helper: ve logo CARO o vi tri tieu de Main Menu
+static void drawCaroLogo(sf::RenderWindow& window, const GameResources& res) {
+    if (res.logoCaroTex.getSize().x == 0) return;
+    sf::Sprite logo(res.logoCaroTex);
+    sf::Vector2u s = res.logoCaroTex.getSize();
+    logo.setOrigin(s.x / 2.f, s.y / 2.f);
+    float targetW = 380.f;
+    float scale = targetW / s.x;
+    logo.setScale(scale, scale);
+    logo.setPosition(std::round(WINDOW_WIDTH / 2.f), 150.f);
+    window.draw(logo);
+}
+
+// Ham noi bo: ve 1 menu chung (tieu de + danh sach lua chon co button frame)
+// useLogo: true → ve logo CARO thay text title (Main Menu)
 static void renderMenuGeneric(sf::RenderWindow& window, const GameResources& res,
     const std::string& title,
     const std::string items[], int itemCount,
-    int menuIndex) {
+    int menuIndex,
+    bool useLogo = false) {
     // Background + dim overlay (chu menu de doc)
     renderBackdrop(window, res, true);
 
-    // Tieu de
-    renderTextCentered(window, res.titleFont, title, 52,
-        WINDOW_WIDTH / 2.f, UI_MENU_TITLE_Y, sf::Color::White);
+    // Tieu de: logo hoac text
+    if (useLogo) {
+        drawCaroLogo(window, res);
+    } else {
+        renderTextCentered(window, res.titleFont, title, 52,
+            WINDOW_WIDTH / 2.f, UI_MENU_TITLE_Y, sf::Color::White,
+            sf::Color(0, 0, 0, 200), 2.f);
+    }
 
-    // Cac muc menu
+    // Cac muc menu - moi item co button frame bo tron + text outline
     for (int i = 0; i < itemCount; i++) {
         bool selected = (i == menuIndex);
-        sf::Color color = selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT;
-        int fontSize = selected ? 30 : 26;
-
         float itemY = UI_MENU_START_Y + i * UI_MENU_STEP;
-        renderTextCentered(window, res.mainFont, items[i], fontSize,
-            WINDOW_WIDTH / 2.f, itemY, color);
 
-        // Ve dau ">" truoc muc dang chon
-        if (selected) {
-            renderTextCentered(window, res.mainFont, ">", fontSize,
-                WINDOW_WIDTH / 2.f - 160.f, itemY,
-                color);
-        }
+        // Button frame bo tron lam nen
+        drawMenuButton(window, res, itemY, selected);
+
+        // Text tren button
+        sf::Color textColor = selected ? sf::Color(255, 230, 100) : sf::Color::White;
+        int fontSize = selected ? 28 : 24;
+        renderTextCentered(window, res.mainFont, items[i], fontSize,
+            WINDOW_WIDTH / 2.f, itemY, textColor,
+            sf::Color(0, 0, 0, 220), 1.5f);
     }
 }
 
-// Main Menu
+// Main Menu - dung logo CARO thay text title
 void renderMainMenu(sf::RenderWindow& window, const GameResources& res,
     int menuIndex) {
     TextStrings txt = langGetText(langGetCurrent());
@@ -421,7 +530,7 @@ void renderMainMenu(sf::RenderWindow& window, const GameResources& res,
         txt.newGame, txt.loadGame, txt.settings,
         txt.help, txt.about, txt.exitGame
     };
-    renderMenuGeneric(window, res, txt.title, items, 6, menuIndex);
+    renderMenuGeneric(window, res, txt.title, items, 6, menuIndex, true);
 }
 
 // Chon che do PvP / PvC
@@ -603,7 +712,15 @@ void renderGameOver(sf::RenderWindow& window, const GameState& state,
     const GameResources& res, GameResult result,
     int menuIndex) {
 
-    // Vẫn giữ overlay làm mờ bàn cờ
+    // ANIMATION CLOCK - reset moi khi result doi (van moi)
+    static GameResult lastResult = RESULT_NONE;
+    static sf::Clock animClock;
+    if (result != lastResult) {
+        lastResult = result;
+        animClock.restart();
+    }
+
+    // Overlay lam mo ban co
     sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
     overlay.setFillColor(sf::Color(0, 0, 0, 100));
     window.draw(overlay);
@@ -616,46 +733,63 @@ void renderGameOver(sf::RenderWindow& window, const GameState& state,
 
     TextStrings txt = langGetText(langGetCurrent());
 
-    // Ket qua
+    // (VICTORY/DEFEAT da duoc render trong renderPlayerPanel - giua moi player box)
+    // Animation clock van duoc giu lai cho cac hieu ung tuong lai
+    (void)animClock;  // suppress unused warning
+
+    // Ket qua - mau sang hon de noi bat
     std::string resultStr;
     sf::Color resultColor;
     if (result == RESULT_PLAYER1_WIN) {
         resultStr = state.player1.name + " " + txt.playerWin;
-        resultColor = COLOR_PLAYER_X;
+        resultColor = sf::Color(255, 100, 100);   // Do sang
     }
     else if (result == RESULT_PLAYER2_WIN) {
         resultStr = state.player2.name + " " + txt.playerWin;
-        resultColor = COLOR_PLAYER_O;
+        resultColor = sf::Color(100, 180, 255);   // Xanh sang
     }
     else {
         resultStr = txt.drawText;
-        resultColor = sf::Color::Yellow;
+        resultColor = sf::Color(255, 220, 80);    // Vang sang
     }
 
-    // Ten nguoi thang
-    renderTextCentered(window, res.titleFont, resultStr, 34,
-        centerX, startY, resultColor);
+    // PLATE den mo phia sau khu vuc Game Over → tao do tuong phan
+    sf::RectangleShape plate(sf::Vector2f(panelW + 10.f, 180.f));
+    plate.setOrigin((panelW + 10.f) / 2.f, 0.f);
+    plate.setPosition(centerX, startY - 25.f);
+    plate.setFillColor(sf::Color(15, 20, 40, 210));   // dark navy ~82%
+    plate.setOutlineThickness(2.f);
+    plate.setOutlineColor(sf::Color(80, 100, 140, 220));
+    window.draw(plate);
 
-    // Thong ke ti so
+    // Ten nguoi thang - SIZE BIG + OUTLINE den day → POP cuc manh
+    renderTextCentered(window, res.titleFont, resultStr, 38,
+        centerX, startY, resultColor,
+        sf::Color(0, 0, 0, 230), 3.f);   // black outline 3px
+
+    // Thong ke ti so - them outline nho cho do
     std::string stats = state.player1.name + " " + std::to_string(state.player1.totalWins)
         + "  -  "
         + std::to_string(state.player2.totalWins) + " " + state.player2.name;
     renderTextCentered(window, res.mainFont, stats, 20,
-        centerX, startY + UI_GAMEOVER_STATS_DY, sf::Color::White);
+        centerX, startY + UI_GAMEOVER_STATS_DY, sf::Color::White,
+        sf::Color(0, 0, 0, 200), 1.5f);
 
     // Cau hoi "Play again?"
     std::string items[] = { txt.yes, txt.no };
     renderTextCentered(window, res.mainFont, txt.continueText, 18,
-        centerX, startY + UI_GAMEOVER_QUESTION_DY, sf::Color(200, 200, 200));
+        centerX, startY + UI_GAMEOVER_QUESTION_DY, sf::Color(230, 230, 230),
+        sf::Color(0, 0, 0, 180), 1.f);
 
-    // Nut Yes / No
+    // Nut Yes / No - co outline nhe
     for (int i = 0; i < 2; i++) {
         bool selected = (i == menuIndex);
         float btnX = centerX - UI_GAMEOVER_BTN_GAP_X + i * (UI_GAMEOVER_BTN_GAP_X * 2);
         renderTextCentered(window, res.mainFont, items[i],
             selected ? 24 : 20,
             btnX, startY + UI_GAMEOVER_BTN_DY,
-            selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT);
+            selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT,
+            sf::Color(0, 0, 0, 200), 1.5f);
     }
 }
 
