@@ -104,8 +104,7 @@ GameScreen handleMainMenu(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // MOUSE HOVER
             if (event.type == sf::Event::MouseMoved) {
@@ -168,8 +167,7 @@ GameScreen handleModeSelect(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             if (event.type == sf::Event::MouseMoved) {
                 int hit = menuHitTest((float)event.mouseMove.x,
@@ -230,8 +228,7 @@ GameScreen handleDifficultySelect(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             if (event.type == sf::Event::MouseMoved) {
                 int hit = menuHitTest((float)event.mouseMove.x,
@@ -292,8 +289,7 @@ GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             if (event.type == sf::Event::MouseMoved) {
                 int hit = menuHitTest((float)event.mouseMove.x,
@@ -339,29 +335,69 @@ GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
 
 GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
+    const bool isPvC = (state.mode == MODE_PVC);
+    TextStrings txt = langGetText(langGetCurrent());
+
     std::string name1 = "";
     std::string name2 = "";
-    bool isEditingP1 = true;
+    bool isEditingP1 = true;       // PvC: luon edit P1
     bool showError = false;
+
+    // Helper: encode Unicode codepoint thanh UTF-8 bytes
+    auto utf32ToUtf8 = [](uint32_t cp) -> std::string {
+        std::string r;
+        if (cp < 0x80) {
+            r += (char)cp;
+        } else if (cp < 0x800) {
+            r += (char)(0xC0 | (cp >> 6));
+            r += (char)(0x80 | (cp & 0x3F));
+        } else if (cp < 0x10000) {
+            r += (char)(0xE0 | (cp >> 12));
+            r += (char)(0x80 | ((cp >> 6) & 0x3F));
+            r += (char)(0x80 | (cp & 0x3F));
+        } else {
+            r += (char)(0xF0 | (cp >> 18));
+            r += (char)(0x80 | ((cp >> 12) & 0x3F));
+            r += (char)(0x80 | ((cp >> 6) & 0x3F));
+            r += (char)(0x80 | (cp & 0x3F));
+        }
+        return r;
+    };
+
+    // Helper: xoa 1 ky tu UTF-8 (co the 1-4 bytes) tu cuoi chuoi
+    auto utf8PopBack = [](std::string& s) {
+        if (s.empty()) return;
+        // Xoa cac continuation bytes (10xxxxxx) o cuoi
+        while (!s.empty() && ((unsigned char)s.back() & 0xC0) == 0x80) {
+            s.pop_back();
+        }
+        // Xoa byte mo dau
+        if (!s.empty()) s.pop_back();
+    };
+
+    // Gioi han byte (~15-20 ky tu Viet hoac 30 ky tu ASCII)
+    const size_t MAX_NAME_BYTES = 30;
 
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::Escape)
                     return SCREEN_STYLE_SELECT;
 
-                if (event.key.code == sf::Keyboard::Tab)
+                // Chi cho phep Tab khi PvP (PvC chi co 1 o)
+                if (!isPvC && event.key.code == sf::Keyboard::Tab)
                     isEditingP1 = !isEditingP1;
 
                 if (event.key.code == sf::Keyboard::Enter) {
                     // Dat ten mac dinh neu de trong
                     if (name1.empty()) name1 = "Player 1";
-                    if (name2.empty()) {
-                        name2 = (state.mode == MODE_PVC) ? "Computer" : "Player 2";
+                    if (isPvC) {
+                        name2 = txt.botName;  // "May" / "Computer"
+                    } else if (name2.empty()) {
+                        name2 = "Player 2";
                     }
 
                     state.player1.name = name1;
@@ -373,24 +409,28 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
                     return SCREEN_PLAYING;
                 }
 
-                // Xoa ky tu
+                // Xoa 1 ky tu UTF-8 (PvC: chi xoa name1)
                 if (event.key.code == sf::Keyboard::BackSpace) {
-                    std::string& current = isEditingP1 ? name1 : name2;
-                    if (!current.empty()) current.pop_back();
+                    std::string& current = (isPvC || isEditingP1) ? name1 : name2;
+                    utf8PopBack(current);
                 }
             }
 
-            // Nhap ky tu
+            // Nhap ky tu (HO TRO UNICODE - tieng Viet, etc.)
             if (event.type == sf::Event::TextEntered) {
-                if (event.text.unicode >= 32 && event.text.unicode < 128) {
-                    std::string& current = isEditingP1 ? name1 : name2;
-                    if (current.size() < 15)
-                        current += static_cast<char>(event.text.unicode);
+                uint32_t cp = event.text.unicode;
+                // Bo qua control chars va DEL
+                if (cp >= 32 && cp != 127) {
+                    std::string& current = (isPvC || isEditingP1) ? name1 : name2;
+                    std::string utf8 = utf32ToUtf8(cp);
+                    if (current.size() + utf8.size() <= MAX_NAME_BYTES) {
+                        current += utf8;
+                    }
                 }
             }
         }
 
-        renderInputNames(window, res, name1, name2, isEditingP1, showError);
+        renderInputNames(window, res, name1, name2, isEditingP1, showError, isPvC);
         window.display();
     }
     return SCREEN_MAIN_MENU;
@@ -523,8 +563,7 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
         // Xu ly su kien
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // ===== MOUSE SUPPORT =====
             // Hover: di cursor theo chuot
@@ -659,8 +698,7 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // Pause menu
             if (event.type == sf::Event::MouseMoved) {
@@ -734,8 +772,7 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // Mouse hover: detect Yes/No
             if (event.type == sf::Event::MouseMoved) {
@@ -779,7 +816,7 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
             }
         }
 
-        renderGameplay(window, state, res, (result != RESULT_DRAW) ? &winLine : nullptr, -1, -1, false);
+        renderGameplay(window, state, res, (result != RESULT_DRAW) ? &winLine : nullptr, -1, -1, false, result);
         renderGameOver(window, state, res, result, menuIndex);
         window.display();
     }
@@ -802,20 +839,21 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
     // Lambda: thuc hien luu (Enter hoac click nut Save)
     auto doSave = [&]() {
         if (inputName.empty()) return;
+        TextStrings txt = langGetText(langGetCurrent());
         if (saveFileExists(inputName)) {
-            message = "File da ton tai!";
+            message = txt.msgFileExists;
         }
         else if (saveCountFiles() >= MAX_SAVE_FILES) {
-            message = "Da dat gioi han 15 file!";
+            message = txt.msgMaxFiles;
         }
         else if (saveGame(state, inputName)) {
             saveAddToList(inputName);
-            message = "Luu thanh cong!";
+            message = txt.msgSaveOK;
             count = saveGetList(saveList, MAX_SAVE_FILES);
             inputName = "";
         }
         else {
-            message = "Loi luu file!";
+            message = txt.msgSaveError;
         }
         messageClock.restart();
     };
@@ -823,7 +861,7 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // Mouse: click vao file trong list → copy ten vao input (de re-save / rename)
             // Save list: Y = 200 + i * 35, width 500, height 30, X center WINDOW_WIDTH/2
@@ -858,7 +896,7 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
                         count = saveGetList(saveList, MAX_SAVE_FILES);
                         if (selectedIndex >= count && count > 0)
                             selectedIndex = count - 1;
-                        message = "Da xoa file!";
+                        message = langGetText(langGetCurrent()).msgFileDeleted;
                         messageClock.restart();
                         break;
                     }
@@ -887,7 +925,7 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
                         count = saveGetList(saveList, MAX_SAVE_FILES);
                         if (selectedIndex >= count && count > 0)
                             selectedIndex = count - 1;
-                        message = "Da xoa file!";
+                        message = langGetText(langGetCurrent()).msgFileDeleted;
                         messageClock.restart();
                     }
                     break;
@@ -916,15 +954,11 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
 
         renderSaveScreen(window, res, saveList, count, inputName, selectedIndex);
 
-        // Huong dan mouse o duoi
-        renderTextCentered(window, res.mainFont,
-            "Click trai: chon ten | Click phai: xoa file",
-            13, WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 20.f,
-            sf::Color(120, 120, 120));
+        // (Hint mouse da duoc render trong renderSaveScreen)
 
         if (!message.empty() && messageClock.getElapsedTime().asSeconds() < 2.0f) {
             renderTextCentered(window, res.mainFont, message, 18,
-                WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 80.f,
+                WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 90.f,
                 sf::Color::Yellow);
         }
         window.display();
@@ -954,7 +988,7 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
             if (loadGame(state, saveList[selectedIndex])) {
                 return true;
             }
-            message = "Loi tai file!";
+            message = langGetText(langGetCurrent()).msgLoadError;
             messageClock.restart();
         }
         return false;
@@ -963,7 +997,7 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // Mouse hover: highlight item
             if (event.type == sf::Event::MouseMoved) {
@@ -1059,15 +1093,11 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
 
         renderLoadScreen(window, res, saveList, count, selectedIndex);
 
-        // Huong dan mouse
-        renderTextCentered(window, res.mainFont,
-            "Click trai: chon | Double-click: tai | Click phai: xoa",
-            13, WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 20.f,
-            sf::Color(120, 120, 120));
+        // (Hint mouse da duoc render trong renderLoadScreen)
 
         if (!message.empty() && messageClock.getElapsedTime().asSeconds() < 2.0f) {
             renderTextCentered(window, res.mainFont, message, 18,
-                WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 80.f,
+                WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 90.f,
                 sf::Color::Red);
         }
         window.display();
@@ -1084,6 +1114,34 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
     // Doc gia tri hien tai tu sound module (da load tu file lúc khoi dong)
     int volume = soundGetBGMVolume();
     bool sfxOn = soundIsSFXEnabled();
+    bool isDraggingVolume = false;
+
+    // Hang so slider (PHAI khop voi renderSettings)
+    const float TRACK_W = 360.f;
+    const float TRACK_X = WINDOW_WIDTH / 2.f - TRACK_W / 2.f;
+    const float SLIDER_Y = UI_SETTINGS_START_Y + 1 * UI_SETTINGS_STEP + 15.f;
+    const float SLIDER_HIT_HEIGHT = 20.f;  // hit-area generous cho click slider
+
+    // Lambda: dat volume theo vi tri x cua chuot, snap moi 5%
+    auto setVolumeFromX = [&](float mx) {
+        float ratio = (mx - TRACK_X) / TRACK_W;
+        if (ratio < 0.f) ratio = 0.f;
+        if (ratio > 1.f) ratio = 1.f;
+        int newVol = (int)(ratio * 100.f + 0.5f);
+        newVol = (newVol / 5) * 5;  // snap moi 5%
+        if (newVol != volume) {
+            volume = newVol;
+            soundSetBGMVolume(res, volume);
+            settingsSave();
+        }
+    };
+
+    // Lambda: kiem tra (mx,my) co nam trong vung slider khong
+    auto isOnSlider = [&](float mx, float my) -> bool {
+        return my >= SLIDER_Y - SLIDER_HIT_HEIGHT
+            && my <= SLIDER_Y + SLIDER_HIT_HEIGHT
+            && mx >= TRACK_X - 20.f && mx <= TRACK_X + TRACK_W + 20.f;
+    };
 
     // Lambda: thuc hien action tren menuIndex hien tai
     auto confirm = [&]() -> GameScreen {
@@ -1104,16 +1162,32 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // Mouse hover: update menuIndex - Settings items
             if (event.type == sf::Event::MouseMoved) {
-                int hit = menuHitTest((float)event.mouseMove.x,
-                    (float)event.mouseMove.y,
-                    UI_SETTINGS_START_Y, UI_SETTINGS_STEP, 4,
-                    UI_SETTINGS_HALF_WIDTH, 25.f);
-                if (hit >= 0) menuIndex = hit;
+                float mx = (float)event.mouseMove.x;
+                float my = (float)event.mouseMove.y;
+
+                // Neu dang keo slider: update volume theo chuot
+                if (isDraggingVolume) {
+                    setVolumeFromX(mx);
+                    menuIndex = 1;
+                }
+                else {
+                    int hit = menuHitTest(mx, my,
+                        UI_SETTINGS_START_Y, UI_SETTINGS_STEP, 4,
+                        UI_SETTINGS_HALF_WIDTH, 25.f);
+                    if (hit >= 0) menuIndex = hit;
+                    // Hover len slider area cung select volume row
+                    else if (isOnSlider(mx, my)) menuIndex = 1;
+                }
+            }
+
+            // Mouse release: thoat che do keo
+            if (event.type == sf::Event::MouseButtonReleased
+                && event.mouseButton.button == sf::Mouse::Left) {
+                isDraggingVolume = false;
             }
 
             // Mouse click trai
@@ -1121,27 +1195,24 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
                 && event.mouseButton.button == sf::Mouse::Left) {
                 float mx = (float)event.mouseButton.x;
                 float my = (float)event.mouseButton.y;
-                int hit = menuHitTest(mx, my,
-                    UI_SETTINGS_START_Y, UI_SETTINGS_STEP, 4,
-                    UI_SETTINGS_HALF_WIDTH, 25.f);
-                if (hit >= 0) {
-                    menuIndex = hit;
-                    // Volume row: click trai 1/2 = -10, phai 1/2 = +10
-                    if (menuIndex == 1) {
-                        if (mx < WINDOW_WIDTH / 2.f && volume > 0) {
-                            volume -= 10;
-                            soundSetBGMVolume(res, volume);
-                            settingsSave();
+
+                // 1) Click vao slider area → set volume + bat dau drag
+                if (isOnSlider(mx, my)) {
+                    menuIndex = 1;
+                    isDraggingVolume = true;
+                    setVolumeFromX(mx);
+                }
+                else {
+                    int hit = menuHitTest(mx, my,
+                        UI_SETTINGS_START_Y, UI_SETTINGS_STEP, 4,
+                        UI_SETTINGS_HALF_WIDTH, 25.f);
+                    if (hit >= 0) {
+                        menuIndex = hit;
+                        // 2) Click khac → confirm action (lang, sfx, back)
+                        if (menuIndex != 1) {
+                            GameScreen next = confirm();
+                            if (next != SCREEN_SETTINGS) return next;
                         }
-                        else if (mx >= WINDOW_WIDTH / 2.f && volume < 100) {
-                            volume += 10;
-                            soundSetBGMVolume(res, volume);
-                            settingsSave();
-                        }
-                    }
-                    else {
-                        GameScreen next = confirm();
-                        if (next != SCREEN_SETTINGS) return next;
                     }
                 }
             }
@@ -1184,11 +1255,7 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
 
         renderSettings(window, res, menuIndex, langGetCurrent(), volume, sfxOn);
 
-        // Huong dan mouse cho Volume
-        renderTextCentered(window, res.mainFont,
-            "Volume: click ben trai giam, ben phai tang",
-            13, WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 20.f,
-            sf::Color(120, 120, 120));
+        // (Hint Volume da duoc render trong renderSettings)
 
         window.display();
     }
@@ -1203,7 +1270,7 @@ GameScreen handleHelp(sf::RenderWindow& window, GameResources& res) {
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) window.close();
+            if (handleCommonEvent(window, event)) continue;
             if (event.type == sf::Event::KeyPressed &&
                 event.key.code == sf::Keyboard::Escape)
                 return SCREEN_MAIN_MENU;
@@ -1221,7 +1288,7 @@ GameScreen handleAbout(sf::RenderWindow& window, GameResources& res) {
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) window.close();
+            if (handleCommonEvent(window, event)) continue;
             // Click bat ky → ve menu chinh
             if (event.type == sf::Event::MouseButtonPressed)
                 return SCREEN_MAIN_MENU;

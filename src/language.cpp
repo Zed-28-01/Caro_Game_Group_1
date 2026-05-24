@@ -105,6 +105,35 @@ TextStrings langGetText(Language lang) {
         t.guideHint = "H: Hint (PvC)";
         t.guidePause = "ESC: Pause";
         t.guideSave = "L: Save Game";
+
+        // Ten ngon ngu
+        t.langVietnamese = "Vietnamese";
+        t.langEnglish    = "English";
+
+        // Hint bottom Save/Load/Settings
+        t.saveHintBottom = "Enter: Save | ESC: Back";
+        t.saveHintMouse  = "Left click: select name | Right click: delete file";
+        t.loadHintBottom = "Enter: Load | Del: Delete | ESC: Back";
+        t.loadHintMouse  = "Left click: select | Double click: load | Right click: delete";
+        t.settingsHint   = "Click or drag the slider to adjust volume";
+
+        t.inputNameHintPvP = "Tab: Switch field | Enter: Confirm";
+        t.inputNameHintPvC = "Enter: Confirm";
+        t.botName = "Computer";
+
+        // Panel + timer
+        t.yourTurn = ">>> YOUR TURN <<<";
+        t.turnTimeBar = "TURN TIME";
+        t.gameTimeLabel = "Game time: ";
+        t.defeatText = "DEFEAT";
+
+        // Save/Load messages
+        t.msgSaveOK = "Game saved successfully!";
+        t.msgSaveError = "Save file error!";
+        t.msgFileExists = "File already exists!";
+        t.msgMaxFiles = "Max 15 save files reached!";
+        t.msgFileDeleted = "File deleted!";
+        t.msgLoadError = "Failed to load file!";
     }
     else { // VIETNAMESE
         // Main menu
@@ -188,6 +217,35 @@ TextStrings langGetText(Language lang) {
         t.guideHint = u8"H: Gợi ý (PvC)";
         t.guidePause = u8"ESC: Tạm dừng";
         t.guideSave = u8"L: Lưu Game";
+
+        // Tên ngôn ngữ
+        t.langVietnamese = u8"Tiếng Việt";
+        t.langEnglish    = u8"Tiếng Anh";
+
+        // Hint bottom Save/Load/Settings
+        t.saveHintBottom = u8"Enter: Lưu | ESC: Quay lại";
+        t.saveHintMouse  = u8"Click trái: chọn tên | Click phải: xóa file";
+        t.loadHintBottom = u8"Enter: Tải | Del: Xóa | ESC: Quay lại";
+        t.loadHintMouse  = u8"Click trái: chọn | Double-click: tải | Click phải: xóa";
+        t.settingsHint   = u8"Click hoặc kéo thanh trượt để điều chỉnh âm lượng";
+
+        t.inputNameHintPvP = u8"Tab: Chuyển ô | Enter: Xác nhận";
+        t.inputNameHintPvC = u8"Enter: Xác nhận";
+        t.botName = u8"Máy";
+
+        // Panel + timer
+        t.yourTurn = u8">>> LƯỢT CỦA BẠN <<<";
+        t.turnTimeBar = u8"THỜI GIAN LƯỢT";
+        t.gameTimeLabel = u8"Thời gian ván: ";
+        t.defeatText = u8"THUA CUỘC";
+
+        // Save/Load messages
+        t.msgSaveOK = u8"Lưu thành công!";
+        t.msgSaveError = u8"Lỗi lưu file!";
+        t.msgFileExists = u8"File đã tồn tại!";
+        t.msgMaxFiles = u8"Đã đạt giới hạn 15 file!";
+        t.msgFileDeleted = u8"Đã xóa file!";
+        t.msgLoadError = u8"Lỗi tải file!";
     }
 
     return t;

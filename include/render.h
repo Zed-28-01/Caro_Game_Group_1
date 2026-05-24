@@ -5,6 +5,21 @@
 #include "game_types.h"
 
 // ============================================================
+// WINDOW RESIZE / LETTERBOX
+// ============================================================
+
+// Apply letterbox view voi aspect ratio 16:9 (giu nguyen ty le)
+// Goi mot lan sau khi tao window, va trong moi event Resize
+void applyLetterbox(sf::RenderWindow& window, unsigned int newWidth, unsigned int newHeight);
+
+// Xu ly cac event chung:
+//  1. Map mouse coords (mouseButton.x/y, mouseMove.x/y) tu pixel -> view IN-PLACE
+//     -> Code hit-test hien tai khong can sua gi
+//  2. Xu ly event Closed (close window) va Resized (apply letterbox)
+// Tra ve true neu event la Closed/Resized (caller co the continue)
+bool handleCommonEvent(sf::RenderWindow& window, sf::Event& event);
+
+// ============================================================
 // KHOI TAO RESOURCES
 // ============================================================
 
@@ -51,11 +66,11 @@ void renderPauseMenu(sf::RenderWindow& window, const GameResources& res,
 // ============================================================
 
 // Ve form nhap ten nguoi choi
-// inputText: chuoi dang nhap hien tai
-// isPlayer1: dang nhap cho Player 1 hay 2
+// isPvC = true: chi hien 1 o (Player 1), Player 2 mac dinh = "May"/"Computer"
 void renderInputNames(sf::RenderWindow& window, const GameResources& res,
                       const std::string& name1, const std::string& name2,
-                      bool isEditingPlayer1, bool showError);
+                      bool isEditingPlayer1, bool showError,
+                      bool isPvC = false);
 
 // ============================================================
 // VE BAN CO & GAMEPLAY
@@ -71,7 +86,8 @@ void renderInputNames(sf::RenderWindow& window, const GameResources& res,
 // - Hint highlight (neu dang hien goi y)
 void renderGameplay(sf::RenderWindow& window, const GameState& state,
                     const GameResources& res, const WinLine* winLine,
-                    int hintRow, int hintCol, bool showHint);
+                    int hintRow, int hintCol, bool showHint,
+                    GameResult result = RESULT_NONE);
 
 // Ve ban co (grid lines)
 void renderBoard(sf::RenderWindow& window, const GameResources& res);
@@ -99,7 +115,8 @@ void renderWinLine(sf::RenderWindow& window, const WinLine& winLine);
 // - So van thang
 // - Highlight nguoi dang di
 void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
-                       const GameResources& res);
+                       const GameResources& res,
+                       GameResult result = RESULT_NONE);
 
 // ============================================================
 // VE TIMER / PROGRESS BAR
@@ -177,8 +194,11 @@ sf::Vector2f renderBoardToPixel(int row, int col);
 bool renderPixelToBoard(float x, float y, int& outRow, int& outCol);
 
 // Ve 1 text can giua tai vi tri (centerX, centerY)
+// Optional: them outline mau outlineColor day outlineThickness px (de chu noi bat tren background)
 void renderTextCentered(sf::RenderWindow& window, const sf::Font& font,
                         const std::string& text, int fontSize,
-                        float centerX, float centerY, sf::Color color);
+                        float centerX, float centerY, sf::Color color,
+                        sf::Color outlineColor = sf::Color::Transparent,
+                        float outlineThickness = 0.f);
 
 #endif // RENDER_H
