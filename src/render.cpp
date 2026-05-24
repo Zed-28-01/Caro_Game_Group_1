@@ -7,6 +7,61 @@
 #define BOARD_OFFSET_X  UI_BOARD_OFFSET_X
 #define BOARD_OFFSET_Y  UI_BOARD_OFFSET_Y
 
+// ============================================================
+// WINDOW RESIZE / LETTERBOX
+// ============================================================
+
+// Letterbox: giu ty le 16:9 cua game, them vien den khi window khong dung ty le
+void applyLetterbox(sf::RenderWindow& window, unsigned int newWidth, unsigned int newHeight) {
+    sf::View view(sf::FloatRect(0.f, 0.f, (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT));
+
+    float windowRatio = (float)newWidth / (float)newHeight;
+    float gameRatio = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
+
+    float sizeX = 1.f, sizeY = 1.f, posX = 0.f, posY = 0.f;
+    if (windowRatio < gameRatio) {
+        // Window cao hon ty le 16:9 -> letterbox tren/duoi
+        sizeY = windowRatio / gameRatio;
+        posY = (1.f - sizeY) / 2.f;
+    } else {
+        // Window rong hon ty le 16:9 -> letterbox trai/phai
+        sizeX = gameRatio / windowRatio;
+        posX = (1.f - sizeX) / 2.f;
+    }
+
+    view.setViewport(sf::FloatRect(posX, posY, sizeX, sizeY));
+    window.setView(view);
+}
+
+// Xu ly event chung: map mouse coords + Closed + Resized
+bool handleCommonEvent(sf::RenderWindow& window, sf::Event& event) {
+    // 1. Map mouse coords tu pixel -> view (de hit-test menu hoat dong sau resize)
+    if (event.type == sf::Event::MouseButtonPressed ||
+        event.type == sf::Event::MouseButtonReleased) {
+        sf::Vector2f v = window.mapPixelToCoords(
+            sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+        event.mouseButton.x = (int)v.x;
+        event.mouseButton.y = (int)v.y;
+    }
+    else if (event.type == sf::Event::MouseMoved) {
+        sf::Vector2f v = window.mapPixelToCoords(
+            sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+        event.mouseMove.x = (int)v.x;
+        event.mouseMove.y = (int)v.y;
+    }
+
+    // 2. Xu ly Closed/Resized
+    if (event.type == sf::Event::Closed) {
+        window.close();
+        return true;
+    }
+    if (event.type == sf::Event::Resized) {
+        applyLetterbox(window, event.size.width, event.size.height);
+        return true;
+    }
+    return false;
+}
+
 
 // TIEN ICH
 //(row,col) --> pixel

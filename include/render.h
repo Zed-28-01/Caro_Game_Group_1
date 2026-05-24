@@ -5,6 +5,21 @@
 #include "game_types.h"
 
 // ============================================================
+// WINDOW RESIZE / LETTERBOX
+// ============================================================
+
+// Apply letterbox view voi aspect ratio 16:9 (giu nguyen ty le)
+// Goi mot lan sau khi tao window, va trong moi event Resize
+void applyLetterbox(sf::RenderWindow& window, unsigned int newWidth, unsigned int newHeight);
+
+// Xu ly cac event chung:
+//  1. Map mouse coords (mouseButton.x/y, mouseMove.x/y) tu pixel -> view IN-PLACE
+//     -> Code hit-test hien tai khong can sua gi
+//  2. Xu ly event Closed (close window) va Resized (apply letterbox)
+// Tra ve true neu event la Closed/Resized (caller co the continue)
+bool handleCommonEvent(sf::RenderWindow& window, sf::Event& event);
+
+// ============================================================
 // KHOI TAO RESOURCES
 // ============================================================
 

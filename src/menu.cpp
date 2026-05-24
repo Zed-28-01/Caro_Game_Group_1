@@ -104,8 +104,7 @@ GameScreen handleMainMenu(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // MOUSE HOVER
             if (event.type == sf::Event::MouseMoved) {
@@ -168,8 +167,7 @@ GameScreen handleModeSelect(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             if (event.type == sf::Event::MouseMoved) {
                 int hit = menuHitTest((float)event.mouseMove.x,
@@ -230,8 +228,7 @@ GameScreen handleDifficultySelect(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             if (event.type == sf::Event::MouseMoved) {
                 int hit = menuHitTest((float)event.mouseMove.x,
@@ -292,8 +289,7 @@ GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             if (event.type == sf::Event::MouseMoved) {
                 int hit = menuHitTest((float)event.mouseMove.x,
@@ -385,8 +381,7 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::Escape)
@@ -568,8 +563,7 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
         // Xu ly su kien
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // ===== MOUSE SUPPORT =====
             // Hover: di cursor theo chuot
@@ -704,8 +698,7 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // Pause menu
             if (event.type == sf::Event::MouseMoved) {
@@ -779,8 +772,7 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // Mouse hover: detect Yes/No
             if (event.type == sf::Event::MouseMoved) {
@@ -869,7 +861,7 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // Mouse: click vao file trong list → copy ten vao input (de re-save / rename)
             // Save list: Y = 200 + i * 35, width 500, height 30, X center WINDOW_WIDTH/2
@@ -1005,7 +997,7 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // Mouse hover: highlight item
             if (event.type == sf::Event::MouseMoved) {
@@ -1170,8 +1162,7 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (handleCommonEvent(window, event)) continue;
 
             // Mouse hover: update menuIndex - Settings items
             if (event.type == sf::Event::MouseMoved) {
@@ -1279,7 +1270,7 @@ GameScreen handleHelp(sf::RenderWindow& window, GameResources& res) {
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) window.close();
+            if (handleCommonEvent(window, event)) continue;
             if (event.type == sf::Event::KeyPressed &&
                 event.key.code == sf::Keyboard::Escape)
                 return SCREEN_MAIN_MENU;
@@ -1297,7 +1288,7 @@ GameScreen handleAbout(sf::RenderWindow& window, GameResources& res) {
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) window.close();
+            if (handleCommonEvent(window, event)) continue;
             // Click bat ky → ve menu chinh
             if (event.type == sf::Event::MouseButtonPressed)
                 return SCREEN_MAIN_MENU;
