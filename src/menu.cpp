@@ -341,7 +341,7 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
     std::string name1 = "";
     std::string name2 = "";
     bool isEditingP1 = true;       // PvC: luon edit P1
-    bool showError = false;
+    std::string errorMsg = "";
 
     // Helper: encode Unicode codepoint thanh UTF-8 bytes
     auto utf32ToUtf8 = [](uint32_t cp) -> std::string {
@@ -375,7 +375,14 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
         if (!s.empty()) s.pop_back();
     };
 
-    // Gioi han byte (~15-20 ky tu Viet hoac 30 ky tu ASCII)
+    auto utf8Length = [](const std::string& s) -> size_t {
+        size_t len = 0;
+        for (char c : s) {
+            if ((c & 0xC0) != 0x80) len++;
+        }
+        return len;
+        };
+  
     const size_t MAX_NAME_BYTES = 30;
 
     while (window.isOpen()) {
@@ -388,31 +395,41 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
                     return SCREEN_STYLE_SELECT;
 
                 // Chi cho phep Tab khi PvP (PvC chi co 1 o)
-                if (!isPvC && event.key.code == sf::Keyboard::Tab)
+                if (!isPvC && event.key.code == sf::Keyboard::Tab) {
                     isEditingP1 = !isEditingP1;
+                    errorMsg = "";
+                }
+                    
 
                 if (event.key.code == sf::Keyboard::Enter) {
                     // Dat ten mac dinh neu de trong
                     if (name1.empty()) name1 = "Player 1";
                     if (isPvC) {
                         name2 = txt.botName;  // "May" / "Computer"
-                    } else if (name2.empty()) {
+                    }
+                    else if (name2.empty()) {
                         name2 = "Player 2";
                     }
+                    if (name1 == name2) {
+                        errorMsg = txt.nameDuplicate; // Trùng tên thì bật cờ báo lỗi và nằm yên tại đây
+                    }
+                    else {
+                        errorMsg = "";
+                        state.player1.name = name1;
+                        state.player2.name = name2;
+                        boardResetAll(state);
+                        if (state.style == STYLE_SPEED)
+                            timerStart(state.timer, MAX_GAME_TIME, MAX_TURN_TIME);
 
-                    state.player1.name = name1;
-                    state.player2.name = name2;
-                    boardResetAll(state);
-                    if (state.style == STYLE_SPEED)
-                        timerStart(state.timer, MAX_GAME_TIME, MAX_TURN_TIME);
-
-                    return SCREEN_PLAYING;
+                        return SCREEN_PLAYING;
+                    }
                 }
 
                 // Xoa 1 ky tu UTF-8 (PvC: chi xoa name1)
                 if (event.key.code == sf::Keyboard::BackSpace) {
                     std::string& current = (isPvC || isEditingP1) ? name1 : name2;
                     utf8PopBack(current);
+                    errorMsg = "";
                 }
             }
 
@@ -423,14 +440,18 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
                 if (cp >= 32 && cp != 127) {
                     std::string& current = (isPvC || isEditingP1) ? name1 : name2;
                     std::string utf8 = utf32ToUtf8(cp);
-                    if (current.size() + utf8.size() <= MAX_NAME_BYTES) {
+                    if (utf8Length(current) < 15) {
                         current += utf8;
+                        errorMsg = "";
+                    }
+                    else {
+                        errorMsg = u8"Tên người chơi chỉ tối đa là 15 kí tự!";
                     }
                 }
             }
         }
 
-        renderInputNames(window, res, name1, name2, isEditingP1, showError, isPvC);
+        renderInputNames(window, res, name1, name2, isEditingP1, errorMsg, isPvC);
         window.display();
     }
     return SCREEN_MAIN_MENU;
@@ -453,6 +474,16 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
     float placeAnimTimer = 999.0f; // 999 = khong co animation dang chay
     const float PLACE_ANIM_DURATION = 0.2f;
 
+    if (state.moveCount > 0) {
+        Move lastMove = state.moveHistory[state.moveCount - 1];
+        result = boardEvaluateResult(state, lastMove.row, lastMove.col, winLine);
+
+        // Nếu load lên mà thấy ván cờ đã có kết quả (thắng/thua/hòa) 
+        // -> Đẩy thẳng sang màn hình Game Over luôn để hiện highlight và khóa bàn cờ
+        if (result != RESULT_NONE) {
+            return handleGameOver(window, res, state, result, winLine);
+        }
+    }
     // ============================================================
     // HELPER LAMBDA: Bot di 1 nuoc + check ket qua
     // ============================================================
@@ -745,10 +776,9 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
 
 GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
     GameState& state, GameResult result, const WinLine& winLine) {
-    int menuIndex = 0; // 0 = Yes (choi tiep), 1 = No (ve menu)
+    int menuIndex = 0;
+    bool askingSave = false; // Cờ theo dõi trạng thái đang hỏi cái gì
 
-    // Vi tri nut Yes/No - TINH TU CUNG CONG THUC voi renderGameOver
-    // de bao dam dong bo khi user thay doi layout
     const float panelX = UI_BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + UI_PANEL_GAP_LEFT;
     const float panelW = WINDOW_WIDTH - panelX - UI_PANEL_GAP_RIGHT;
     const float centerX = panelX + panelW / 2.f;
@@ -758,23 +788,12 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
     const float btnHalfW = UI_GAMEOVER_BTN_HALF_W;
     const float btnHalfH = UI_GAMEOVER_BTN_HALF_H;
 
-    auto confirm = [&]() -> GameScreen {
-        soundPlaySelect(res);
-        if (menuIndex == 0) {
-            boardResetRound(state);
-            if (state.style == STYLE_SPEED)
-                timerStart(state.timer, MAX_GAME_TIME, MAX_TURN_TIME);
-            return SCREEN_PLAYING;
-        }
-        return SCREEN_MAIN_MENU;
-    };
-
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
-            // Mouse hover: detect Yes/No
+            // Mouse hover
             if (event.type == sf::Event::MouseMoved) {
                 float mx = (float)event.mouseMove.x;
                 float my = (float)event.mouseMove.y;
@@ -783,46 +802,71 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
                     else if (mx > noX - btnHalfW && mx < noX + btnHalfW) menuIndex = 1;
                 }
             }
+
+            // Mouse click
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Left) {
                 float mx = (float)event.mouseButton.x;
                 float my = (float)event.mouseButton.y;
                 if (my > btnY - btnHalfH && my < btnY + btnHalfH) {
                     if (mx > yesX - btnHalfW && mx < yesX + btnHalfW) {
-                        menuIndex = 0; return confirm();
+                        menuIndex = 0;
+                        goto DO_CONFIRM; // Dùng goto nhẹ xuống khối Enter để tận dụng code
                     }
                     if (mx > noX - btnHalfW && mx < noX + btnHalfW) {
-                        menuIndex = 1; return confirm();
+                        menuIndex = 1;
+                        goto DO_CONFIRM;
                     }
                 }
             }
 
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
-                case sf::Keyboard::Left:
-                case sf::Keyboard::A:
-                    menuIndex = 0;
-                    break;
-                case sf::Keyboard::Right:
-                case sf::Keyboard::D:
-                    menuIndex = 1;
-                    break;
-                case sf::Keyboard::Enter:
-                    return confirm();
+                case sf::Keyboard::Left: case sf::Keyboard::A:
+                    menuIndex = 0; break;
+                case sf::Keyboard::Right: case sf::Keyboard::D:
+                    menuIndex = 1; break;
+                case sf::Keyboard::L:
+                    handleSaveScreen(window, res, state); break;
                 case sf::Keyboard::Escape:
                     return SCREEN_MAIN_MENU;
+
+                case sf::Keyboard::Enter:
+                DO_CONFIRM: // Điểm đến khi dùng chuột Click
+                    soundPlaySelect(res);
+
+                    if (!askingSave) {
+                        // 1. ĐANG HỎI CHƠI TIẾP
+                        if (menuIndex == 0) { // Có -> Reset bàn cờ và đánh tiếp
+                            boardResetRound(state);
+                            if (state.style == STYLE_SPEED) timerStart(state.timer, MAX_GAME_TIME, MAX_TURN_TIME);
+                            return SCREEN_PLAYING;
+                        }
+                        else { // Không -> Sang hỏi lưu
+                            askingSave = true;
+                            menuIndex = 0; // Mặc định nhảy về nút "Có" cho câu hỏi sau
+                        }
+                    }
+                    else {
+                        // 2. ĐANG HỎI LƯU GAME
+                        if (menuIndex == 0) { // Có -> Chuyển sang màn hình Lưu
+                            handleSaveScreen(window, res, state);
+                        }
+                        return SCREEN_MAIN_MENU; // Xong rồi thì về Menu chính
+                    }
+                    break;
                 default: break;
                 }
             }
         }
 
+        // Vẽ màn hình
         renderGameplay(window, state, res, (result != RESULT_DRAW) ? &winLine : nullptr, -1, -1, false, result);
-        renderGameOver(window, state, res, result, menuIndex);
+        renderGameOver(window, state, res, result, menuIndex, askingSave); // Truyền biến askingSave vào đây
         window.display();
     }
     return SCREEN_MAIN_MENU;
 }
-
 // ============================================================
 // SAVE SCREEN
 // ============================================================
