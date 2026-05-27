@@ -15,3 +15,7 @@ ipch/
 *.pdb
 *.ilk
 *.aps
+
+# Local-only docs (khong up len cloud)
+CLAUDE.md
+docs/HANDOVER.md
