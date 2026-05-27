@@ -433,10 +433,11 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
         winsText.setPosition(panelX + 15.f, boxY + 95.f);
         window.draw(winsText);
 
-        if (isActive) {
+        if (isActive && result == RESULT_NONE) {
             renderTextCentered(window, res.mainFont, txt.yourTurn,
                 14, panelX + panelW / 2.f, boxY + 140.f,
-                pieceColor);
+                pieceColor,                     // Tự động đổi Đỏ/Xanh theo lượt
+                sf::Color(0, 0, 0, 200), 1.5f);
         }
     }
 }
@@ -643,13 +644,14 @@ void renderPauseMenu(sf::RenderWindow& window, const GameResources& res,
 
 void renderInputNames(sf::RenderWindow& window, const GameResources& res,
     const std::string& name1, const std::string& name2,
-    bool isEditingPlayer1, bool showError, bool isPvC) {
+    bool isEditingPlayer1, const std::string& errorMsg, bool isPvC) {
     renderBackdrop(window, res, true);
     TextStrings txt = langGetText(langGetCurrent());
 
     if (isPvC) {
-        // PVC: chi 1 o nhap ten cho Player 1 (giua man hinh)
-        renderTextCentered(window, res.titleFont, txt.enterName1, 32,
+        // PVC: chỉ 1 ô nhập tên, bỏ luôn số "1" cho mượt
+        std::string titleStr = (langGetCurrent() == LANG_VIETNAMESE) ? u8"Nhập tên Người chơi:" : "Enter Player Name:";
+        renderTextCentered(window, res.titleFont, titleStr, 32,
             WINDOW_WIDTH / 2.f, 220.f, sf::Color::White);
 
         sf::RectangleShape box1(sf::Vector2f(420.f, 56.f));
@@ -660,19 +662,21 @@ void renderInputNames(sf::RenderWindow& window, const GameResources& res,
         box1.setOutlineColor(COLOR_MENU_HOVER);
         window.draw(box1);
 
+        // Placeholder đổi thành "Player" / "Người chơi" thay vì có số 1
+        std::string placeholder = (langGetCurrent() == LANG_VIETNAMESE) ? u8"Người chơi" : "Player";
         renderTextCentered(window, res.mainFont,
-            name1.empty() ? "Player 1" : name1, 24,
+            name1.empty() ? placeholder : name1, 24,
             WINDOW_WIDTH / 2.f, 310.f,
             name1.empty() ? sf::Color(150, 150, 150) : sf::Color::White);
 
-        // Hien thong tin doi thu: "Doi thu: May"
-        renderTextCentered(window, res.mainFont,
-            txt.enterName2.substr(0, txt.enterName2.size() - 1) + " " + txt.botName,
-            18, WINDOW_WIDTH / 2.f, 380.f, sf::Color(180, 200, 220));
+        // ĐÃ XÓA DÒNG RENDER THÔNG TIN MÁY Ở ĐÂY
 
-        if (showError) {
-            renderTextCentered(window, res.mainFont, txt.nameError, 18,
-                WINDOW_WIDTH / 2.f, 430.f, sf::Color::Red);
+        // Hiển thị lỗi (với chữ viền đen như lúc nãy ông ưng)
+        if (!errorMsg.empty()) {
+            renderTextCentered(window, res.mainFont, errorMsg, 18,
+                WINDOW_WIDTH / 2.f, 430.f,
+                sf::Color(255, 100, 100),       // Đỏ pastel
+                sf::Color(0, 0, 0, 230), 2.f);  // Viền đen 2px
         }
 
         renderTextCentered(window, res.mainFont, txt.inputNameHintPvC, 16,
@@ -712,9 +716,11 @@ void renderInputNames(sf::RenderWindow& window, const GameResources& res,
             WINDOW_WIDTH / 2.f, 390.f,
             name2.empty() ? sf::Color(150, 150, 150) : sf::Color::White);
 
-        if (showError) {
-            renderTextCentered(window, res.mainFont, txt.nameError, 18,
-                WINDOW_WIDTH / 2.f, 460.f, sf::Color::Red);
+        if (!errorMsg.empty()) {
+            renderTextCentered(window, res.mainFont, errorMsg, 18,
+                WINDOW_WIDTH / 2.f, 460.f,
+                sf::Color(255, 100, 100),       // Màu đỏ sáng hơn
+                sf::Color(0, 0, 0, 230), 2.f);
         }
 
         renderTextCentered(window, res.mainFont, txt.inputNameHintPvP, 16,
@@ -765,7 +771,7 @@ void renderGameplay(sf::RenderWindow& window, const GameState& state,
 // VE MAN HINH KET THUC (Đã dời xuống để không đè timer)
 void renderGameOver(sf::RenderWindow& window, const GameState& state,
     const GameResources& res, GameResult result,
-    int menuIndex) {
+    int menuIndex, bool askingSave) {
 
     // ANIMATION CLOCK - reset moi khi result doi (van moi)
     static GameResult lastResult = RESULT_NONE;
@@ -823,16 +829,48 @@ void renderGameOver(sf::RenderWindow& window, const GameState& state,
         sf::Color(0, 0, 0, 230), 3.f);   // black outline 3px
 
     // Thong ke ti so - them outline nho cho do
-    std::string stats = state.player1.name + " " + std::to_string(state.player1.totalWins)
-        + "  -  "
-        + std::to_string(state.player2.totalWins) + " " + state.player2.name;
-    renderTextCentered(window, res.mainFont, stats, 20,
-        centerX, startY + UI_GAMEOVER_STATS_DY, sf::Color::White,
+  // 1. Vẽ tỉ số CỐ ĐỊNH ở ngay chính giữa màn hình
+    std::string scoreStr = std::to_string(state.player1.totalWins) + "  -  " + std::to_string(state.player2.totalWins);
+    renderTextCentered(window, res.mainFont, scoreStr, 24, // Size to hơn tí cho đẹp
+        centerX, startY + UI_GAMEOVER_STATS_DY,
+        sf::Color(255, 220, 80), // Màu vàng cam cho tỉ số nổi bật
         sf::Color(0, 0, 0, 200), 1.5f);
 
-    // Cau hoi "Play again?"
+    // 2. Vẽ tên Player 1 (Căn lề PHẢI, đẩy lùi về bên trái tỉ số)
+    sf::Text t1;
+    t1.setFont(res.mainFont);
+    t1.setString(sf::String::fromUtf8(state.player1.name.begin(), state.player1.name.end()));
+    t1.setCharacterSize(20);
+    t1.setFillColor(sf::Color::White);
+    t1.setOutlineColor(sf::Color(0, 0, 0, 200));
+    t1.setOutlineThickness(1.5f);
+    sf::FloatRect b1 = t1.getLocalBounds();
+    t1.setOrigin(b1.left + b1.width, b1.top + b1.height / 2.f); // Mấu chốt để căn lề phải
+    t1.setPosition(centerX - 45.f, startY + UI_GAMEOVER_STATS_DY); // Cách tâm 45 pixel về bên trái
+    window.draw(t1);
+
+    // 3. Vẽ tên Player 2 (Căn lề TRÁI, đẩy qua bên phải tỉ số)
+    sf::Text t2;
+    t2.setFont(res.mainFont);
+    t2.setString(sf::String::fromUtf8(state.player2.name.begin(), state.player2.name.end()));
+    t2.setCharacterSize(20);
+    t2.setFillColor(sf::Color::White);
+    t2.setOutlineColor(sf::Color(0, 0, 0, 200));
+    t2.setOutlineThickness(1.5f);
+    sf::FloatRect b2 = t2.getLocalBounds();
+    t2.setOrigin(b2.left, b2.top + b2.height / 2.f); // Mấu chốt để căn lề trái
+    t2.setPosition(centerX + 45.f, startY + UI_GAMEOVER_STATS_DY); // Cách tâm 45 pixel về bên phải
+    window.draw(t2);
+
+    // Cau hoi "Play again?" hoac "Lưu ván đấu?"
     std::string items[] = { txt.yes, txt.no };
-    renderTextCentered(window, res.mainFont, txt.continueText, 18,
+
+    // Nếu askingSave = true thì in câu hỏi lưu, ngược lại thì in câu hỏi chơi tiếp
+    std::string questionText = askingSave ?
+        (langGetCurrent() == LANG_VIETNAMESE ? u8"Bạn có muốn lưu ván đấu không?" : "Do you want to save this game?")
+        : txt.continueText;
+
+    renderTextCentered(window, res.mainFont, questionText, 18,
         centerX, startY + UI_GAMEOVER_QUESTION_DY, sf::Color(230, 230, 230),
         sf::Color(0, 0, 0, 180), 1.f);
 

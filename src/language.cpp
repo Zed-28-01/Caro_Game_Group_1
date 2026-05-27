@@ -74,7 +74,7 @@ TextStrings langGetText(Language lang) {
         t.enterSaveName = "Enter save file name:";
         t.saveSuccess = "Game saved successfully!";
         t.loadSuccess = "Game loaded successfully!";
-        t.fileNotFound = "File not found!";
+        t.fileNotFound = "Empty list!";
         t.fileExists = "File already exists!";
         t.maxSaveReached = "Max save slots reached!";
         t.deleteFile = "Delete File";
@@ -122,7 +122,7 @@ TextStrings langGetText(Language lang) {
         t.botName = "Computer";
 
         // Panel + timer
-        t.yourTurn = ">>> YOUR TURN <<<";
+        t.yourTurn = "YOUR TURN";
         t.turnTimeBar = "TURN TIME";
         t.gameTimeLabel = "Game time: ";
         t.defeatText = "DEFEAT";
@@ -176,7 +176,7 @@ TextStrings langGetText(Language lang) {
         t.undoText = u8"Nhấn Z để đi lại";
 
         // Kết quả
-        t.playerWin = u8" chiến thắng!";
+        t.playerWin = u8" thắng!";
         t.drawText = u8"Hòa!";
         t.continueText = u8"Chơi tiếp?";
         t.yes = u8"Có";
@@ -186,7 +186,7 @@ TextStrings langGetText(Language lang) {
         t.enterSaveName = u8"Nhập tên file lưu:";
         t.saveSuccess = u8"Lưu game thành công!";
         t.loadSuccess = u8"Tải game thành công!";
-        t.fileNotFound = u8"Không tìm thấy file!";
+        t.fileNotFound = u8"Danh sách trống!";
         t.fileExists = u8"File đã tồn tại!";
         t.maxSaveReached = u8"Đã đạt giới hạn số lượng file lưu tối đa!";
         t.deleteFile = u8"Xóa File";
@@ -234,7 +234,7 @@ TextStrings langGetText(Language lang) {
         t.botName = u8"Máy";
 
         // Panel + timer
-        t.yourTurn = u8">>> LƯỢT CỦA BẠN <<<";
+        t.yourTurn = u8"LƯỢT CỦA BẠN";
         t.turnTimeBar = u8"THỜI GIAN LƯỢT";
         t.gameTimeLabel = u8"Thời gian ván: ";
         t.defeatText = u8"THUA CUỘC";

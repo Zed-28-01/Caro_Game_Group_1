@@ -69,7 +69,7 @@ void renderPauseMenu(sf::RenderWindow& window, const GameResources& res,
 // isPvC = true: chi hien 1 o (Player 1), Player 2 mac dinh = "May"/"Computer"
 void renderInputNames(sf::RenderWindow& window, const GameResources& res,
                       const std::string& name1, const std::string& name2,
-                      bool isEditingPlayer1, bool showError,
+                      bool isEditingPlayer1, const std::string& errorMsg,
                       bool isPvC = false);
 
 // ============================================================
@@ -154,7 +154,7 @@ void renderDrawEffect(sf::RenderWindow& window, const GameResources& res,
 // Ve man hinh game over (ai thang, so lieu, hoi tiep tuc?)
 void renderGameOver(sf::RenderWindow& window, const GameState& state,
                     const GameResources& res, GameResult result,
-                    int menuIndex);
+                    int menuIndex, bool askingSave = false);
 
 // ============================================================
 // VE SAVE / LOAD
