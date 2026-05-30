@@ -127,9 +127,9 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
 void renderTurnTimer(sf::RenderWindow& window, const GameResources& res,
                      float percentage);
 
-// Ve thoi gian con lai cua van dau
-void renderGameTimer(sf::RenderWindow& window, const GameResources& res,
-                     float secondsLeft);
+// Ve text "Bot dang suy nghi..." khi bot block main loop (PvC + Speed mode)
+// Hien thi tai vung giua panel (vi tri cu cua renderGameTimer)
+void renderBotThinking(sf::RenderWindow& window, const GameResources& res);
 
 // ============================================================
 // VE HIEU UNG

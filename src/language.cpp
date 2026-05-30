@@ -126,6 +126,7 @@ TextStrings langGetText(Language lang) {
         t.turnTimeBar = "TURN TIME";
         t.gameTimeLabel = "Game time: ";
         t.defeatText = "DEFEAT";
+        t.botThinking = "Bot is thinking...";
 
         // Save/Load messages
         t.msgSaveOK = "Game saved successfully!";
@@ -238,6 +239,7 @@ TextStrings langGetText(Language lang) {
         t.turnTimeBar = u8"THỜI GIAN LƯỢT";
         t.gameTimeLabel = u8"Thời gian ván: ";
         t.defeatText = u8"THUA CUỘC";
+        t.botThinking = u8"Bot đang suy nghĩ...";
 
         // Save/Load messages
         t.msgSaveOK = u8"Lưu thành công!";

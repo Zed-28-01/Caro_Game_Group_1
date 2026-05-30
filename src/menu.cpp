@@ -488,14 +488,33 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
     // HELPER LAMBDA: Bot di 1 nuoc + check ket qua
     // ============================================================
     auto doBotMove = [&]() {
-        // Render frame "dang nghi" de nguoi thay
+        // Render frame "Bot dang suy nghi..." (Bug 1 sub fix)
         renderGameplay(window, state, res, nullptr, -1, -1, false);
+        if (state.style == STYLE_SPEED) renderBotThinking(window, res);
         window.display();
+
+        // Do chinh xac thoi gian bot suy nghi (chess-clock fairness)
+        sf::Clock botThinkClock;
 
         int botRow, botCol;
         botGetMove(state, state.difficulty, botRow, botCol);
         state.cursorRow = botRow;
         state.cursorCol = botCol;
+
+        // Bot la P2 trong PvC. Tru thoi gian bot tu chinh game time cua P2.
+        if (state.style == STYLE_SPEED) {
+            float thinkSec = botThinkClock.getElapsedTime().asSeconds();
+            timerConsumeP2(state.timer, thinkSec);
+
+            // Neu bot tieu het game time trong khi nghi -> bot thua luon
+            if (timerIsGameExpiredP2(state.timer)) {
+                result = RESULT_PLAYER1_WIN;
+                state.player1.totalWins++;
+                soundPlayWin(res);
+                clock.restart();
+                return;
+            }
+        }
 
         if (boardPlacePiece(state, botRow, botCol)) {
             soundPlayPlace(res);
@@ -513,6 +532,10 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                 if (state.style == STYLE_SPEED) timerResetTurn(state.timer);
             }
         }
+
+        // Bug 1 main fix: restart clock de bo thoi gian bot da troi qua,
+        // tranh tru vao turn timer + game time cua P1 o frame ke tiep
+        clock.restart();
     };
 
     // ============================================================
@@ -557,9 +580,9 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
         if (placeAnimTimer < PLACE_ANIM_DURATION)
             placeAnimTimer += deltaTime;
 
-        // Cap nhat timer (che do Speed)
+        // Cap nhat timer (che do Speed) - chess-clock: chi tru thoi gian nguoi dang di
         if (state.style == STYLE_SPEED && result == RESULT_NONE) {
-            timerUpdate(state.timer, deltaTime);
+            timerUpdate(state.timer, deltaTime, state.isPlayer1Turn);
 
             // --- XỬ LÝ HẾT GIỜ LƯỢT NÀY ---
             if (timerIsTurnExpired(state.timer)) {
@@ -576,19 +599,21 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                 return handleGameOver(window, res, state, result, winLine);
             }
 
-            // --- KIỂM TRA HẾT GIỜ CẢ VÁN ---
-            if (timerIsGameExpired(state.timer) && result == RESULT_NONE) {
-                if (state.player1.moves > state.player2.moves)
-                    result = RESULT_PLAYER2_WIN;
-                else if (state.player2.moves > state.player1.moves)
-                    result = RESULT_PLAYER1_WIN;
-                else
-                    result = RESULT_DRAW;
-
-                if (result == RESULT_DRAW) soundPlayDraw(res);
-                else soundPlayWin(res);
+            // --- KIỂM TRA HẾT GIỜ VAN CUA TUNG NGUOI (chess-clock) ---
+            // Ai het thoi gian van -> nguoi do THUA (giong cờ vua)
+            if (timerIsGameExpiredP1(state.timer)) {
+                result = RESULT_PLAYER2_WIN;
+                state.player2.totalWins++;
+                soundPlayWin(res);
                 return handleGameOver(window, res, state, result, winLine);
             }
+            if (timerIsGameExpiredP2(state.timer)) {
+                result = RESULT_PLAYER1_WIN;
+                state.player1.totalWins++;
+                soundPlayWin(res);
+                return handleGameOver(window, res, state, result, winLine);
+            }
+
         }
 
         // Xu ly su kien

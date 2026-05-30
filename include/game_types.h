@@ -188,10 +188,11 @@ struct Player {
     int totalWins;          // Tong so van thang
 };
 
-// Trang thai timer
+// Trang thai timer (chess-clock style: moi nguoi co thoi gian rieng)
 struct TimerState {
-    float gameTimeLeft;     // Thoi gian con lai cua van (giay)
-    float turnTimeLeft;     // Thoi gian con lai cua luot (giay)
+    float gameTimeLeftP1;   // Thoi gian van con lai cua Player 1 (giay)
+    float gameTimeLeftP2;   // Thoi gian van con lai cua Player 2 (giay)
+    float turnTimeLeft;     // Thoi gian con lai cua luot hien tai (giay)
     bool isRunning;         // Timer co dang chay khong
 };
 

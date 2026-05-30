@@ -34,7 +34,8 @@ bool saveGame(const GameState& state, const std::string& filename) {
     f << (state.isPlayer1Turn ? 1 : 0) << "\n";
     f << state.cursorRow << " " << state.cursorCol << "\n";
     f << (int)state.mode << " " << (int)state.style << " " << (int)state.difficulty << "\n";
-    f << state.timer.gameTimeLeft << " " << state.timer.turnTimeLeft << " "
+    f << state.timer.gameTimeLeftP1 << " " << state.timer.gameTimeLeftP2 << " "
+        << state.timer.turnTimeLeft << " "
         << (state.timer.isRunning ? 1 : 0) << "\n";
     f << state.moveCount << "\n";
 
@@ -82,7 +83,8 @@ bool loadGame(GameState& state, const std::string& filename) {
     state.mode = (GameMode)mode;
     state.style = (GameStyle)style;
     state.difficulty = (BotDifficulty)diff;
-    f >> state.timer.gameTimeLeft >> state.timer.turnTimeLeft >> isRunning;
+    f >> state.timer.gameTimeLeftP1 >> state.timer.gameTimeLeftP2
+      >> state.timer.turnTimeLeft >> isRunning;
     state.timer.isRunning = (isRunning == 1);
     f >> state.moveCount;
 

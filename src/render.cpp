@@ -433,9 +433,30 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
         winsText.setPosition(panelX + 15.f, boxY + 95.f);
         window.draw(winsText);
 
+        // Thoi gian van CUA NGUOI NAY (chi che do Speed)
+        if (state.style == STYLE_SPEED) {
+            float secLeft = (i == 0)
+                ? timerGetGameSecondsLeftP1(state.timer)
+                : timerGetGameSecondsLeftP2(state.timer);
+            int mins = (int)secLeft / 60;
+            int secs = (int)secLeft % 60;
+            char tbuf[24];
+            snprintf(tbuf, sizeof(tbuf), "%02d:%02d", mins, secs);
+            std::string timeStr = txt.gameTimeLabel + std::string(tbuf);
+            sf::Color timeColor = (secLeft <= 30.f) ? sf::Color(255, 100, 100)
+                                                    : sf::Color(220, 220, 220);
+            sf::Text timeText;
+            timeText.setFont(res.mainFont);
+            timeText.setString(sf::String::fromUtf8(timeStr.begin(), timeStr.end()));
+            timeText.setCharacterSize(16);
+            timeText.setFillColor(timeColor);
+            timeText.setPosition(panelX + 15.f, boxY + 122.f);
+            window.draw(timeText);
+        }
+
         if (isActive && result == RESULT_NONE) {
             renderTextCentered(window, res.mainFont, txt.yourTurn,
-                14, panelX + panelW / 2.f, boxY + 140.f,
+                14, panelX + panelW / 2.f, boxY + 152.f,
                 pieceColor,                     // Tự động đổi Đỏ/Xanh theo lượt
                 sf::Color(0, 0, 0, 200), 1.5f);
         }
@@ -485,26 +506,26 @@ void renderTurnTimer(sf::RenderWindow& window, const GameResources& res,
 }
 
 
-// Text thoi gian van (countdown 10:00)
-void renderGameTimer(sf::RenderWindow& window, const GameResources& res,
-    float secondsLeft) {
+// Text "Bot dang suy nghi..." trong khi botGetMove() block main loop
+void renderBotThinking(sf::RenderWindow& window, const GameResources& res) {
     float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + UI_PANEL_GAP_LEFT;
     float panelW = WINDOW_WIDTH - panelX - UI_PANEL_GAP_RIGHT;
 
-    int mins = (int)secondsLeft / 60;
-    int secs = (int)secondsLeft % 60;
-
-    char buf[16];
-    snprintf(buf, sizeof(buf), "%02d:%02d", mins, secs);
-
-    // Doi mau chu theo thoi gian con lai (do khi sap het)
-    sf::Color textColor = (secondsLeft <= 30.f) ? sf::Color(255, 100, 100) : sf::Color::White;
-
     TextStrings txt = langGetText(langGetCurrent());
-    renderTextCentered(window, res.mainFont, txt.gameTimeLabel + std::string(buf),
-        18, panelX + panelW / 2.f, UI_GAME_TIMER_Y,
-        textColor,
-        sf::Color(0, 0, 0, 220), 2.f);  // black outline 2px
+
+    // Plate xanh nhe phia sau text
+    sf::RectangleShape plate(sf::Vector2f(panelW - 20.f, 40.f));
+    plate.setPosition(panelX + 10.f, UI_GAME_TIMER_Y - 15.f);
+    plate.setFillColor(sf::Color(20, 30, 50, 220));
+    plate.setOutlineThickness(2.f);
+    plate.setOutlineColor(sf::Color(255, 220, 100, 220));
+    window.draw(plate);
+
+    // Text "Bot dang suy nghi..."
+    renderTextCentered(window, res.mainFont, txt.botThinking,
+        18, panelX + panelW / 2.f, UI_GAME_TIMER_Y + 5.f,
+        sf::Color(255, 220, 100),
+        sf::Color(0, 0, 0, 220), 2.f);
 }
 // VE MENU
 
@@ -755,13 +776,12 @@ void renderGameplay(sf::RenderWindow& window, const GameState& state,
     if (winLine != nullptr && winLine->count >= WIN_COUNT)
         renderWinLine(window, *winLine);
 
-    // Ve panel thong tin nguoi choi (mascot doi theo result)
+    // Ve panel thong tin nguoi choi (mascot doi theo result + game timer per-player)
     renderPlayerPanel(window, state, res, result);
 
-    // Ve timer (chi khi che do Speed)
+    // Ve turn timer bar (chi khi che do Speed) - game timer cua tung nguoi da nam trong panel
     if (state.style == STYLE_SPEED) {
         renderTurnTimer(window, res, timerGetTurnPercent(state.timer));
-        renderGameTimer(window, res, timerGetGameSecondsLeft(state.timer));
     }
 }
 
