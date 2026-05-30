@@ -364,29 +364,96 @@ FUNCTION loadGame(filename, state) → boolean:
 | **Expert** | Minimax + α-β depth 4 | 4 lượt | Cao thủ |
 
 **Visual:** Icon độ khó (⭐ → ⭐⭐⭐⭐) cho mỗi cấp
+
+**Bullet bổ sung (dưới bảng, font nhỏ):**
+- 💡 **Tính năng Gợi ý (phím H)**: Dùng cùng thuật toán **Medium (Heuristic Scoring)** để gợi ý cho người chơi PvC — đủ thông minh để hữu ích, đủ nhanh (~5ms) để phản hồi tức thì.
+- 🎯 **Tất cả cấp độ dùng chung 1 bảng điểm Pattern** (trình bày ở slide tiếp theo).
+
 **Code/Screenshot:** Không (slide tổng quan)
 **Speaker cue:**
-> *"Mỗi cấp dùng chiến lược hoàn toàn khác nhau. Easy random kèm chặn cơ bản. Expert nhìn trước 4 lượt và cắt tỉa nhánh để vẫn phản hồi nhanh."*
+> *"Mỗi cấp dùng chiến lược hoàn toàn khác nhau. Easy random kèm chặn cơ bản. Expert nhìn trước 4 lượt và cắt tỉa nhánh để vẫn phản hồi nhanh. Tính năng Hint cho người chơi dùng cùng thuật toán Medium để vừa nhanh vừa đủ thông minh."*
 
 ---
 
-### 🏷️ SLIDE 10 — MINIMAX + ALPHA-BETA ⭐ (2 phút — DIỂM NHẤN)
+### 🏷️ SLIDE 10 — PATTERN SCORING (1 phút 15 giây) ⭐ NỀN TẢNG
+
+**Tiêu đề:** `Bảng điểm Pattern — Trái tim của AI`
+
+**Layout 3 vùng:**
+- **Trái (50%):** Mã giả Text Box
+- **Phải-trên (25%):** Bảng điểm pattern + minh họa
+- **Phải-dưới (25%):** Screenshot bàn cờ có pattern thật
+
+**📋 NGUỒN LỌC MÃ GIẢ:** Từ hàm `botScoreLine()` trong `src/bot.cpp`
+
+**Mã giả gõ vào slide (~20 dòng — Text Box, Consolas 14-16pt):**
+```
+// Cham diem 1 chuoi quan theo 1 huong
+FUNCTION scoreLine(board, row, col, dRow, dCol, player) → integer:
+    forward  ← countConsecutive(row, col, +dRow, +dCol, player)
+    backward ← countConsecutive(row, col, −dRow, −dCol, player)
+    total ← forward + backward + 1
+
+    // Đếm số đầu "mở" (ô trống) - quyết định pattern
+    openEnds ← 0
+    IF ô đầu chuỗi LÀ trống THEN openEnds++
+    IF ô cuối chuỗi LÀ trống THEN openEnds++
+
+    // Tra cứu bảng điểm
+    IF total ≥ 5 THEN RETURN 1,000,000      // WIN
+    IF total = 4 THEN
+        IF openEnds = 2 THEN RETURN 100,000  // 4 mở 2 đầu
+        IF openEnds = 1 THEN RETURN 5,000    // 4 mở 1 đầu
+    IF total = 3 THEN
+        IF openEnds = 2 THEN RETURN 5,000    // 3 mở 2 đầu
+        IF openEnds = 1 THEN RETURN 500
+    // ... (2, 1 tương tự)
+    RETURN 0
+```
+
+**📊 Bảng điểm (phải-trên):**
+
+| Pattern | Ý nghĩa | Điểm |
+|---------|---------|------|
+| `XXXXX` | 5 liên tiếp (WIN) | +1,000,000 |
+| `_XXXX_` | 4 mở 2 đầu | +100,000 |
+| `_XXXX#` | 4 mở 1 đầu | +5,000 |
+| `_XXX_` | 3 mở 2 đầu | +5,000 |
+| `_XXX#` | 3 mở 1 đầu | +500 |
+| `_XX_` | 2 mở 2 đầu | +500 |
+| `_XX#` | 2 mở 1 đầu | +50 |
+
+*Chú thích: `_` = ô trống, `#` = bị chặn (đối thủ hoặc biên)*
+
+**🎮 Screenshot game (phải-dưới):** `slide10_pattern_real.png` (rename từ `slide11_pattern_real.png`)
+- Cảnh: Bàn cờ có chuỗi 4 liền (`_XXXX_`) — minh họa pattern điểm cao
+- Annotation: vòng tròn đỏ quanh chuỗi 4 quân, mũi tên ghi "+100,000 điểm"
+
+**Bullet QUAN TRỌNG (dưới slide):**
+> 🎯 **Mọi cấp độ Bot đều dùng bảng điểm này** — Medium chấm trực tiếp, Hard/Expert chấm tại các lá của cây Minimax (slide tiếp theo). Đây là "tri thức về cờ caro" được mã hóa thành số.
+
+**Speaker cue:**
+> *"Đây là building block cho cả 4 cấp bot. Hàm scoreLine xét 1 chuỗi quân: đếm có bao nhiêu quân liên tiếp, có bao nhiêu đầu mở (ô trống), rồi tra bảng điểm. Bot Medium dùng trực tiếp — chọn nước có điểm cao nhất. Bot Hard/Expert dùng nó để đánh giá thế trận ở lá của cây Minimax — sẽ trình bày ở slide tiếp theo."*
+
+---
+
+### 🏷️ SLIDE 11 — MINIMAX + ALPHA-BETA ⭐ (2 phút — ĐIỂM NHẤN)
 
 **Tiêu đề:** `Minimax + Alpha-Beta Pruning — Cốt lõi Bot Hard/Expert`
 
 **Layout 3 vùng (slide quan trọng nhất):**
 - **Trái (50%):** Mã giả Text Box (22 dòng, dày nhất)
-- **Phải-trên (35%):** Cây game tree minh họa pruning
+- **Phải-trên (35%):** Cây game tree minh họa pruning (Mermaid Option A — xem chat history)
 - **Phải-dưới (15%):** Screenshot nhỏ Bot Expert đang chơi
 
-**📋 NGUỒN LỌC MÃ GIẢ:** Từ hàm `minimax()` trong `src/bot.cpp` (DIỂM NHẤN — dành 2 phút)
+**📋 NGUỒN LỌC MÃ GIẢ:** Từ hàm `botMinimax()` trong `src/bot.cpp` (ĐIỂM NHẤN — dành 2 phút)
 
 **Mã giả gõ vào slide (~22 dòng — Text Box, Consolas 14pt):**
 ```
 FUNCTION minimax(board, depth, α, β, isMaximizing) → integer:
     // Điều kiện dừng: hết độ sâu hoặc ván kết thúc
     IF depth = 0 OR isGameOver(board) THEN
-        RETURN evaluatePosition(board)
+        RETURN evaluateBoard(board)         // dùng scoreLine (slide trước)
 
     candidates ← getCandidateMoves(board)   // Chỉ xét ô gần quân đã đặt
 
@@ -410,138 +477,154 @@ FUNCTION minimax(board, depth, α, β, isMaximizing) → integer:
         RETURN best
 ```
 
-**📊 Sơ đồ (phải-trên):** Cây game tree 3 tầng
-```
-                    [MAX] root
-                   /    |    \
-              [MIN]  [MIN]  [MIN]
-              /  \    | |    | |
-         [MAX][MAX][✂][✂][MAX][✂]
-                    ↑
-              Bị cắt tỉa
-```
-Chú thích: "Alpha-Beta giảm 70-90% số node phải duyệt → từ 160,000 xuống ~3,000 node"
+**📊 Sơ đồ (phải-trên):** Cây game tree với leaf values + pruning annotation
 
-**🎮 Screenshot game (phải-dưới):** `slide10_bot_thinking.png`
-- Cảnh: PvC Expert đang chơi, bot vừa đi xong 1 nước thông minh (chặn hoặc tạo bẫy)
-- Caption nhỏ: "Bot Expert chạy thuật toán này trong < 200ms mỗi nước"
+Xuất từ Mermaid (xem code trong chat history), khuyến nghị **Mermaid Option B** với giá trị 30/40/50/70:
+```
+              MAX root (chọn max = 50)
+            /        |          \
+       MIN(50)   MIN(30)    MIN(40)
+       /    \    /   ✂     /    ✂
+      50   70  30  pruned 40  pruned
+```
+Chú thích: "Alpha-Beta cắt 2/6 leaf → tiết kiệm 33%. Với depth 4 → tiết kiệm theo cấp số nhân."
+
+**🎮 Screenshot game (phải-dưới):** `slide11_bot_thinking.png` (rename từ `slide10_bot_thinking.png`)
+- Cảnh: PvC Expert đang chơi, có hiện text "Bot đang suy nghĩ..." (sau khi fix Bug 1)
+- Caption nhỏ: "Bot Expert chạy thuật toán này trong 2-5s mỗi nước (depth 4)"
 
 **Speaker cue (chia 3 phần, mỗi phần ~40 giây):**
 
 > **Phần 1 (40s — giải thích Minimax):**
-> *"Minimax giả định cả 2 người chơi tối ưu. Bot là MAX — tìm nước có điểm cao nhất. Đối thủ là MIN — Bot giả định người chơi chọn nước làm Bot bất lợi nhất."*
+> *"Minimax giả định cả 2 người chơi tối ưu. Bot là MAX — tìm nước có điểm cao nhất. Đối thủ là MIN — Bot giả định người chơi chọn nước làm Bot bất lợi nhất. Hàm evaluateBoard ở lá của cây dùng chính bảng điểm pattern slide trước."*
 
 > **Phần 2 (40s — giải thích Alpha-Beta):**
-> *"Vấn đề: depth 4 phải duyệt 20^4 = 160,000 trạng thái. Alpha-Beta giải quyết bằng cách: nếu một nhánh đã chắc chắn tệ hơn nhánh tốt nhất đã tìm — cắt luôn không duyệt nữa."*
+> *"Vấn đề: depth 4 phải duyệt rất nhiều trạng thái. Alpha-Beta giải quyết: nếu một nhánh đã chắc chắn tệ hơn nhánh tốt nhất đã tìm — cắt luôn không duyệt nữa. Trong sơ đồ: nhánh giữa và phải đều bị cắt vì leaf đầu (30, 40) đã ≤ 50."*
 
 > **Phần 3 (40s — nhấn vào dòng `IF β ≤ α THEN BREAK`):**
-> *"Đây là dòng quan trọng nhất. Khi điều kiện thoả → cắt nhánh ngay. Thực nghiệm: giảm 50 lần thời gian, Expert vẫn phản hồi dưới 200ms — chứng minh ở góc phải dưới."*
+> *"Đây là dòng quan trọng nhất. Khi điều kiện thoả → cắt nhánh ngay. Nhờ đó Expert depth 4 vẫn phản hồi trong 2-5 giây thay vì lâu hơn nhiều."*
 
 ---
 
-### 🏷️ SLIDE 11 — PATTERN SCORING (1 phút 15 giây)
+### 🏷️ SLIDE 12 — SPEED MODE (CHESS-CLOCK) (1 phút)
 
-**Tiêu đề:** `Hàm đánh giá thế cờ — Pattern Scoring`
+**Tiêu đề:** `Speed Mode — Chess-clock per-player`
 
-**Layout 3 vùng:**
-- **Trái (50%):** Mã giả Text Box
-- **Phải-trên (25%):** Bảng điểm pattern
-- **Phải-dưới (25%):** Screenshot bàn cờ có pattern thật
-
-**📋 NGUỒN LỌC MÃ GIẢ:** Từ hàm `evaluatePosition()` / `scorePattern()` trong `src/bot.cpp`
-
-**Mã giả gõ vào slide (~20 dòng — Text Box, Consolas 14-16pt):**
-```
-FUNCTION evaluatePosition(board) → integer:
-    totalScore ← 0
-
-    // Duyệt mọi "cửa sổ" 5 ô liên tiếp theo 4 hướng
-    FOR EACH window OF 5 CELLS IN board:
-        countMe  ← 0
-        countOpp ← 0
-        FOR EACH cell IN window:
-            IF cell = BOT_PLAYER  THEN countMe  ← countMe  + 1
-            IF cell = OPP_PLAYER  THEN countOpp ← countOpp + 1
-
-        // Cửa sổ "sạch" mới có ý nghĩa (không lẫn 2 bên)
-        IF countOpp = 0 THEN              // ⚔ Tấn công
-            IF countMe = 4 THEN totalScore ← totalScore + 100,000
-            IF countMe = 3 THEN totalScore ← totalScore + 1,000
-            IF countMe = 2 THEN totalScore ← totalScore + 100
-
-        ELSE IF countMe = 0 THEN          // 🛡 Phòng thủ
-            IF countOpp = 4 THEN totalScore ← totalScore − 90,000
-            IF countOpp = 3 THEN totalScore ← totalScore − 900
-
-    RETURN totalScore
-```
-
-**📊 Sơ đồ (phải-trên):** Bảng điểm cụ thể
-
-| Pattern | Ý nghĩa | Điểm |
-|---------|---------|------|
-| `XXXXX` | WIN | +∞ |
-| `_XXXX_` | 4 liền 2 đầu mở | +100,000 |
-| `_XXX__` | 3 liền nguy hiểm | +1,000 |
-| `_XX___` | 2 liền tiềm năng | +100 |
-| `OOOO_` | Phải chặn! | -90,000 |
-| `_OOO_` | Cảnh báo | -900 |
-
-**🎮 Screenshot game (phải-dưới):** `slide11_pattern_real.png`
-- Cảnh: Bàn cờ có chuỗi 4 liền (`_XXXX_`) — minh họa pattern điểm cao
-- Annotation: vòng tròn đỏ quanh chuỗi 4 quân, mũi tên ghi "+100,000 điểm"
-- → Hội đồng thấy ngay pattern này xảy ra trong game thật
-
-**Speaker cue:**
-> *"Hàm evaluate không tính theo từng ô riêng lẻ mà theo cửa sổ 5 ô. Điểm tấn công cao hơn phòng thủ một chút — để Bot ưu tiên thắng hơn chặn khi cả 2 đều khả thi."*
-
----
-
-### 🏷️ SLIDE 12 — SPEED MODE + ANIMATION (1 phút)
-
-**Tiêu đề:** `Speed Mode & Animation — Delta-time không cần thread`
-
-**Layout 3 vùng:**
-- **Trái (50%):** Mã giả Text Box
-- **Phải-trên (25%):** Đường cong easeOut
-- **Phải-dưới (25%):** Screenshot Speed Mode với timer đỏ
+**Layout 2 vùng:**
+- **Trái (60%):** Mã giả Text Box (timer chess-clock + expire logic)
+- **Phải (40%):** Screenshot Speed Mode + chú thích
 
 **📋 NGUỒN LỌC MÃ GIẢ:** Từ phần update timer trong `handleGameplay()` (`src/menu.cpp`)
 
-**Mã giả gõ vào slide (~16 dòng — Text Box, Consolas 14-16pt):**
+**Mã giả gõ vào slide (~22 dòng — Text Box, Consolas 14pt):**
 ```
-// Trong game loop, mỗi frame:
+// Lay thoi gian troi qua giua 2 frame
 deltaTime ← clock.restart().asSeconds()
 
-// ─── Cập nhật timer (chỉ chế độ Speed) ───
-IF style = SPEED AND timer.isRunning THEN
+// ─── Cap nhat timer (chess-clock: chi tru thoi gian nguoi dang di) ───
+IF style = SPEED AND result = NONE THEN
     timer.turnTimeLeft ← timer.turnTimeLeft − deltaTime
-    timer.gameTimeLeft ← timer.gameTimeLeft − deltaTime
 
+    IF isPlayer1Turn THEN
+        timer.gameTimeLeftP1 ← timer.gameTimeLeftP1 − deltaTime
+    ELSE
+        timer.gameTimeLeftP2 ← timer.gameTimeLeftP2 − deltaTime
+
+    // Xu thua ngay neu het 20 giay/luot
     IF timer.turnTimeLeft ≤ 0 THEN
-        switchTurn()
-        timer.turnTimeLeft ← MAX_TURN_TIME   // Reset 20 giây
+        result ← IF isPlayer1Turn THEN PLAYER2_WIN ELSE PLAYER1_WIN
+        RETURN handleGameOver(result)
 
-// ─── Animation đặt quân (không sleep, không thread) ───
-IF placeProgress < 1.0 THEN
-    placeProgress ← placeProgress + deltaTime / 0.2   // 0.2 giây
-    scale ← easeOut(placeProgress)                    // 0 → 1
-    drawPiece(position, scale)
+    // Ai het thoi gian van -> nguoi do THUA (chuan co vua)
+    IF timer.gameTimeLeftP1 ≤ 0 THEN
+        result ← PLAYER2_WIN
+        RETURN handleGameOver(result)
+    IF timer.gameTimeLeftP2 ≤ 0 THEN
+        result ← PLAYER1_WIN
+        RETURN handleGameOver(result)
 ```
 
-**📊 Sơ đồ (phải-trên):** Đường cong easeOut từ 0→1 trong 0.2s với 3 frame minh họa quân lớn dần
+**🎮 Screenshot game (phải):** `slide12_speed_timer.png`
+- Cảnh: Speed Mode đang chạy, **2 player panel cùng hiện "Thời gian ván: MM:SS"** riêng biệt
+- Có thể chụp lúc 1 bên ≤30s để thấy chữ ĐỎ
+- → Cho hội đồng thấy 2 timer riêng biệt (chess-clock)
 
-**🎮 Screenshot game (phải-dưới):** `slide12_speed_timer.png`
-- Cảnh: Speed Mode đang chạy, thanh timer còn dưới 5s → **đang ĐỎ**
-- Có thể chụp lúc đặt quân, thấy animation scale dở dang
-- → Cho hội đồng thấy 2 hiệu ứng (timer đỏ + animation) đều từ đoạn pseudocode này
+**Bullet bổ sung dưới screenshot:**
+- ⚖️ **Mỗi người 10 phút riêng** — chỉ trừ thời gian khi đến lượt
+- 🏆 **Ai hết time → người đó THUA** (chuẩn cờ vua, dễ giải thích)
+- 🛡️ **Bot's thinking time tính cho bot** — không leak vào turn của người chơi (xem fix Bug 1 trong report)
 
 **Speaker cue:**
-> *"Game loop chạy 60 FPS, mỗi frame tính delta time bằng sf::Clock. Animation và timer đều cộng dồn theo deltaSec — đảm bảo độc lập với tốc độ máy. Không cần thread, không có race condition."*
+> *"Nhóm em thiết kế Speed mode theo cơ chế **chess-clock**: mỗi người có 10 phút riêng, đồng hồ chỉ chạy khi đến lượt mình. Khi hết thời gian, người đó thua — quy tắc giống cờ vua truyền thống, đảm bảo công bằng. Game loop chạy 60 FPS, mỗi frame tính delta time bằng sf::Clock — đảm bảo độc lập với tốc độ máy, không cần thread, không có race condition."*
 
 ---
 
-### 🏷️ SLIDE 13 — DEMO TRANSITION (giây 0 — chỉ là slide chuyển)
+### 🏷️ SLIDE 13 — MOUSE SUPPORT (45 giây)
+
+**Tiêu đề:** `Hỗ trợ chuột (Mouse Support)`
+
+**Layout 2 vùng (60/40):**
+- **Trái (60%):** Mã giả Text Box (pixelToBoard + event handling)
+- **Phải (40%):** Bullet mô tả + note demo live
+
+**📋 NGUỒN LỌC MÃ GIẢ:** Từ `renderPixelToBoard()` (`src/render.cpp`) + event loop trong `handleGameplay()` (`src/menu.cpp`)
+
+**Mã giả gõ vào slide (~18 dòng — Text Box, Consolas 16pt):**
+```
+// ============================================
+// HAM CHUYEN DOI PIXEL CHUOT → TOA DO BAN CO
+// ============================================
+FUNCTION pixelToBoard(x, y) → (row, col):
+    col ← (x − BOARD_OFFSET_X) / CELL_SIZE
+    row ← (y − BOARD_OFFSET_Y) / CELL_SIZE
+
+    IF row < 0 OR row ≥ 15 OR col < 0 OR col ≥ 15 THEN
+        RETURN INVALID                      // Click ngoai board
+
+    RETURN (row, col)
+
+
+// ============================================
+// XU LY SU KIEN CHUOT TRONG GAME LOOP
+// ============================================
+WHILE pollEvent(event):
+
+    // Di chuot → cursor theo chuot
+    IF event = MouseMoved THEN
+        (r, c) ← pixelToBoard(event.x, event.y)
+        IF hop le THEN
+            cursorRow ← r
+            cursorCol ← c
+
+    // Click trai → dat quan
+    IF event = MouseLeftClick THEN
+        (r, c) ← pixelToBoard(event.x, event.y)
+        IF hop le THEN
+            doPlayerPlace(r, c)
+```
+
+**Bullet bên phải:**
+- 🖱️ **Hover** → cursor highlight di theo chuột
+- 🖱️ **Click trái** → đặt quân (PvP & PvC)
+- 🖱️ Tương thích **letterbox/resize window** nhờ `handleCommonEvent()` map pixel → view coords
+- 🖱️ **Song song bàn phím** — người chơi tùy chọn cách điều khiển
+- 🖱️ Áp dụng cho cả **menu** (`menuHitTest` để click chọn item)
+
+**🎬 NOTE (góc dưới-phải, font nhỏ italic):**
+
+> *"Demo trực tiếp tại buổi thuyết trình — Vì screenshot không hiển thị được con trỏ chuột, anh/chị xem demo live nhé."*
+
+**Speaker cue (~45 giây):**
+
+> **Mở bài (10s):** *"Bên cạnh chế độ Speed vừa trình bày, nhóm em chú trọng trải nghiệm điều khiển linh hoạt. Game hỗ trợ song song cả bàn phím và chuột — người chơi tự chọn cách thoải mái nhất."*
+>
+> **Kỹ thuật (20s):** *"Thử thách kỹ thuật chính là ánh xạ pixel thực của chuột về tọa độ ô bàn cờ. Hàm pixelToBoard lấy tọa độ pixel chia cho CELL_SIZE, trừ đi BOARD_OFFSET để ra row-col. Nếu nằm ngoài board, hàm trả invalid để bỏ qua click."*
+>
+> **Demo (15s):** *(chuyển sang cửa sổ game, di chuột + click 1-2 nước)* *"Mouse hoạt động tốt cả khi maximize window nhờ handleCommonEvent."*
+
+---
+
+### 🏷️ SLIDE 14 — DEMO TRANSITION (giây 0 — chỉ là slide chuyển)
 
 **Tiêu đề:** `🎮 DEMO TRỰC TIẾP`
 **Subtitle:** *Cùng xem sản phẩm hoạt động*
@@ -596,7 +679,7 @@ IF placeProgress < 1.0 THEN
 
 ---
 
-### 🏷️ SLIDE 14 — BẢNG ĐỐI CHIẾU YÊU CẦU (1 phút)
+### 🏷️ SLIDE 15 — BẢNG ĐỐI CHIẾU YÊU CẦU (1 phút)
 
 **Tiêu đề:** `Đối chiếu yêu cầu đề bài`
 
@@ -609,20 +692,19 @@ IF placeProgress < 1.0 THEN
 | 4.3 Hiệu ứng thắng/thua/hòa | ✅ | Animation + sound |
 | 4.4 Giao diện gameplay | ✅ | Panel stats đầy đủ |
 | 4.5 Màn hình chính (menu) | ✅ | 13 màn hình |
-| **➕ Bot AI 4 cấp** | 🌟 | Sáng tạo thêm |
-| **➕ Speed Mode** | 🌟 | Sáng tạo thêm |
-| **➕ Sound + BGM** | 🌟 | Sáng tạo thêm |
+| **➕ Bot AI 4 cấp + Hint** | 🌟 | Sáng tạo thêm |
+| **➕ Speed Mode (chess-clock)** | 🌟 | Sáng tạo thêm |
 | **➕ Mouse Support** | 🌟 | Sáng tạo thêm |
-| **➕ Animation easing** | 🌟 | Sáng tạo thêm |
-| **➕ Persist Settings** | 🌟 | Sáng tạo thêm |
+| **➕ i18n (VN/EN) + Persist Settings** | 🌟 | Sáng tạo thêm |
+| **➕ Các tính năng UI/UX khác** | 🌟 | Hỗ trợ một số tính năng âm thanh, UI/UX mượt cho game |
 
 **Code/Screenshot:** Không (slide bảng)
 **Speaker cue:**
-> *"5/5 yêu cầu cơ bản đạt đủ. Phần nâng cao nhóm chủ động thêm 6 tính năng — trong đó nổi bật nhất là Bot AI với Minimax Alpha-Beta."*
+> *"5/5 yêu cầu cơ bản đạt đủ. Phần nâng cao nhóm chủ động thêm các tính năng — trong đó nổi bật nhất là Bot AI với Minimax Alpha-Beta và Speed Mode chess-clock."*
 
 ---
 
-### 🏷️ SLIDE 15 — KẾT LUẬN + CẢM ƠN (30 giây)
+### 🏷️ SLIDE 16 — KẾT LUẬN + CẢM ƠN (30 giây)
 
 **Tiêu đề:** `Tổng kết`
 **Nội dung 3 bullet:**
@@ -695,34 +777,43 @@ Trong PowerPoint:
 
 | Slide | Nguồn lọc từ | Hàm/Phần | Số dòng đích | Lọc gì để gọn |
 |-------|--------------|----------|--------------|----------------|
-| **5** | `include/game_types.h` | struct `Cell`, `Move`, `GameState` | ~16 dòng | Bỏ comment thừa, dùng STRUCT keyword |
-| **6** | `src/menu.cpp` (check win) | `checkWin()` | ~16 dòng | Rút phần "đếm phía âm" thành `// tương tự` |
-| **7** | `src/menu.cpp` | `saveGame()` + `loadGame()` | ~14 dòng | Dùng OPEN/READ/WRITE/CLOSE thay vì `fstream` cụ thể |
-| **10** | `src/bot.cpp` | `minimax()` | ~22 dòng | Giữ FULL phần Maximizing, rút Minimizing bằng `... // tương tự, đảo dấu` |
-| **11** | `src/bot.cpp` | `evaluatePosition()` / `scorePattern()` | ~20 dòng | Bỏ tối ưu chi tiết (transposition), giữ pattern matching |
-| **12** | `src/menu.cpp` | Update timer trong `handleGameplay()` | ~16 dòng | Trích đoạn timer + 1 đoạn animation, gộp lại |
+| **5** | `include/game_types.h` | struct `Cell`, `Move`, `GameState` | ~16 dòng | Bỏ comment thừa, dùng STRUCT keyword. **Lưu ý**: `TimerState` đã đổi sang per-player (`gameTimeLeftP1/P2`) |
+| **6** | `src/board.cpp` (check win) | `boardCheckWin()` | ~16 dòng | Rút phần "đếm phía âm" thành `// tương tự` |
+| **7** | `src/save_load.cpp` | `saveGame()` + `loadGame()` | ~14 dòng | Dùng OPEN/READ/WRITE/CLOSE thay vì `fstream` cụ thể |
+| **10** | `src/bot.cpp` | `botScoreLine()` (Pattern Scoring) | ~20 dòng | Giữ logic đếm + tra bảng, bỏ chi tiết edge case |
+| **11** | `src/bot.cpp` | `botMinimax()` | ~22 dòng | Giữ FULL phần Maximizing, rút Minimizing bằng `... // tương tự, đảo dấu` |
+| **12** | `src/menu.cpp` | Timer chess-clock trong `handleGameplay()` | ~22 dòng | Bỏ phần animation cũ, chỉ giữ logic chess-clock + expire P1/P2 |
+| **13** | `src/render.cpp` + `src/menu.cpp` | `renderPixelToBoard()` + event handling | ~18 dòng | Gọn về 2 block: hàm chuyển đổi + event loop |
 
 ### 3.5. Bảng tổng hợp screenshot game cần chụp (sau khi UI polish xong)
 
-| Slide | Tên file | Cảnh cần chụp |
-|-------|----------|---------------|
-| **5** | `slide05_gameplay_overview.png` | Đang chơi giữa ván, panel 2 người chơi rõ, vài quân trên bàn |
-| **6** | `slide06_win_moment.png` | Khoảnh khắc thắng — 5 quân highlight xanh lá + Panel "WINS!" |
-| **7** | `slide07_save_screen.png` | Màn hình Save đang nhập tên file |
-| **7** | `slide07_load_screen.png` | Màn hình Load có 3-5 file trong list |
-| **8** | `slide08_*.png` (6 ảnh) | Main Menu, Mode Select, Difficulty, Gameplay, Pause, Game Over |
-| **10** | `slide10_bot_thinking.png` | PvC Expert đang chơi, bot vừa đi 1 nước thông minh |
-| **11** | `slide11_pattern_real.png` | Bàn cờ có chuỗi `_XXXX_` — minh họa pattern |
-| **12** | `slide12_speed_timer.png` | Speed Mode, thanh timer đang đỏ (<5s) |
+> ⚠️ **CẬP NHẬT 30/05/2026**: Sau khi đổi timer UI sang **per-player chess-clock** + thêm "Bot đang suy nghĩ" indicator, có **6 ảnh CẦN CHỤP LẠI**. Đánh dấu 🔴 dưới đây.
 
-→ **Tổng: 13 screenshot** cần chụp (Nhóm 3 phụ trách sau UI polish, xem `ASSETS_PLAN.md`)
+| Slide | Tên file | Cảnh cần chụp | Status |
+|-------|----------|---------------|--------|
+| **5** | `slide05_gameplay_overview.png` | Đang chơi giữa ván, panel 2 người chơi rõ, **có time trong mỗi panel** | 🔴 Chụp lại |
+| **6** | `slide06_win_moment.png` | Khoảnh khắc thắng — 5 quân highlight + Panel "WINS!" + time | 🔴 Chụp lại |
+| **7** | `slide07_save_screen.png` | Màn hình Save đang nhập tên file | ✅ Giữ |
+| **7** | `slide07_load_screen.png` | Màn hình Load có 3-5 file trong list | ✅ Giữ |
+| **8** | `slide08_main_menu.png` | Main Menu | ✅ Giữ |
+| **8** | `slide08_mode_select.png` | Mode Select | ✅ Giữ |
+| **8** | `slide08_difficulty.png` | Difficulty Select | ✅ Giữ |
+| **8** | `slide08_gameplay.png` | Gameplay với panel mới (per-player time) | 🔴 Chụp lại |
+| **8** | `slide08_pause.png` | Pause Menu | ✅ Giữ |
+| **8** | `slide08_gameover.png` | Game Over (banner + time mới) | 🔴 Chụp lại |
+| **10** | `slide10_pattern_real.png` (rename) | Bàn cờ có chuỗi `_XXXX_` — minh họa pattern | ✅ Giữ (rename từ slide11) |
+| **11** | `slide11_bot_thinking.png` (rename) | PvC Expert đang chơi, **có text "Bot đang suy nghĩ..."** | 🔴 Chụp lại (rename từ slide10) |
+| **12** | `slide12_speed_timer.png` ⭐ | Speed Mode, **2 timer riêng biệt trong 2 panel**, chữ đỏ khi ≤30s | 🔴 Chụp lại (BIG change) |
+| **13** | (Không cần) | Mouse cursor không bắt được qua screenshot → **demo live** | — |
+
+→ **Tổng: 13 screenshot** cần chụp. **6 ảnh cần chụp lại** sau khi fix Bug 1+2.
 
 ### 3.6. Quy ước highlight (tô màu trong Text Box)
 > 💡 *Cái này team mã giả test thử trước nếu thấy màu mè quá thì bỏ.*
 
 - **Vàng / Cam (`#FFC857`)**: Keywords quan trọng → `RETURN`, `BREAK`, `IF β ≤ α THEN BREAK` (dòng cắt tỉa)
 - **Xanh lá nhạt (`#7EC699`)**: Comment giải thích thuật toán (`// Cắt tỉa Beta`)
-- **Xanh dương nhạt (`#82AAFF`)**: Tên hàm khi gọi (`minimax`, `evaluatePosition`)
+- **Xanh dương nhạt (`#82AAFF`)**: Tên hàm khi gọi (`minimax`, `scoreLine`, `pixelToBoard`)
 - **Trắng-xám (`#D4D4D4`)**: Text chính (mặc định)
 - **Đỏ:** TRÁNH dùng — gây căng thẳng khi nhìn
 
@@ -824,15 +915,16 @@ docs/
 2. Bỏ chi tiết C++ (`std::`, `int`, `;`, `{}`) → diễn đạt lại bằng keyword UPPERCASE
 3. Rút gọn xuống ≤22 dòng, các phần rút gọn thì comment giải thích phần đó thực hiện chức năng gì
 
-- [ ] Slide 5 — STRUCT GameState (lọc từ `game_types.h`)
-- [ ] Slide 6 — FUNCTION checkWin (lọc từ `menu.cpp`)
-- [ ] Slide 7 — FUNCTION saveGame + loadGame (lọc từ `menu.cpp`)
-- [ ] Slide 10 — FUNCTION minimax (lọc từ `bot.cpp`) ⭐ ƯU TIÊN
-- [ ] Slide 11 — FUNCTION evaluatePosition (lọc từ `bot.cpp`)
-- [ ] Slide 12 — Timer update + animation (lọc từ `menu.cpp`)
+- [ ] Slide 5 — STRUCT GameState + TimerState per-player (lọc từ `game_types.h`)
+- [ ] Slide 6 — FUNCTION boardCheckWin (lọc từ `board.cpp`)
+- [ ] Slide 7 — FUNCTION saveGame + loadGame (lọc từ `save_load.cpp`)
+- [ ] Slide 10 — FUNCTION scoreLine (Pattern Scoring, lọc từ `bot.cpp`) ⭐ NỀN TẢNG
+- [ ] Slide 11 — FUNCTION minimax + Alpha-Beta (lọc từ `bot.cpp`) ⭐ ĐIỂM NHẤN
+- [ ] Slide 12 — Timer chess-clock update + expire check (lọc từ `menu.cpp`)
+- [ ] Slide 13 — pixelToBoard + event handling (lọc từ `render.cpp` + `menu.cpp`)
 
 **Yêu cầu output:**
-- File `docs/code_snippets.md` chứa 6 đoạn mã giả (KHÔNG phải C++)
+- File `docs/code_snippets.md` chứa 7 đoạn mã giả (KHÔNG phải C++)
 - Mỗi đoạn ghi rõ: nguồn lọc từ file/hàm nào, đã đơn giản hóa thuật toán nào
   > *Cái này thì tùy, gợi ý vậy để chừng chèn vào slides đỡ mắc công xem lại file docs*
 
@@ -841,9 +933,9 @@ docs/
 - [ ] Slide 6 — Bàn cờ 4 hướng quét
 - [ ] Slide 7 — Flowchart save/load
 - [ ] Slide 9 — Bảng so sánh 4 cấp bot (icon độ khó)
-- [ ] Slide 10 — Cây game tree với pruning ⭐ ƯU TIÊN
-- [ ] Slide 11 — Bảng pattern scoring (table style)
-- [ ] Slide 12 — Đường cong easeOut + thanh timer
+- [ ] Slide 10 — Bảng pattern scoring (table style) + minh họa 3 chuỗi
+- [ ] Slide 11 — Cây game tree Minimax với leaf values + pruning (Mermaid Option B, xem chat history) ⭐ ƯU TIÊN
+- [ ] Slide 12 — Screenshot per-player chess-clock UI (đã có sẵn nếu chụp lại)
 
 **Yêu cầu output:**
 - 7 file ảnh `.png` độ phân giải tối thiểu 1920×1080, nền trong suốt
