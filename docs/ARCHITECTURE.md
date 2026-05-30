@@ -69,7 +69,7 @@ enum Language { LANG_VIETNAMESE, LANG_ENGLISH };
 struct Cell { int value; };          // 0=empty, -1=X, 1=O
 struct Move { int row, col; int player; };
 struct Player { std::string name; int moves, totalWins; };
-struct TimerState { float gameTimeLeft, turnTimeLeft; bool isRunning; };
+struct TimerState { float gameTimeLeftP1, gameTimeLeftP2, turnTimeLeft; bool isRunning; }; // chess-clock
 struct WinLine { int positions[WIN_COUNT][2]; int count; };
 
 // GameState (POD-ish, dùng cho save/load)
@@ -121,8 +121,9 @@ struct GameResources {
 - `renderHint(window, row, col)` — highlight hint suggest
 - `renderWinLine(window, winLine)` — highlight 5 quân thắng màu vàng
 - `renderPlayerPanel(window, state, res, result?)` — 2 player boxes + mascots + VICTORY/DEFEAT
-- `renderTurnTimer(window, res, percentage)` — Speed mode timer bar
-- `renderGameTimer(window, res, secondsLeft)` — Speed mode countdown
+- `renderTurnTimer(window, res, percentage)` — Speed mode turn timer bar
+- `renderBotThinking(window, res)` — text "Bot đang suy nghĩ..." khi bot block main loop (PvC + Speed)
+- Note: game timer per-player được vẽ TRONG `renderPlayerPanel` (mỗi panel có time riêng), không còn central `renderGameTimer`
 - `drawCaroLogo(window, res)` — vẽ logo CARO ở Main Menu
 - `drawMenuButton(window, res, centerY, selected)` — vẽ button frame sau menu item
 - `renderMenuGeneric(window, res, title, items, count, menuIndex, useLogo?)` — vẽ menu chung
@@ -180,14 +181,20 @@ GameResult boardCheckWin(state, &winLine)  // Check 4 directions, return result
 bool boardIsFull(state)                // Check hòa
 ```
 
-### 2.6. `timer.cpp` — Speed mode
+### 2.6. `timer.cpp` — Speed mode (chess-clock per-player)
 ```cpp
-void timerStart(timer, gameSeconds, turnSeconds)
-void timerUpdate(timer, deltaTime)     // Trừ thời gian theo dt
-void timerResetTurn(timer, turnSeconds) // Reset khi sang lượt mới
-float timerGetTurnPercent(timer)       // 0.0 → 1.0 cho progress bar
-float timerGetGameSecondsLeft(timer)
-bool timerIsTimeUp(timer)              // Game time hoặc turn time hết
+void timerStart(timer, gameSeconds, turnSeconds)            // Set ca P1 va P2 = gameSeconds
+bool timerUpdate(timer, deltaTime, isPlayer1Turn)           // Tru turn time + game time CUA NGUOI DANG DI
+void timerResetTurn(timer)                                  // Reset 20s cho luot moi
+void timerPause(timer) / timerResume(timer)
+void timerConsumeP1(timer, sec) / timerConsumeP2(timer, sec)  // Tru thu cong (vd: bot's thinking time)
+
+float timerGetTurnPercent(timer)                            // 0.0 → 1.0 cho progress bar
+float timerGetGamePercentP1(timer) / timerGetGamePercentP2(timer)
+bool  timerIsTurnExpired(timer)
+bool  timerIsGameExpiredP1(timer) / timerIsGameExpiredP2(timer)  // Ai het time → nguoi do thua
+float timerGetTurnSecondsLeft(timer)
+float timerGetGameSecondsLeftP1(timer) / timerGetGameSecondsLeftP2(timer)
 ```
 
 ### 2.7. `save_load.cpp` — Persistence
@@ -444,4 +451,11 @@ $gfx.DrawImage($srcImg, 0, 0, $w, $h)
 
 ---
 
-**Last updated:** 24/05/2026
+**Last updated:** 30/05/2026
+
+**Changelog 30/05:**
+- `TimerState` chuyển từ shared `gameTimeLeft` sang per-player `gameTimeLeftP1/P2` (chess-clock)
+- `timerUpdate` thêm param `isPlayer1Turn`, chỉ trừ thời gian người đang đi
+- Thêm `timerConsumeP1/P2` để bot trừ thời gian thủ công (fix bug bot timer leak)
+- Bỏ `renderGameTimer` central, time hiển thị trong mỗi player panel
+- Thêm `renderBotThinking` hiển thị khi bot block main loop
