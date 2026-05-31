@@ -172,7 +172,10 @@ bool boardCheckWin(const GameState& state, int row, int col, WinLine& winline)
 
 
 bool boardCheckDraw(const GameState& state) {
-	return boardCountEmpty(state) == 0;
+	// Toi uu O(1): moveCount luon dong bo voi so o da dat
+	// (boardPlace++ / boardUndo-- / boardResetRound=0)
+	// Ban day <=> moveCount == BOARD_SIZE * BOARD_SIZE = 225
+	return state.moveCount == BOARD_SIZE * BOARD_SIZE;
 }
 
 

@@ -515,7 +515,7 @@ void renderBotThinking(sf::RenderWindow& window, const GameResources& res) {
 
     // Plate xanh nhe phia sau text
     sf::RectangleShape plate(sf::Vector2f(panelW - 20.f, 40.f));
-    plate.setPosition(panelX + 10.f, UI_GAME_TIMER_Y - 15.f);
+    plate.setPosition(panelX + 10.f, UI_BOT_THINKING_Y - 15.f);
     plate.setFillColor(sf::Color(20, 30, 50, 220));
     plate.setOutlineThickness(2.f);
     plate.setOutlineColor(sf::Color(255, 220, 100, 220));
@@ -523,7 +523,7 @@ void renderBotThinking(sf::RenderWindow& window, const GameResources& res) {
 
     // Text "Bot dang suy nghi..."
     renderTextCentered(window, res.mainFont, txt.botThinking,
-        18, panelX + panelW / 2.f, UI_GAME_TIMER_Y + 5.f,
+        18, panelX + panelW / 2.f, UI_BOT_THINKING_Y + 5.f,
         sf::Color(255, 220, 100),
         sf::Color(0, 0, 0, 220), 2.f);
 }
