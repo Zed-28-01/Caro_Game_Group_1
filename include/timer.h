@@ -17,8 +17,8 @@ void timerStart(TimerState& timer, float gameTime, float turnTime);
 // Cap nhat timer moi frame (goi trong game loop)
 // deltaTime: thoi gian da troi qua tu frame truoc (giay)
 // isPlayer1Turn: dang la luot cua P1? Chi tru thoi gian van CUA NGUOI DANG DI
-// Tra ve true neu ca 2 nguoi con thoi gian, false neu co nguoi het thoi gian
-bool timerUpdate(TimerState& timer, float deltaTime, bool isPlayer1Turn);
+// Kiem tra hat thoi gian dung timerIsGameExpiredP1/P2 (clean separation)
+void timerUpdate(TimerState& timer, float deltaTime, bool isPlayer1Turn);
 
 // Reset thoi gian luot moi (goi khi nguoi choi vua danh xong)
 void timerResetTurn(TimerState& timer);

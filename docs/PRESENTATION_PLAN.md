@@ -44,17 +44,18 @@
       │   Slide 6: Win detection (1m)
       │   Slide 7: Save/Load (1m)
       │   Slide 8: Main Menu + UI (1m)
-07:00 ┼─ D. KỸ THUẬT NÂNG CAO (5 phút)
-      │   Slide 9: Bot AI tổng quan (45s)
-      │   Slide 10: Minimax + Alpha-Beta (2m) ⭐ DIỂM NHẤN
-      │   Slide 11: Pattern Scoring (1m15s)
-      │   Slide 12: Speed Mode + Animation (1m)
-12:00 ┼─ E. DEMO TRỰC TIẾP (6 phút)
-      │   Slide 13: Demo transition (sang game)
+07:00 ┼─ D. KỸ THUẬT NÂNG CAO (5 phút 45 giây)
+      │   Slide 9:  Bot AI tổng quan — 4 cấp độ (45s)
+      │   Slide 10: Pattern Scoring (scoreLine) (1m15s) ⭐ NỀN TẢNG
+      │   Slide 11: Minimax + Alpha-Beta (2m) ⭐ ĐIỂM NHẤN
+      │   Slide 12: Speed Mode (chess-clock) (1m)
+      │   Slide 13: Mouse Support (45s)
+12:45 ┼─ E. DEMO TRỰC TIẾP (6 phút)
+      │   Slide 14: Demo transition (sang game)
       │   Script demo chi tiết tại mục 2.13
-18:00 ┼─ F. TỔNG KẾT (1.5 phút)
-      │   Slide 14: Bảng đối chiếu yêu cầu (1m)
-      │   Slide 15: Kết luận + Cảm ơn (30s)
+18:45 ┼─ F. TỔNG KẾT (1.5 phút)
+      │   Slide 15: Bảng đối chiếu yêu cầu (1m)
+      │   Slide 16: Kết luận + Cảm ơn (30s)
 19:30 ┼─ G. Q&A BUFFER (30s dự phòng)
       │
 20:00 ┴─ KẾT THÚC
