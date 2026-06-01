@@ -132,7 +132,7 @@ TextStrings langGetText(Language lang) {
         t.msgSaveOK = "Game saved successfully!";
         t.msgSaveError = "Save file error!";
         t.msgFileExists = "File already exists!";
-        t.msgMaxFiles = "Max 15 save files reached!";
+        t.msgMaxFiles = "Max 12 save files reached!";
         t.msgFileDeleted = "File deleted!";
         t.msgLoadError = "Failed to load file!";
     }
@@ -245,7 +245,7 @@ TextStrings langGetText(Language lang) {
         t.msgSaveOK = u8"Lưu thành công!";
         t.msgSaveError = u8"Lỗi lưu file!";
         t.msgFileExists = u8"File đã tồn tại!";
-        t.msgMaxFiles = u8"Đã đạt giới hạn 15 file!";
+        t.msgMaxFiles = u8"Đã đạt giới hạn 12 file!";
         t.msgFileDeleted = u8"Đã xóa file!";
         t.msgLoadError = u8"Lỗi tải file!";
     }

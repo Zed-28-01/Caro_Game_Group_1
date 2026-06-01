@@ -31,7 +31,7 @@
 // rất dày đặc).
 #define WINDOW_WIDTH 1280 // Chieu rong cua so
 #define WINDOW_HEIGHT 720 // Chieu cao cua so
-#define MAX_SAVE_FILES 15 // So file save toi da
+#define MAX_SAVE_FILES 12 // So file save toi da
 #define WIN_COUNT 5       // So quan lien tiep de thang
 
 // Thoi gian (giay)
