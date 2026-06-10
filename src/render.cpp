@@ -647,29 +647,158 @@ void renderStyleSelect(sf::RenderWindow& window, const GameResources& res,
     renderMenuGeneric(window, res, txt.chooseStyle, items, 3, menuIndex);
 }
 
-// Menu tam dung (ESC in-game)
+// Menu tam dung (ESC in-game) - V2: 6 items voi Language/Volume/SFX inline
 void renderPauseMenu(sf::RenderWindow& window, const GameResources& res,
-    int menuIndex) {
+    int menuIndex, int volume, bool sfxOn) {
     // Lop phu toi ban trong (overlay)
     sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-    overlay.setFillColor(sf::Color(0, 0, 0, 150));
+    overlay.setFillColor(sf::Color(0, 0, 0, 170));
     window.draw(overlay);
 
     TextStrings txt = langGetText(langGetCurrent());
-    std::string items[] = { txt.resume, txt.saveGame, txt.returnMenu };
+    Language lang = langGetCurrent();
 
-    // Tieu de
-    renderTextCentered(window, res.titleFont, "PAUSE", 42,
-        WINDOW_WIDTH / 2.f, UI_PAUSE_TITLE_Y, sf::Color::White);
+    // V2: 6 items
+    // 0: Resume   1: Save   2: Language toggle   3: Volume slider   4: SFX toggle   5: Main Menu
+    std::string langStr = txt.language + " " +
+        (lang == LANG_VIETNAMESE ? txt.langVietnamese : txt.langEnglish);
+    std::string sfxStr = txt.sfxToggle + " " + (sfxOn ? txt.on : txt.off);
 
-    // Cac muc
-    for (int i = 0; i < 3; i++) {
+    std::string items[6] = {
+        txt.resume, txt.saveGame, langStr, "", sfxStr, txt.returnMenu
+    };
+
+    // Tieu de - day len de co cho cho 6 items
+    renderTextCentered(window, res.titleFont, "PAUSE", 40,
+        WINDOW_WIDTH / 2.f, 150.f, sf::Color::White);
+
+    // Step ngan hon de fit 6 items
+    const float PAUSE_START_Y = 230.f;
+    const float PAUSE_STEP    = 60.f;
+
+    for (int i = 0; i < 6; i++) {
         bool selected = (i == menuIndex);
         sf::Color color = selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT;
-        renderTextCentered(window, res.mainFont, items[i],
-            selected ? 28 : 24,
-            WINDOW_WIDTH / 2.f, UI_PAUSE_START_Y + i * UI_PAUSE_STEP, color);
+        int fontSize = selected ? 26 : 22;
+        float itemY = PAUSE_START_Y + i * PAUSE_STEP;
+
+        if (i == 3) {
+            // VOLUME ROW: label + slider bar (giong renderSettings)
+            std::string volLabel = txt.bgmVolume + " " + std::to_string(volume) + "%";
+            renderTextCentered(window, res.mainFont, volLabel, fontSize,
+                WINDOW_WIDTH / 2.f, itemY - 14.f, color);
+
+            const float trackW = 300.f;
+            const float trackH = 8.f;
+            const float trackX = WINDOW_WIDTH / 2.f - trackW / 2.f;
+            const float trackY = itemY + 14.f;
+
+            sf::RectangleShape track(sf::Vector2f(trackW, trackH));
+            track.setPosition(trackX, trackY);
+            track.setFillColor(sf::Color(80, 90, 110));
+            track.setOutlineThickness(1.f);
+            track.setOutlineColor(sf::Color(140, 150, 170));
+            window.draw(track);
+
+            sf::RectangleShape fill(sf::Vector2f(trackW * volume / 100.f, trackH));
+            fill.setPosition(trackX, trackY);
+            fill.setFillColor(selected ? sf::Color(80, 200, 255) : sf::Color(60, 150, 220));
+            window.draw(fill);
+
+            float handleR = selected ? 11.f : 9.f;
+            sf::CircleShape handle(handleR);
+            handle.setOrigin(handleR, handleR);
+            handle.setPosition(trackX + trackW * volume / 100.f, trackY + trackH / 2.f);
+            handle.setFillColor(sf::Color::White);
+            handle.setOutlineColor(selected ? sf::Color(80, 200, 255) : sf::Color(60, 150, 220));
+            handle.setOutlineThickness(2.5f);
+            window.draw(handle);
+        }
+        else {
+            renderTextCentered(window, res.mainFont, items[i], fontSize,
+                WINDOW_WIDTH / 2.f, itemY, color);
+        }
     }
+}
+
+
+// ============================================================
+// NUT BACK CHUNG (V2)
+// ============================================================
+// Hitbox cua nut Back: goc trai duoi (~ y = WINDOW_HEIGHT - 60)
+static const float BACK_BTN_X = 30.f;          // top-left x
+static const float BACK_BTN_Y = 640.f;          // top-left y
+static const float BACK_BTN_W = 130.f;
+static const float BACK_BTN_H = 48.f;
+
+bool backButtonContains(float mx, float my) {
+    return mx >= BACK_BTN_X && mx <= BACK_BTN_X + BACK_BTN_W
+        && my >= BACK_BTN_Y && my <= BACK_BTN_Y + BACK_BTN_H;
+}
+
+// Vi tri nut Save / Exit trong gameplay (duoi panel P2)
+// Save rong hon Exit vi chu "LUU GAME" dai hon "THOAT" (tranh bi cat chu khi hover)
+static const float ACT_BTN_H  = 44.f;
+static const float ACT_BTN_Y  = 620.f;
+static const float ACT_SAVE_X = 815.f;
+static const float ACT_SAVE_W = 150.f;
+static const float ACT_EXIT_X = 985.f;
+static const float ACT_EXIT_W = 110.f;
+
+bool gameplaySaveBtnContains(float mx, float my) {
+    return mx >= ACT_SAVE_X && mx <= ACT_SAVE_X + ACT_SAVE_W
+        && my >= ACT_BTN_Y && my <= ACT_BTN_Y + ACT_BTN_H;
+}
+bool gameplayExitBtnContains(float mx, float my) {
+    return mx >= ACT_EXIT_X && mx <= ACT_EXIT_X + ACT_EXIT_W
+        && my >= ACT_BTN_Y && my <= ACT_BTN_Y + ACT_BTN_H;
+}
+
+static void drawActionBtn(sf::RenderWindow& window, const GameResources& res,
+                          float x, float y, float w, const std::string& label,
+                          bool hover, sf::Color accent) {
+    sf::RectangleShape box(sf::Vector2f(w, ACT_BTN_H));
+    box.setPosition(x, y);
+    box.setFillColor(hover ? sf::Color(80, 80, 110, 230)
+                            : sf::Color(40, 40, 60, 210));
+    box.setOutlineThickness(2.f);
+    box.setOutlineColor(hover ? accent : sf::Color(180, 180, 180));
+    window.draw(box);
+
+    renderTextCentered(window, res.mainFont, label, hover ? 22 : 20,
+        x + w / 2.f, y + ACT_BTN_H / 2.f,
+        hover ? accent : sf::Color::White);
+}
+
+void renderGameplayActions(sf::RenderWindow& window, const GameResources& res,
+                           float mx, float my) {
+    TextStrings txt = langGetText(langGetCurrent());
+    drawActionBtn(window, res, ACT_SAVE_X, ACT_BTN_Y, ACT_SAVE_W, txt.saveGame,
+                  gameplaySaveBtnContains(mx, my),
+                  sf::Color(100, 220, 140));      // Xanh la cho Save
+    drawActionBtn(window, res, ACT_EXIT_X, ACT_BTN_Y, ACT_EXIT_W, txt.exitGame,
+                  gameplayExitBtnContains(mx, my),
+                  sf::Color(255, 120, 120));      // Do nhe cho Exit
+}
+
+void renderBackButton(sf::RenderWindow& window, const GameResources& res,
+                      float mx, float my) {
+    TextStrings txt = langGetText(langGetCurrent());
+    bool hover = backButtonContains(mx, my);
+
+    sf::RectangleShape box(sf::Vector2f(BACK_BTN_W, BACK_BTN_H));
+    box.setPosition(BACK_BTN_X, BACK_BTN_Y);
+    box.setFillColor(hover ? sf::Color(80, 80, 110, 230)
+                            : sf::Color(40, 40, 60, 210));
+    box.setOutlineThickness(2.f);
+    box.setOutlineColor(hover ? COLOR_MENU_HOVER : sf::Color(180, 180, 180));
+    window.draw(box);
+
+    // Label "< Back" / "< Quay lai"
+    std::string label = std::string("< ") + txt.back;
+    renderTextCentered(window, res.mainFont, label, hover ? 22 : 20,
+        BACK_BTN_X + BACK_BTN_W / 2.f, BACK_BTN_Y + BACK_BTN_H / 2.f,
+        hover ? COLOR_MENU_HOVER : sf::Color::White);
 }
 
 
@@ -760,6 +889,11 @@ void renderInputNames(sf::RenderWindow& window, const GameResources& res,
         renderTextCentered(window, res.mainFont, txt.inputNameHintPvP, 16,
             WINDOW_WIDTH / 2.f, 520.f, sf::Color(220, 220, 220));
     }
+
+    // V2: Nut Back o goc trai duoi (mouse-clickable)
+    sf::Vector2i pix = sf::Mouse::getPosition(window);
+    sf::Vector2f mp = window.mapPixelToCoords(pix);
+    renderBackButton(window, res, mp.x, mp.y);
 }
 
 
@@ -795,6 +929,13 @@ void renderGameplay(sf::RenderWindow& window, const GameState& state,
     // Ve turn timer bar (chi khi che do Speed) - game timer cua tung nguoi da nam trong panel
     if (state.style == STYLE_SPEED) {
         renderTurnTimer(window, res, timerGetTurnPercent(state.timer));
+    }
+
+    // V2: Nut Save / Exit (chi hien khi van con choi)
+    if (result == RESULT_NONE) {
+        sf::Vector2i pix = sf::Mouse::getPosition(window);
+        sf::Vector2f mp = window.mapPixelToCoords(pix);
+        renderGameplayActions(window, res, mp.x, mp.y);
     }
 }
 
@@ -969,6 +1110,10 @@ void renderSaveScreen(sf::RenderWindow& window, const GameResources& res,
     renderTextCentered(window, res.mainFont, txt.saveHintMouse, 14,
         WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 30.f,
         sf::Color(210, 210, 210));
+
+    // V2: Nut Back goc trai duoi (mouse-clickable)
+    sf::Vector2f mp = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    renderBackButton(window, res, mp.x, mp.y);
 }
 
 void renderLoadScreen(sf::RenderWindow& window, const GameResources& res,
@@ -1010,6 +1155,10 @@ void renderLoadScreen(sf::RenderWindow& window, const GameResources& res,
     renderTextCentered(window, res.mainFont, txt.loadHintMouse, 14,
         WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 30.f,
         sf::Color(210, 210, 210));
+
+    // V2: Nut Back goc trai duoi (mouse-clickable)
+    sf::Vector2f mp = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    renderBackButton(window, res, mp.x, mp.y);
 }
 
 // VE SETTINGS / HELP / ABOUT
@@ -1027,8 +1176,8 @@ void renderSettings(sf::RenderWindow& window, const GameResources& res,
         (lang == LANG_VIETNAMESE ? txt.langVietnamese : txt.langEnglish);
     std::string sfxStr = txt.sfxToggle + " " + (sfxOn ? txt.on : txt.off);
 
-    // Render tung row
-    for (int i = 0; i < 4; i++) {
+    // Render tung row (V2: bo row "Back" - thay bang corner Back button ben duoi)
+    for (int i = 0; i < 3; i++) {
         bool selected = (i == menuIndex);
         sf::Color color = selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT;
         int fontSize = selected ? 26 : 22;
@@ -1071,8 +1220,8 @@ void renderSettings(sf::RenderWindow& window, const GameResources& res,
             window.draw(handle);
         }
         else {
-            // Cac row khac: chi text
-            std::string content = (i == 0) ? langStr : (i == 2 ? sfxStr : txt.back);
+            // i==0: Language, i==2: SFX
+            std::string content = (i == 0) ? langStr : sfxStr;
             renderTextCentered(window, res.mainFont, content, fontSize,
                 WINDOW_WIDTH / 2.f, itemY, color);
         }
@@ -1082,6 +1231,10 @@ void renderSettings(sf::RenderWindow& window, const GameResources& res,
     renderTextCentered(window, res.mainFont, txt.settingsHint, 14,
         WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 40.f,
         sf::Color(230, 230, 230));
+
+    // V2: Nut Back goc trai duoi (mouse-clickable) - dong nhat voi Load/Help/About
+    sf::Vector2f mp = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    renderBackButton(window, res, mp.x, mp.y);
 }
 
 void renderHelp(sf::RenderWindow& window, const GameResources& res) {
@@ -1105,6 +1258,10 @@ void renderHelp(sf::RenderWindow& window, const GameResources& res) {
     renderTextCentered(window, res.mainFont, "ESC: " + txt.back, 16,
         WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 50.f,
         sf::Color(150, 150, 150));
+
+    // V2: Nut Back goc trai duoi (mouse-clickable)
+    sf::Vector2f mp = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    renderBackButton(window, res, mp.x, mp.y);
 }
 
 void renderAbout(sf::RenderWindow& window, const GameResources& res) {
@@ -1126,6 +1283,10 @@ void renderAbout(sf::RenderWindow& window, const GameResources& res) {
     renderTextCentered(window, res.mainFont, "ESC: " + txt.back, 16,
         WINDOW_WIDTH / 2.f, WINDOW_HEIGHT - 50.f,
         sf::Color(150, 150, 150));
+
+    // V2: Nut Back goc trai duoi (mouse-clickable)
+    sf::Vector2f mp = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    renderBackButton(window, res, mp.x, mp.y);
 }
 
 

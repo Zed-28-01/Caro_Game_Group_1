@@ -58,8 +58,30 @@ void renderStyleSelect(sf::RenderWindow& window, const GameResources& res,
                        int menuIndex);
 
 // Ve menu tam dung (ESC in-game)
+// V2: Pause menu expanded - 6 items: Resume / Save / Language / BGM Volume / SFX / Main Menu
 void renderPauseMenu(sf::RenderWindow& window, const GameResources& res,
-                     int menuIndex);
+                     int menuIndex, int volume, bool sfxOn);
+
+// ============================================================
+// NUT BACK CHUNG (V2 - dung cho cac man hinh phu nhu Enter Name)
+// ============================================================
+
+// Ve nut "Back" o goc trai duoi man hinh.
+// Highlight neu chuot dang hover (mx, my).
+void renderBackButton(sf::RenderWindow& window, const GameResources& res,
+                      float mx = -1.f, float my = -1.f);
+
+// Kiem tra (mx, my) co nam trong vung click cua nut Back khong.
+bool backButtonContains(float mx, float my);
+
+// ============================================================
+// NUT SAVE / EXIT TRONG GAMEPLAY (V2)
+// ============================================================
+// Ve 2 nut "Luu" + "Thoat" o duoi panel mascot P2 (chi khi van con choi).
+void renderGameplayActions(sf::RenderWindow& window, const GameResources& res,
+                           float mx, float my);
+bool gameplaySaveBtnContains(float mx, float my);
+bool gameplayExitBtnContains(float mx, float my);
 
 // ============================================================
 // VE MAN HINH NHAP TEN

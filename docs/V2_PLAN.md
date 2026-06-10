@@ -63,9 +63,9 @@ Sprint 4 (Visual AAA):   #31, #32, #33, #36, #37, #34, #35        → ~14 giờ
 
 | # | Task | Effort | Owner | Risk | Status |
 |---|------|--------|-------|------|--------|
-| 24 | Back button đồng bộ NewGame flow (Choose Mode/Style/Name) | 45 phút | 🤖 + 👤🧪 | Low | ⏳ Pending |
-| 25 | Exit/Save buttons góc phải dưới gameplay | 1 giờ | 🤖 + 👤🧪 | Low | ⏳ Pending |
-| 26 | ESC pause menu expand (Language + Volume + SFX inline) | 1.5 giờ | 🤖 + 👤🧪 | Low | ⏳ Pending |
+| 24 | Back button đồng bộ NewGame flow (Choose Mode/Style/Name) | 45 phút | 🤖 + 👤🧪 | Low | ✅ **DONE 10/06** |
+| 25 | Exit/Save buttons góc phải dưới gameplay | 1 giờ | 🤖 + 👤🧪 | Low | ✅ **DONE 10/06** |
+| 26 | ESC pause menu expand (Language + Volume + SFX inline) | 1.5 giờ | 🤖 + 👤🧪 | Low | ✅ **DONE 10/06** |
 
 ### Sprint 3 — Save/Load Modernize (SKIP binary)
 
@@ -289,10 +289,10 @@ A: Group A-C là "fix + cleanup" — foundation. Group D là "visual upgrade" �
 - [x] **BONUS** — Default initializers cho POD struct (silence 13 C26495 warnings) ✅ 09/06/2026
 - [ ] #27 — Sounds ⏸️ DEFER (chờ User cung cấp .wav)
 
-### Sprint 2 [0/3]
-- [ ] #24 — Back button NewGame flow
-- [ ] #25 — Exit/Save buttons gameplay
-- [ ] #26 — ESC menu expand
+### Sprint 2 [3/3] ✅
+- [x] #24 — Back button NewGame flow (Enter Name screen)
+- [x] #25 — Exit/Save buttons gameplay
+- [x] #26 — ESC menu expand (6 items inline)
 
 ### Sprint 3 [0/3]
 - [ ] #29 — Bỏ MAX_SAVE_FILES + auto-scan
@@ -339,9 +339,9 @@ Nếu Claude session mới hoặc User mất context:
 
 ---
 
-**Last updated:** 09/06/2026 — Sprint 1 COMPLETE
+**Last updated:** 10/06/2026 — Sprint 2 COMPLETE (+ follow-up polish: Back buttons Load/Help/About, widen Save btn, save-screen Back/ESC context, Exit→Pause)
 **Created by:** Claude (Anthropic) — session với @vanhoangnhatbp1
-**Status:** 🚧 V2 IN PROGRESS — Sprint 1 ✅ (#21, #22, #23 done; #27 defer). Next: Sprint 2.
+**Status:** 🚧 V2 IN PROGRESS — Sprint 1 ✅ + Sprint 2 ✅ (#24, #25, #26 done; #27 still defer). Next: Sprint 3 (#28-#30 save/load polish).
 
 > 🔴 **STANDING RULE active:** Claude tự động update files .md khi hoàn thành mỗi Sprint. Xem Section 7.2.
 
