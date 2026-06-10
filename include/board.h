@@ -12,7 +12,9 @@
 void boardInit(GameState& state);
 
 // Reset van moi trong cung 1 tran (giu ten, doi luot di truoc)
-void boardResetRound(GameState& state);
+// V2: loserPlayerId = id cua nguoi thua van vua roi (1 = P1, 2 = P2, 0 = hoa)
+// Nguoi thua di truoc van sau va luon danh ky hieu X
+void boardResetRound(GameState& state, int loserPlayerId = 0);
 
 // Reset hoan toan (xoa ca thong ke)
 void boardResetAll(GameState& state);
@@ -62,8 +64,8 @@ int boardUndo(GameState& state);
 // Kiem tra o (row, col) co trong khong
 bool boardIsEmpty(const GameState& state, int row, int col);
 
-// Kiem tra toa do hop le
-bool boardIsValid(int row, int col);
+// Luu y: boardIsValid da duoc chuyen sang utils.h thanh ham inBounds
+// (dung chung voi bot.cpp - DRY)
 
 // Dem so o trong con lai
 int boardCountEmpty(const GameState& state);

@@ -32,6 +32,7 @@ bool saveGame(const GameState& state, const std::string& filename) {
 
     // Trang thai van
     f << (state.isPlayer1Turn ? 1 : 0) << "\n";
+    f << state.firstPlayerOfRound << "\n"; // V2: ai di truoc van nay (1 hoac 2)
     f << state.cursorRow << " " << state.cursorCol << "\n";
     f << (int)state.mode << " " << (int)state.style << " " << (int)state.difficulty << "\n";
     f << state.timer.gameTimeLeftP1 << " " << state.timer.gameTimeLeftP2 << " "
@@ -78,6 +79,12 @@ bool loadGame(GameState& state, const std::string& filename) {
 
     int turn, mode, style, diff, isRunning;
     f >> turn;          state.isPlayer1Turn = (turn == 1);
+    f >> state.firstPlayerOfRound; // V2: ai di truoc van nay (1 hoac 2)
+    // Bao ve: neu doc duoc gia tri rac (chac chan tu file save V1 cu),
+    // fallback ve 1 (P1 di truoc - hanh vi giong V1)
+    if (state.firstPlayerOfRound != 1 && state.firstPlayerOfRound != 2) {
+        state.firstPlayerOfRound = 1;
+    }
     f >> state.cursorRow >> state.cursorCol;
     f >> mode >> style >> diff;
     state.mode = (GameMode)mode;

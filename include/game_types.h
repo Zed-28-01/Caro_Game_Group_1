@@ -177,50 +177,64 @@ enum Language { LANG_VIETNAMESE, LANG_ENGLISH };
 // ============================================================
 
 // Mot o tren ban co
+// Default 0 (o trong) - tranh warning C26495 (uninitialized member)
 struct Cell {
-  int value; // 0: trong, -1: Player 1 (X), 1: Player 2 (O)
+  int value = 0; // 0: trong, -1: Player 1 (X), 1: Player 2 (O)
 };
 
 // Mot nuoc di (dung cho undo va replay)
+// Default zero-init - tranh warning C26495
 struct Move {
-  int row, col; // Vi tri tren ban co (0-14)
-  int player;   // -1: Player 1, 1: Player 2
+  int row = 0, col = 0; // Vi tri tren ban co (0-14)
+  int player = 0;       // -1: Player 1, 1: Player 2
 };
 
 // Thong tin nguoi choi
+// Default zero-init - tranh warning C26495
 struct Player {
-  std::string name; // Ten (toi da 15 ky tu)
-  int moves;        // So nuoc da di trong van hien tai
-  int totalWins;    // Tong so van thang
+  std::string name;   // Ten (toi da 15 ky tu) - std::string co default empty
+  int moves = 0;      // So nuoc da di trong van hien tai
+  int totalWins = 0;  // Tong so van thang
 };
 
 // Trang thai timer (chess-clock style: moi nguoi co thoi gian rieng)
+// Default zero-init - tranh warning C26495
 struct TimerState {
-  float gameTimeLeftP1; // Thoi gian van con lai cua Player 1 (giay)
-  float gameTimeLeftP2; // Thoi gian van con lai cua Player 2 (giay)
-  float turnTimeLeft;   // Thoi gian con lai cua luot hien tai (giay)
-  bool isRunning;       // Timer co dang chay khong
+  float gameTimeLeftP1 = 0.f; // Thoi gian van con lai cua Player 1 (giay)
+  float gameTimeLeftP2 = 0.f; // Thoi gian van con lai cua Player 2 (giay)
+  float turnTimeLeft = 0.f;   // Thoi gian con lai cua luot hien tai (giay)
+  bool isRunning = false;     // Timer co dang chay khong
 };
 
 // Vi tri 5 quan thang (dung de ve hieu ung)
+// Default zero-init - tranh warning C26495
 struct WinLine {
-  int positions[WIN_COUNT][2]; // [i][0] = row, [i][1] = col
-  int count;                   // So quan thang thuc te (co the > 5)
+  int positions[WIN_COUNT][2] = {}; // [i][0] = row, [i][1] = col
+  int count = 0;                    // So quan thang thuc te (co the > 5)
 };
 
 // Toan bo trang thai cua 1 van game (dung cho save/load)
+// Default values cho moi field - tranh warning C26495 va dam bao safe
+// neu code quen goi boardInit/boardResetAll truoc khi doc
 struct GameState {
-  Cell board[BOARD_SIZE][BOARD_SIZE]; // Ban co
-  Player player1;
-  Player player2;
-  bool isPlayer1Turn;       // true = luot Player 1
-  int cursorRow, cursorCol; // Vi tri con tro hien tai
-  GameMode mode;
-  GameStyle style;
-  BotDifficulty difficulty;
-  TimerState timer;
-  Move moveHistory[BOARD_SIZE * BOARD_SIZE]; // Lich su nuoc di (mang tinh)
-  int moveCount;                             // So nuoc di da thuc hien
+  Cell board[BOARD_SIZE][BOARD_SIZE] = {}; // Ban co (zero-init het)
+  Player player1;                          // Default-construct
+  Player player2;                          // Default-construct
+  bool isPlayer1Turn = true;               // Mac dinh P1 di truoc
+  int cursorRow = BOARD_SIZE / 2;          // Mac dinh cursor o tam
+  int cursorCol = BOARD_SIZE / 2;
+  GameMode mode = MODE_PVP;                // Mac dinh PvP
+  GameStyle style = STYLE_BASIC;           // Mac dinh Basic mode
+  BotDifficulty difficulty = BOT_EASY;     // Mac dinh Easy
+  TimerState timer;                        // Default-construct
+  Move moveHistory[BOARD_SIZE * BOARD_SIZE] = {}; // Zero-init history
+  int moveCount = 0;
+
+  // V2: Ai di truoc van nay (1 = P1, 2 = P2)
+  // Mac dinh 1. Sau khi ket thuc 1 van, set = id cua nguoi thua
+  // (nguoi thua di truoc van sau, va luon danh ky hieu X)
+  // Render logic dung field nay de swap X/O texture + icon
+  int firstPlayerOfRound = 1;
 };
 
 // ============================================================
@@ -233,7 +247,6 @@ struct GameResources {
   sf::Font titleFont; // Font cho tieu de lon
 
   sf::Texture backgroundTex; // Hinh nen
-  sf::Texture boardTex;      // Texture ban co (neu co)
   sf::Texture xPieceTex;     // Texture quan X (neu co)
   sf::Texture oPieceTex;     // Texture quan O (neu co)
 

@@ -1,13 +1,11 @@
 #include "board.h"
+#include "utils.h" // inBounds, DIRS, countConsecutive (dung chung voi bot.cpp)
 
 // ============================================================
 // TIEN ICH
 // ============================================================
-
-// check (row, col) is valid?
-bool boardIsValid(int row, int col) {
-  return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
-}
+// Luu y: inBounds (cu) da duoc chuyen sang utils.h thanh ham inBounds
+// (chia se voi bot.cpp - DRY principle)
 
 // check cell empty?
 bool boardIsEmpty(const GameState &state, int row, int col) {
@@ -40,12 +38,15 @@ void boardInit(GameState &state) {
   state.cursorRow = BOARD_SIZE / 2;
   state.cursorCol = BOARD_SIZE / 2;
   state.isPlayer1Turn = true;
+  state.firstPlayerOfRound = 1; // V2: van dau tien P1 di truoc, danh X
 
   state.player1.moves = 0;
   state.player2.moves = 0;
 }
 
-void boardResetRound(GameState &state) {
+// V2: loserPlayerId = 1 (P1 thua) hoac 2 (P2 thua) hoac 0 (hoa - giu nguyen)
+// Nguoi thua se di truoc van sau va luon danh ky hieu X
+void boardResetRound(GameState &state, int loserPlayerId) {
   for (int r = 0; r < BOARD_SIZE; r++) {
     for (int c = 0; c < BOARD_SIZE; c++) {
       state.board[r][c].value = 0;
@@ -56,7 +57,15 @@ void boardResetRound(GameState &state) {
   state.cursorRow = BOARD_SIZE / 2;
   state.cursorCol = BOARD_SIZE / 2;
 
-  state.isPlayer1Turn = !state.isPlayer1Turn; // doi luot
+  // V2: Nguoi thua di truoc van sau (luat co vua)
+  // - Neu hoa (loserPlayerId = 0): giu nguyen firstPlayerOfRound
+  // - Neu co nguoi thua: firstPlayerOfRound = nguoi thua
+  if (loserPlayerId == 1 || loserPlayerId == 2) {
+    state.firstPlayerOfRound = loserPlayerId;
+  }
+
+  // isPlayer1Turn duoc set theo firstPlayerOfRound (P1 di neu firstPlayer=1)
+  state.isPlayer1Turn = (state.firstPlayerOfRound == 1);
 
   state.player1.moves = 0;
   state.player2.moves = 0;
@@ -77,7 +86,7 @@ void boardResetAll(GameState &state) {
 
 // Đặt quân cờ và cập nhật lịch sử di chuyển
 bool boardPlacePiece(GameState &state, int row, int col) {
-  if (!boardIsValid(row, col))
+  if (!inBounds(row, col))
     return false;
   if (!boardIsEmpty(state, row, col))
     return false;
@@ -106,7 +115,7 @@ void boardMoveCursor(GameState &state, int dRow, int dCol) {
   int newRow = state.cursorRow + dRow;
   int newCol = state.cursorCol + dCol;
 
-  if (boardIsValid(newRow, newCol)) {
+  if (inBounds(newRow, newCol)) {
     state.cursorRow = newRow;
     state.cursorCol = newCol;
   }
@@ -115,44 +124,28 @@ void boardMoveCursor(GameState &state, int dRow, int dCol) {
 // ============================================================
 // KIEM TRA THANG / HOA
 // ============================================================
-
-static int countDirection(const GameState &state, int row, int col, int dRow,
-                          int dCol, int value) {
-  int count = 0;
-  int r = row + dRow;
-  int c = col + dCol;
-  while (boardIsValid(r, c) && state.board[r][c].value == value) {
-    count++;
-    r += dRow;
-    c += dCol;
-  }
-  return count;
-}
+// Luu y: countDirection (cu) da duoc chuyen sang utils.h thanh ham
+// countConsecutive (chia se voi bot.cpp - DRY)
 
 bool boardCheckWin(const GameState &state, int row, int col, WinLine &winline) {
   int value = state.board[row][col].value;
   if (value == 0)
     return false;
 
-  int direction[4][2] = {
-      {0, 1}, // ngang
-      {1, 0}, // doc
-      {1, 1}, // cheo len-phai
-      {1, -1} // cheo len-trai
-  };
-
+  // Su dung DIRS tu utils.h thay vi khai bao inline
   for (int d = 0; d < 4; d++) {
-    int dRow = direction[d][0];
-    int dCol = direction[d][1];
+    int dRow = DIRS[d][0];
+    int dCol = DIRS[d][1];
 
-    int count = 1 + countDirection(state, row, col, dRow, dCol, value) +
-                countDirection(state, row, col, -dRow, -dCol, value);
+    int count = 1 +
+                countConsecutive(state.board, row, col, dRow, dCol, value) +
+                countConsecutive(state.board, row, col, -dRow, -dCol, value);
     if (count >= WIN_COUNT) {
       winline.count = 0;
 
       // Lùi về điểm xuất phát
       int r = row, c = col;
-      while (boardIsValid(r - dRow, c - dCol) &&
+      while (inBounds(r - dRow, c - dCol) &&
              state.board[r - dRow][c - dCol].value == value) {
         r -= dRow;
         c -= dCol;

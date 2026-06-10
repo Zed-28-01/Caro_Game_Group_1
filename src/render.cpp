@@ -126,8 +126,6 @@ bool renderLoadResources(GameResources& res) {
 
     // Texture: load neu co, khong co thi bo qua (optional)
     res.backgroundTex.loadFromFile("../assets/textures/background.png");
-    res.boardTex.loadFromFile("../assets/textures/board.png");
-    res.boardTex.setSmooth(true);
     res.xPieceTex.loadFromFile("../assets/textures/x_piece.png");
     res.xPieceTex.setSmooth(true);
     res.oPieceTex.loadFromFile("../assets/textures/o_piece.png");
@@ -172,7 +170,6 @@ bool renderLoadResources(GameResources& res) {
 
 // VE BAN CO
 // Ban co duoc ve = panel ban trong suot (de thay background) + grid procedural 15x15
-// (Khong dung board.png vi grid cua file anh khong khop voi BOARD_SIZE=15)
 void renderBoard(sf::RenderWindow& window, const GameResources& res) {
     const float boardPx = BOARD_SIZE * CELL_SIZE;
 
@@ -221,6 +218,10 @@ static void renderBackdrop(sf::RenderWindow& window, const GameResources& res,
 }
 
 // Ve cac quan co da danh
+// V2: Texture X/O duoc map dong theo state.firstPlayerOfRound
+// - Nguoi di truoc van nay luon danh X (luat co vua)
+// - val=-1 la quan cua P1, val=+1 la quan cua P2 (khong doi)
+// - Nhung renderng X/O thi swap dua tren firstPlayerOfRound
 void renderPieces(sf::RenderWindow& window, const GameState& state,
     const GameResources& res) {
 
@@ -235,8 +236,14 @@ void renderPieces(sf::RenderWindow& window, const GameState& state,
             if (val == 0) continue;
 
             sf::Vector2f pos = renderBoardToPixel(r, c);
-            const sf::Texture* tex = (val == -1) ? (hasXTex ? &res.xPieceTex : nullptr)
-                                                 : (hasOTex ? &res.oPieceTex : nullptr);
+
+            // V2: xac dinh quan nay co phai cua nguoi di truoc khong
+            // (nguoi di truoc danh X, nguoi di sau danh O)
+            int pieceOwnerId = (val == -1) ? 1 : 2; // val=-1 la P1, val=+1 la P2
+            bool isPlayerPlaysX = (pieceOwnerId == state.firstPlayerOfRound);
+
+            const sf::Texture* tex = isPlayerPlaysX ? (hasXTex ? &res.xPieceTex : nullptr)
+                                                    : (hasOTex ? &res.oPieceTex : nullptr);
 
             if (tex != nullptr) {
                 sf::Sprite sprite(*tex);
@@ -252,8 +259,8 @@ void renderPieces(sf::RenderWindow& window, const GameState& state,
                 sf::Text pieceText;
                 pieceText.setFont(res.mainFont);
                 pieceText.setCharacterSize(fontSize);
-                pieceText.setString(val == -1 ? "X" : "O");
-                pieceText.setFillColor(val == -1 ? COLOR_PLAYER_X : COLOR_PLAYER_O);
+                pieceText.setString(isPlayerPlaysX ? "X" : "O");
+                pieceText.setFillColor(isPlayerPlaysX ? COLOR_PLAYER_X : COLOR_PLAYER_O);
                 sf::FloatRect bounds = pieceText.getLocalBounds();
                 pieceText.setOrigin(bounds.left + bounds.width / 2.f,
                     bounds.top + bounds.height / 2.f);
@@ -317,7 +324,13 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
     for (int i = 0; i < 2; i++) {
         const Player& p = (i == 0) ? state.player1 : state.player2;
         bool isActive = (i == 0) ? state.isPlayer1Turn : !state.isPlayer1Turn;
-        sf::Color pieceColor = (i == 0) ? COLOR_PLAYER_X : COLOR_PLAYER_O;
+
+        // V2: Mau + ky hieu phu thuoc vao ai di truoc van nay
+        // - Nguoi di truoc danh X (mau do)
+        // - Nguoi di sau danh O (mau xanh)
+        int playerId = i + 1; // i=0 -> P1, i=1 -> P2
+        bool playsX = (playerId == state.firstPlayerOfRound);
+        sf::Color pieceColor = playsX ? COLOR_PLAYER_X : COLOR_PLAYER_O;
 
         // Player 1 o tren, Player 2 o duoi cach UI_PANEL_BOX_STEP
         float boxY = UI_PANEL_BOX_Y_START + i * UI_PANEL_BOX_STEP;
@@ -390,10 +403,10 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
             }
         }
 
-        // Chữ X/O
+        // Chữ X/O (V2: swap theo firstPlayerOfRound - nguoi di truoc luon X)
         sf::Text pieceIcon;
         pieceIcon.setFont(res.mainFont);
-        pieceIcon.setString((i == 0) ? "X" : "O");
+        pieceIcon.setString(playsX ? "X" : "O");
         pieceIcon.setCharacterSize(28);
         pieceIcon.setFillColor(pieceColor);
 

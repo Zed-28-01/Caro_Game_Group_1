@@ -863,7 +863,14 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
                     if (!askingSave) {
                         // 1. ĐANG HỎI CHƠI TIẾP
                         if (menuIndex == 0) { // Có -> Reset bàn cờ và đánh tiếp
-                            boardResetRound(state);
+                            // V2: nguoi thua van vua roi di truoc van moi (va danh X)
+                            // result == RESULT_PLAYER1_WIN -> P2 thua (loserId=2)
+                            // result == RESULT_PLAYER2_WIN -> P1 thua (loserId=1)
+                            // result == RESULT_DRAW        -> giu firstPlayer cu (loserId=0)
+                            int loserId = 0;
+                            if (result == RESULT_PLAYER1_WIN) loserId = 2;
+                            else if (result == RESULT_PLAYER2_WIN) loserId = 1;
+                            boardResetRound(state, loserId);
                             if (state.style == STYLE_SPEED) timerStart(state.timer, MAX_GAME_TIME, MAX_TURN_TIME);
                             return SCREEN_PLAYING;
                         }

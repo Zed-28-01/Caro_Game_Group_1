@@ -62,11 +62,8 @@ int botEvaluateBoard(const Cell board[BOARD_SIZE][BOARD_SIZE], int botPlayer);
 // ============================================================
 // HAM DANH GIA CHUOI (PATTERN SCORING)
 // ============================================================
-
-// Dem so quan lien tiep tu (row, col) theo huong (dRow, dCol)
-// Dung lai khi gap o trong hoac quan doi thu
-int botCountConsecutive(const Cell board[BOARD_SIZE][BOARD_SIZE],
-                        int row, int col, int dRow, int dCol, int player);
+// Luu y: ham countConsecutive da duoc chuyen sang utils.h
+// (dung chung voi board.cpp)
 
 // Danh gia 1 chuoi quan co:
 // - Xet so quan lien tiep
