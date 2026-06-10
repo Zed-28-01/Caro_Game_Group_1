@@ -1040,12 +1040,40 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
 
 GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
-    std::string saveList[MAX_SAVE_FILES];
-    int count = saveGetList(saveList, MAX_SAVE_FILES);
+    // V2 #29: directory scan thay vi Gamelist.txt manifest, khong gioi han so file
+    std::vector<std::string> saveList = saveScanFiles();
     int selectedIndex = 0;
+    int scrollTop = 0; // V2 #30: index file dau tien dang hien thi
     std::string inputName = "";
     std::string message = "";
     sf::Clock messageClock;
+
+    // V2 #30: dam bao item dang chon nam trong cua so cuon
+    auto ensureVisible = [&]() {
+        int count = (int)saveList.size();
+        int maxTop = count - UI_LIST_VISIBLE; if (maxTop < 0) maxTop = 0;
+        if (selectedIndex < scrollTop) scrollTop = selectedIndex;
+        else if (selectedIndex >= scrollTop + UI_LIST_VISIBLE)
+            scrollTop = selectedIndex - UI_LIST_VISIBLE + 1;
+        if (scrollTop > maxTop) scrollTop = maxTop;
+        if (scrollTop < 0) scrollTop = 0;
+    };
+
+    // V2 #30: map toa do chuot -> index file trong list (tinh ca scroll). -1 neu trat.
+    auto hitTestList = [&](float mx, float my) -> int {
+        int count = (int)saveList.size();
+        for (int row = 0; row < UI_LIST_VISIBLE; row++) {
+            int i = scrollTop + row;
+            if (i >= count) break;
+            float itemY = UI_SAVE_LIST_START_Y + row * UI_LIST_STEP;
+            if (mx > WINDOW_WIDTH / 2.f - UI_LIST_HALF_WIDTH
+                && mx < WINDOW_WIDTH / 2.f + UI_LIST_HALF_WIDTH
+                && my > itemY - UI_LIST_HALF_HEIGHT && my < itemY + UI_LIST_HALF_HEIGHT) {
+                return i;
+            }
+        }
+        return -1;
+    };
 
     // Lambda: thuc hien luu (Enter hoac click nut Save)
     auto doSave = [&]() {
@@ -1054,13 +1082,9 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
         if (saveFileExists(inputName)) {
             message = txt.msgFileExists;
         }
-        else if (saveCountFiles() >= MAX_SAVE_FILES) {
-            message = txt.msgMaxFiles;
-        }
         else if (saveGame(state, inputName)) {
-            saveAddToList(inputName);
             message = txt.msgSaveOK;
-            count = saveGetList(saveList, MAX_SAVE_FILES);
+            saveList = saveScanFiles(); // refresh list + cache
             inputName = "";
         }
         else {
@@ -1074,8 +1098,16 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
+            // V2 #30: cuon bang con lan chuot
+            if (event.type == sf::Event::MouseWheelScrolled) {
+                int count = (int)saveList.size();
+                int maxTop = count - UI_LIST_VISIBLE; if (maxTop < 0) maxTop = 0;
+                scrollTop -= (int)event.mouseWheelScroll.delta;
+                if (scrollTop < 0) scrollTop = 0;
+                if (scrollTop > maxTop) scrollTop = maxTop;
+            }
+
             // Mouse: click vao file trong list → copy ten vao input (de re-save / rename)
-            // Save list: Y = 200 + i * 35, width 500, height 30, X center WINDOW_WIDTH/2
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Left) {
                 float mx = (float)event.mouseButton.x;
@@ -1087,50 +1119,41 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
                     return SCREEN_PLAYING;
                 }
 
-                // Hit-test save list
-                for (int i = 0; i < count; i++) {
-                    float itemY = UI_SAVE_LIST_START_Y + i * UI_LIST_STEP;
-                    if (mx > WINDOW_WIDTH / 2.f - UI_LIST_HALF_WIDTH
-                        && mx < WINDOW_WIDTH / 2.f + UI_LIST_HALF_WIDTH
-                        && my > itemY - UI_LIST_HALF_HEIGHT && my < itemY + UI_LIST_HALF_HEIGHT) {
-                        selectedIndex = i;
-                        inputName = saveList[i];  // Copy ten de re-save
-                        break;
-                    }
+                int hit = hitTestList(mx, my);
+                if (hit >= 0) {
+                    selectedIndex = hit;
+                    inputName = saveList[hit];  // Copy ten de re-save
                 }
             }
 
             // Right click: xoa file dang chon
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Right) {
-                float mx = (float)event.mouseButton.x;
-                float my = (float)event.mouseButton.y;
-                for (int i = 0; i < count; i++) {
-                    float itemY = UI_SAVE_LIST_START_Y + i * UI_LIST_STEP;
-                    if (mx > WINDOW_WIDTH / 2.f - UI_LIST_HALF_WIDTH
-                        && mx < WINDOW_WIDTH / 2.f + UI_LIST_HALF_WIDTH
-                        && my > itemY - UI_LIST_HALF_HEIGHT && my < itemY + UI_LIST_HALF_HEIGHT) {
-                        saveDeleteFile(saveList[i]);
-                        count = saveGetList(saveList, MAX_SAVE_FILES);
-                        if (selectedIndex >= count && count > 0)
-                            selectedIndex = count - 1;
-                        message = langGetText(langGetCurrent()).msgFileDeleted;
-                        messageClock.restart();
-                        break;
-                    }
+                int hit = hitTestList((float)event.mouseButton.x,
+                    (float)event.mouseButton.y);
+                if (hit >= 0) {
+                    saveDeleteFile(saveList[hit]);
+                    saveList = saveScanFiles();
+                    int count = (int)saveList.size();
+                    if (selectedIndex >= count && count > 0)
+                        selectedIndex = count - 1;
+                    ensureVisible();
+                    message = langGetText(langGetCurrent()).msgFileDeleted;
+                    messageClock.restart();
                 }
             }
 
             if (event.type == sf::Event::KeyPressed) {
+                int count = (int)saveList.size();
                 switch (event.key.code) {
                 case sf::Keyboard::Escape:
                     return SCREEN_PLAYING;
 
                 case sf::Keyboard::Up:
-                    if (selectedIndex > 0) selectedIndex--;
+                    if (selectedIndex > 0) { selectedIndex--; ensureVisible(); }
                     break;
                 case sf::Keyboard::Down:
-                    if (selectedIndex < count - 1) selectedIndex++;
+                    if (selectedIndex < count - 1) { selectedIndex++; ensureVisible(); }
                     break;
 
                 case sf::Keyboard::Enter:
@@ -1140,9 +1163,11 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
                 case sf::Keyboard::Delete:
                     if (count > 0 && selectedIndex < count) {
                         saveDeleteFile(saveList[selectedIndex]);
-                        count = saveGetList(saveList, MAX_SAVE_FILES);
+                        saveList = saveScanFiles();
+                        count = (int)saveList.size();
                         if (selectedIndex >= count && count > 0)
                             selectedIndex = count - 1;
+                        ensureVisible();
                         message = langGetText(langGetCurrent()).msgFileDeleted;
                         messageClock.restart();
                     }
@@ -1170,9 +1195,7 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
             }
         }
 
-        renderSaveScreen(window, res, saveList, count, inputName, selectedIndex);
-
-        // (Hint mouse da duoc render trong renderSaveScreen)
+        renderSaveScreen(window, res, saveList, inputName, selectedIndex, scrollTop);
 
         if (!message.empty() && messageClock.getElapsedTime().asSeconds() < 2.0f) {
             renderTextCentered(window, res.mainFont, message, 18,
@@ -1190,9 +1213,10 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
 
 GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
-    std::string saveList[MAX_SAVE_FILES];
-    int count = saveGetList(saveList, MAX_SAVE_FILES);
+    // V2 #29: directory scan thay vi Gamelist.txt manifest, khong gioi han so file
+    std::vector<std::string> saveList = saveScanFiles();
     int selectedIndex = 0;
+    int scrollTop = 0; // V2 #30: index file dau tien dang hien thi
     std::string message = "";
     sf::Clock messageClock;
 
@@ -1202,6 +1226,7 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
     const float DBL_CLICK_TIME = 0.4f;
 
     auto doLoad = [&]() -> bool {
+        int count = (int)saveList.size();
         if (count > 0 && selectedIndex < count) {
             if (loadGame(state, saveList[selectedIndex])) {
                 return true;
@@ -1212,24 +1237,52 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
         return false;
     };
 
+    // V2 #30: dam bao item dang chon nam trong cua so cuon
+    auto ensureVisible = [&]() {
+        int count = (int)saveList.size();
+        int maxTop = count - UI_LIST_VISIBLE; if (maxTop < 0) maxTop = 0;
+        if (selectedIndex < scrollTop) scrollTop = selectedIndex;
+        else if (selectedIndex >= scrollTop + UI_LIST_VISIBLE)
+            scrollTop = selectedIndex - UI_LIST_VISIBLE + 1;
+        if (scrollTop > maxTop) scrollTop = maxTop;
+        if (scrollTop < 0) scrollTop = 0;
+    };
+
+    // V2 #30: map toa do chuot -> index file trong list (tinh ca scroll). -1 neu trat.
+    auto hitTestList = [&](float mx, float my) -> int {
+        int count = (int)saveList.size();
+        for (int row = 0; row < UI_LIST_VISIBLE; row++) {
+            int i = scrollTop + row;
+            if (i >= count) break;
+            float itemY = UI_LOAD_LIST_START_Y + row * UI_LIST_STEP;
+            if (mx > WINDOW_WIDTH / 2.f - UI_LIST_HALF_WIDTH
+                && mx < WINDOW_WIDTH / 2.f + UI_LIST_HALF_WIDTH
+                && my > itemY - UI_LIST_HALF_HEIGHT && my < itemY + UI_LIST_HALF_HEIGHT) {
+                return i;
+            }
+        }
+        return -1;
+    };
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
-            // Mouse hover: highlight item
+            // V2 #30: cuon bang con lan chuot
+            if (event.type == sf::Event::MouseWheelScrolled) {
+                int count = (int)saveList.size();
+                int maxTop = count - UI_LIST_VISIBLE; if (maxTop < 0) maxTop = 0;
+                scrollTop -= (int)event.mouseWheelScroll.delta;
+                if (scrollTop < 0) scrollTop = 0;
+                if (scrollTop > maxTop) scrollTop = maxTop;
+            }
+
+            // Mouse hover: highlight item (khong auto-scroll)
             if (event.type == sf::Event::MouseMoved) {
-                float mx = (float)event.mouseMove.x;
-                float my = (float)event.mouseMove.y;
-                for (int i = 0; i < count; i++) {
-                    float itemY = UI_LOAD_LIST_START_Y + i * UI_LIST_STEP;
-                    if (mx > WINDOW_WIDTH / 2.f - UI_LIST_HALF_WIDTH
-                        && mx < WINDOW_WIDTH / 2.f + UI_LIST_HALF_WIDTH
-                        && my > itemY - UI_LIST_HALF_HEIGHT && my < itemY + UI_LIST_HALF_HEIGHT) {
-                        selectedIndex = i;
-                        break;
-                    }
-                }
+                int hit = hitTestList((float)event.mouseMove.x,
+                    (float)event.mouseMove.y);
+                if (hit >= 0) selectedIndex = hit;
             }
 
             // Click trai: chon, double-click → load
@@ -1244,25 +1297,20 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
                     return SCREEN_MAIN_MENU;
                 }
 
-                for (int i = 0; i < count; i++) {
-                    float itemY = UI_LOAD_LIST_START_Y + i * UI_LIST_STEP;
-                    if (mx > WINDOW_WIDTH / 2.f - UI_LIST_HALF_WIDTH
-                        && mx < WINDOW_WIDTH / 2.f + UI_LIST_HALF_WIDTH
-                        && my > itemY - UI_LIST_HALF_HEIGHT && my < itemY + UI_LIST_HALF_HEIGHT) {
-                        if (lastClickIndex == i
-                            && dblClickClock.getElapsedTime().asSeconds() < DBL_CLICK_TIME) {
-                            // Double-click → load
-                            selectedIndex = i;
-                            if (doLoad()) return SCREEN_PLAYING;
-                            lastClickIndex = -1;
-                        }
-                        else {
-                            // Single click → select
-                            selectedIndex = i;
-                            lastClickIndex = i;
-                            dblClickClock.restart();
-                        }
-                        break;
+                int hit = hitTestList(mx, my);
+                if (hit >= 0) {
+                    if (lastClickIndex == hit
+                        && dblClickClock.getElapsedTime().asSeconds() < DBL_CLICK_TIME) {
+                        // Double-click → load
+                        selectedIndex = hit;
+                        if (doLoad()) return SCREEN_PLAYING;
+                        lastClickIndex = -1;
+                    }
+                    else {
+                        // Single click → select
+                        selectedIndex = hit;
+                        lastClickIndex = hit;
+                        dblClickClock.restart();
                     }
                 }
             }
@@ -1270,32 +1318,29 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
             // Click phai: xoa file
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Right) {
-                float mx = (float)event.mouseButton.x;
-                float my = (float)event.mouseButton.y;
-                for (int i = 0; i < count; i++) {
-                    float itemY = UI_LOAD_LIST_START_Y + i * UI_LIST_STEP;
-                    if (mx > WINDOW_WIDTH / 2.f - UI_LIST_HALF_WIDTH
-                        && mx < WINDOW_WIDTH / 2.f + UI_LIST_HALF_WIDTH
-                        && my > itemY - UI_LIST_HALF_HEIGHT && my < itemY + UI_LIST_HALF_HEIGHT) {
-                        saveDeleteFile(saveList[i]);
-                        count = saveGetList(saveList, MAX_SAVE_FILES);
-                        if (selectedIndex >= count && count > 0)
-                            selectedIndex = count - 1;
-                        break;
-                    }
+                int hit = hitTestList((float)event.mouseButton.x,
+                    (float)event.mouseButton.y);
+                if (hit >= 0) {
+                    saveDeleteFile(saveList[hit]);
+                    saveList = saveScanFiles();
+                    int count = (int)saveList.size();
+                    if (selectedIndex >= count && count > 0)
+                        selectedIndex = count - 1;
+                    ensureVisible();
                 }
             }
 
             if (event.type == sf::Event::KeyPressed) {
+                int count = (int)saveList.size();
                 switch (event.key.code) {
                 case sf::Keyboard::Escape:
                     return SCREEN_MAIN_MENU;
 
                 case sf::Keyboard::Up: case sf::Keyboard::W:
-                    if (selectedIndex > 0) selectedIndex--;
+                    if (selectedIndex > 0) { selectedIndex--; ensureVisible(); }
                     break;
                 case sf::Keyboard::Down: case sf::Keyboard::S:
-                    if (selectedIndex < count - 1) selectedIndex++;
+                    if (selectedIndex < count - 1) { selectedIndex++; ensureVisible(); }
                     break;
 
                 case sf::Keyboard::Enter:
@@ -1305,9 +1350,11 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
                 case sf::Keyboard::Delete:
                     if (count > 0 && selectedIndex < count) {
                         saveDeleteFile(saveList[selectedIndex]);
-                        count = saveGetList(saveList, MAX_SAVE_FILES);
+                        saveList = saveScanFiles();
+                        count = (int)saveList.size();
                         if (selectedIndex >= count && count > 0)
                             selectedIndex = count - 1;
+                        ensureVisible();
                     }
                     break;
 
@@ -1316,9 +1363,7 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
             }
         }
 
-        renderLoadScreen(window, res, saveList, count, selectedIndex);
-
-        // (Hint mouse da duoc render trong renderLoadScreen)
+        renderLoadScreen(window, res, saveList, selectedIndex, scrollTop);
 
         if (!message.empty() && messageClock.getElapsedTime().asSeconds() < 2.0f) {
             renderTextCentered(window, res.mainFont, message, 18,

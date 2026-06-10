@@ -37,6 +37,7 @@
     <ClInclude Include="..\include\language.h" />
     <ClInclude Include="..\include\menu.h" />
     <ClInclude Include="..\include\render.h" />
+    <ClInclude Include="..\include\rounded_rect.h" />
     <ClInclude Include="..\include\save_load.h" />
     <ClInclude Include="..\include\sound.h" />
     <ClInclude Include="..\include\timer.h" />

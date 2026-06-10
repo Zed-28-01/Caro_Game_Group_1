@@ -183,14 +183,16 @@ void renderGameOver(sf::RenderWindow& window, const GameState& state,
 // ============================================================
 
 // Ve man hinh save (danh sach file, nhap ten)
+// V2 #30: scrollTop = index file dau tien hien thi, list co the cuon
 void renderSaveScreen(sf::RenderWindow& window, const GameResources& res,
-                      const std::string saveList[], int saveCount,
-                      const std::string& inputName, int selectedIndex);
+                      const std::vector<std::string>& saveList,
+                      const std::string& inputName, int selectedIndex,
+                      int scrollTop);
 
 // Ve man hinh load (danh sach file, chon file)
 void renderLoadScreen(sf::RenderWindow& window, const GameResources& res,
-                      const std::string saveList[], int saveCount,
-                      int selectedIndex);
+                      const std::vector<std::string>& saveList,
+                      int selectedIndex, int scrollTop);
 
 // ============================================================
 // VE SETTINGS / HELP / ABOUT

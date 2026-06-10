@@ -1,6 +1,7 @@
 ﻿#include "render.h"
 #include "timer.h"
 #include "language.h"
+#include "rounded_rect.h"
 
 // Su dung hang so chia se tu game_types.h cho de chinh sua sau nay
 // (UI_BOARD_OFFSET_X, UI_BOARD_OFFSET_Y)
@@ -1062,9 +1063,97 @@ void renderGameOver(sf::RenderWindow& window, const GameState& state,
 
 // VE SAVE / LOAD
 
+// V2 #30: helper ve 1 rounded rect can giua tai (cx, cy)
+static void drawRoundedCentered(sf::RenderWindow& window, float cx, float cy,
+    float w, float h, float radius, sf::Color fill,
+    sf::Color outline = sf::Color::Transparent, float outlineThick = 0.f) {
+    RoundedRectangleShape r(sf::Vector2f(w, h), radius, 8);
+    r.setOrigin(w / 2.f, h / 2.f);
+    r.setPosition(cx, cy);
+    r.setFillColor(fill);
+    if (outlineThick > 0.f) {
+        r.setOutlineThickness(outlineThick);
+        r.setOutlineColor(outline);
+    }
+    window.draw(r);
+}
+
+// V2 #30: Ve phan list co the cuon (dung chung cho Save + Load screen).
+// Panel bo goc + hang hover/selected co glow + thanh scrollbar bo goc.
+// Chi ve cac item trong cua so [scrollTop, scrollTop + UI_LIST_VISIBLE).
+static void renderScrollableList(sf::RenderWindow& window, const GameResources& res,
+    const std::vector<std::string>& list, int selectedIndex,
+    int scrollTop, float startY) {
+    int count = (int)list.size();
+    int visible = UI_LIST_VISIBLE;
+    int last = scrollTop + visible; if (last > count) last = count;
+
+    const float cx = WINDOW_WIDTH / 2.f;
+    const float ROW_W = 500.f;   // be rong vung highlight 1 hang
+    const float ROW_H = 30.f;
+    const float PANEL_W = 548.f; // panel bao quanh list (rong hon de chua scrollbar)
+    const float panelTop = startY - UI_LIST_STEP / 2.f - 6.f;
+    const float panelH = visible * UI_LIST_STEP + 12.f;
+
+    // Mouse hover -> highlight hang dang ro chuot (doc lap voi selection)
+    sf::Vector2f mp = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    int hoveredRow = -1;
+    for (int row = 0; row < visible && scrollTop + row < count; row++) {
+        float y = startY + row * UI_LIST_STEP;
+        if (mp.x > cx - ROW_W / 2.f && mp.x < cx + ROW_W / 2.f
+            && mp.y > y - UI_LIST_HALF_HEIGHT && mp.y < y + UI_LIST_HALF_HEIGHT) {
+            hoveredRow = row;
+        }
+    }
+
+    // Panel nen bo goc (mo, vien nhe)
+    drawRoundedCentered(window, cx, panelTop + panelH / 2.f, PANEL_W, panelH, 14.f,
+        sf::Color(18, 26, 40, 170), sf::Color(120, 150, 190, 90), 1.5f);
+
+    // Cac hang
+    for (int i = scrollTop; i < last; i++) {
+        int row = i - scrollTop;
+        bool selected = (i == selectedIndex);
+        bool hovered = (row == hoveredRow);
+        float y = startY + row * UI_LIST_STEP;
+
+        if (selected) {
+            // glow mo phia sau + hang chinh
+            drawRoundedCentered(window, cx, y, ROW_W + 12.f, ROW_H + 8.f, 12.f,
+                sf::Color(52, 152, 219, 60));
+            drawRoundedCentered(window, cx, y, ROW_W, ROW_H, 9.f,
+                sf::Color(52, 152, 219, 130), sf::Color(120, 190, 240, 200), 1.5f);
+        }
+        else if (hovered) {
+            drawRoundedCentered(window, cx, y, ROW_W, ROW_H, 9.f,
+                sf::Color(255, 255, 255, 28));
+        }
+
+        renderTextCentered(window, res.mainFont, list[i], 16, cx, y,
+            selected ? sf::Color::White : COLOR_MENU_TEXT);
+    }
+
+    // Khong co gi de cuon -> bo qua scrollbar/arrow
+    if (count <= visible) return;
+
+    // Thanh scrollbar bo goc ben phai panel
+    float barX = cx + PANEL_W / 2.f - 12.f;
+    float trackTop = panelTop + 6.f;
+    float trackH = panelH - 12.f;
+    drawRoundedCentered(window, barX, trackTop + trackH / 2.f, 6.f, trackH, 3.f,
+        sf::Color(255, 255, 255, 35));
+
+    float thumbH = trackH * (float)visible / (float)count;
+    if (thumbH < 24.f) thumbH = 24.f;
+    float maxScroll = (float)(count - visible);
+    float thumbY = trackTop + (trackH - thumbH) * (scrollTop / maxScroll);
+    drawRoundedCentered(window, barX, thumbY + thumbH / 2.f, 6.f, thumbH, 3.f,
+        COLOR_MENU_HOVER);
+}
+
 void renderSaveScreen(sf::RenderWindow& window, const GameResources& res,
-    const std::string saveList[], int saveCount,
-    const std::string& inputName, int selectedIndex) {
+    const std::vector<std::string>& saveList,
+    const std::string& inputName, int selectedIndex, int scrollTop) {
     renderBackdrop(window, res, true);
     TextStrings txt = langGetText(langGetCurrent());
 
@@ -1085,23 +1174,9 @@ void renderSaveScreen(sf::RenderWindow& window, const GameResources& res,
         WINDOW_WIDTH / 2.f, UI_SAVE_INPUT_Y,
         inputName.empty() ? sf::Color(120, 120, 120) : sf::Color::White);
 
-    // Danh sach file save
-    for (int i = 0; i < saveCount; i++) {
-        bool selected = (i == selectedIndex);
-        float y = UI_SAVE_LIST_START_Y + i * UI_LIST_STEP;
-
-        if (selected) {
-            sf::RectangleShape highlight(sf::Vector2f(500.f, 30.f));
-            highlight.setOrigin(250.f, 15.f);
-            highlight.setPosition(WINDOW_WIDTH / 2.f, y);
-            highlight.setFillColor(sf::Color(50, 70, 90));
-            window.draw(highlight);
-        }
-
-        renderTextCentered(window, res.mainFont, saveList[i], 16,
-            WINDOW_WIDTH / 2.f, y,
-            selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT);
-    }
+    // Danh sach file save (scrollable - V2 #30)
+    renderScrollableList(window, res, saveList, selectedIndex, scrollTop,
+        UI_SAVE_LIST_START_Y);
 
     // Huong dan (2 dong: keyboard + mouse, sang hon)
     renderTextCentered(window, res.mainFont, txt.saveHintBottom, 15,
@@ -1117,35 +1192,22 @@ void renderSaveScreen(sf::RenderWindow& window, const GameResources& res,
 }
 
 void renderLoadScreen(sf::RenderWindow& window, const GameResources& res,
-    const std::string saveList[], int saveCount,
-    int selectedIndex) {
+    const std::vector<std::string>& saveList,
+    int selectedIndex, int scrollTop) {
     renderBackdrop(window, res, true);
     TextStrings txt = langGetText(langGetCurrent());
 
     renderTextCentered(window, res.titleFont, txt.loadGame, 38,
         WINDOW_WIDTH / 2.f, UI_LOAD_TITLE_Y, sf::Color::White);
 
-    if (saveCount == 0) {
+    if (saveList.empty()) {
         renderTextCentered(window, res.mainFont, txt.fileNotFound, 20,
             WINDOW_WIDTH / 2.f, 300.f, sf::Color(180, 180, 180));
     }
     else {
-        for (int i = 0; i < saveCount; i++) {
-            bool selected = (i == selectedIndex);
-            float y = UI_LOAD_LIST_START_Y + i * UI_LIST_STEP;
-
-            if (selected) {
-                sf::RectangleShape highlight(sf::Vector2f(500.f, 30.f));
-                highlight.setOrigin(250.f, 15.f);
-                highlight.setPosition(WINDOW_WIDTH / 2.f, y);
-                highlight.setFillColor(sf::Color(50, 70, 90));
-                window.draw(highlight);
-            }
-
-            renderTextCentered(window, res.mainFont, saveList[i], 16,
-                WINDOW_WIDTH / 2.f, y,
-                selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT);
-        }
+        // Danh sach file (scrollable - V2 #30)
+        renderScrollableList(window, res, saveList, selectedIndex, scrollTop,
+            UI_LOAD_LIST_START_Y);
     }
 
     // Huong dan (keyboard + mouse, sang hon)

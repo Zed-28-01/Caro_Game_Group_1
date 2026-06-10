@@ -31,7 +31,8 @@
 // rất dày đặc).
 #define WINDOW_WIDTH 1280 // Chieu rong cua so
 #define WINDOW_HEIGHT 720 // Chieu cao cua so
-#define MAX_SAVE_FILES 12 // So file save toi da
+// V2 #29: bo gioi han so file save - dung directory_iterator scan thay vi
+// Gamelist.txt manifest. So file gio chi gioi han boi o dia.
 #define WIN_COUNT 5       // So quan lien tiep de thang
 
 // Thoi gian (giay)
@@ -90,6 +91,8 @@
 #define UI_LIST_STEP 35.f // Khoang cach giua cac file
 #define UI_LIST_HALF_WIDTH 250.f
 #define UI_LIST_HALF_HEIGHT 15.f
+// V2 #30: so file hien thi cung luc (scrollable list). Neu nhieu hon thi cuon.
+#define UI_LIST_VISIBLE 10
 
 // ============================================================
 // GAMEPLAY LAYOUT - VI TRI BAN CO + PANEL + TIMER

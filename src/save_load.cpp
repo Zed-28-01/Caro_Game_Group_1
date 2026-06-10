@@ -1,13 +1,24 @@
 #include "save_load.h"
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 #include <filesystem>
 
 namespace fs = std::filesystem;
 
 static const std::string SAVE_DIR = "../saves/";
-static const std::string LIST_FILE = "../saves/Gamelist.txt";
 static const std::string SAVE_EXT = ".txt";
+
+// V2 #28: Cache metadata trong RAM. Key = ten file (khong .txt).
+// Build lai moi khi saveScanFiles() chay (vao man hinh Save/Load),
+// hoac sau khi saveGame/saveDeleteFile/saveRenameFile thay doi disk.
+static std::unordered_map<std::string, SaveMetadata> g_metaCache;
+static bool g_scanned = false;
+
+// Cac file KHONG phai save game (bo qua khi scan)
+static bool isReservedFile(const std::string& stem) {
+    return stem == "settings" || stem == "Gamelist";
+}
 
 // Tao thu muc saves/ neu chua co
 static void ensureSaveDir() {
@@ -57,6 +68,14 @@ bool saveGame(const GameState& state, const std::string& filename) {
     }
 
     f.close();
+
+    // V2 #28: cap nhat cache ngay (khong can scan lai toan bo)
+    SaveMetadata meta;
+    meta.name = filename;
+    meta.moveCount = state.moveCount;
+    meta.mode = (int)state.mode;
+    meta.style = (int)state.style;
+    g_metaCache[filename] = meta;
     return true;
 }
 
@@ -114,52 +133,93 @@ bool loadGame(GameState& state, const std::string& filename) {
 }
 
 // ============================================================
-// QUAN LY DANH SACH SAVE
+// PARSE METADATA (V2 #28) - doc nhanh phan header de lay tom tat
 // ============================================================
-int saveGetList(std::string saveList[], int maxCount) {
-    ensureSaveDir();
-    std::ifstream f(LIST_FILE);
-    if (!f.is_open()) return 0;
-
-    int count = 0;
-    std::string line;
-    while (count < maxCount && std::getline(f, line)) {
-        if (!line.empty()) saveList[count++] = line;
-    }
-    return count;
-}
-
-bool saveAddToList(const std::string& filename) {
-    if (saveFileExists(filename)) return true; // Da co roi
-    if (saveCountFiles() >= MAX_SAVE_FILES) return false;
-
-    ensureSaveDir();
-    std::ofstream f(LIST_FILE, std::ios::app);
+// Khop dung thu tu ghi trong saveGame():
+//   line 1: ten P1            | line 6: firstPlayerOfRound
+//   line 2: moves wins P1     | line 7: cursorRow cursorCol
+//   line 3: ten P2            | line 8: mode style difficulty
+//   line 4: moves wins P2     | line 9: timer (4 so)
+//   line 5: isPlayer1Turn     | line 10: moveCount
+static bool parseMetadata(const std::string& path, SaveMetadata& meta) {
+    std::ifstream f(path);
     if (!f.is_open()) return false;
-    f << filename << "\n";
+
+    std::string skip;
+    for (int i = 0; i < 7; i++) std::getline(f, skip); // bo qua line 1..7
+
+    int diff = 0;
+    if (!(f >> meta.mode >> meta.style >> diff)) return false; // line 8
+    std::getline(f, skip); // an phan con lai cua line 8
+    std::getline(f, skip); // line 9 (timer)
+    if (!(f >> meta.moveCount)) return false; // line 10
     return true;
 }
 
-bool saveDeleteFile(const std::string& filename) {
-    // Doc danh sach hien tai
-    std::string list[MAX_SAVE_FILES];
-    int count = saveGetList(list, MAX_SAVE_FILES);
+// ============================================================
+// SCAN THU MUC SAVE (V2 #29) - thay the Gamelist.txt manifest
+// ============================================================
+std::vector<std::string> saveScanFiles() {
+    ensureSaveDir();
+    g_metaCache.clear();
 
-    // Viet lai danh sach, bo qua file can xoa
-    std::ofstream f(LIST_FILE);
-    if (!f.is_open()) return false;
-    bool found = false;
-    for (int i = 0; i < count; i++) {
-        if (list[i] != filename) f << list[i] << "\n";
-        else found = true;
+    // Thu thap (thoi gian sua, ten) de sort theo thoi gian
+    std::vector<std::pair<fs::file_time_type, std::string>> items;
+
+    try {
+        for (const auto& entry : fs::directory_iterator(SAVE_DIR)) {
+            if (!entry.is_regular_file()) continue;
+            if (entry.path().extension() != SAVE_EXT) continue;
+
+            std::string stem = entry.path().stem().string();
+            if (isReservedFile(stem)) continue;
+
+            SaveMetadata meta;
+            meta.name = stem;
+            // Best-effort: neu parse loi (file rac) van giu ten, metadata = 0
+            parseMetadata(entry.path().string(), meta);
+            g_metaCache[stem] = meta;
+
+            fs::file_time_type wt{};
+            try { wt = entry.last_write_time(); } catch (...) {}
+            items.push_back({ wt, stem });
+        }
     }
-    f.close();
+    catch (...) {
+        // Thu muc loi - tra ve nhung gi da scan duoc
+    }
 
-    // Xoa file thuc te
+    // Sort theo thoi gian sua file: moi nhat len dau (giam dan)
+    std::sort(items.begin(), items.end(),
+        [](const auto& a, const auto& b) { return a.first > b.first; });
+
+    std::vector<std::string> names;
+    names.reserve(items.size());
+    for (const auto& it : items) names.push_back(it.second);
+
+    g_scanned = true;
+    return names;
+}
+
+// ============================================================
+// QUERY METADATA O(1) (V2 #28)
+// ============================================================
+const SaveMetadata* saveGetMetadata(const std::string& filename) {
+    auto it = g_metaCache.find(filename);
+    if (it == g_metaCache.end()) return nullptr;
+    return &it->second;
+}
+
+// ============================================================
+// QUAN LY FILE
+// ============================================================
+bool saveDeleteFile(const std::string& filename) {
+    bool found = (g_metaCache.find(filename) != g_metaCache.end());
     try {
         fs::remove(SAVE_DIR + filename + SAVE_EXT);
     }
-    catch (...) {}
+    catch (...) { return false; }
+    g_metaCache.erase(filename); // cap nhat cache
     return found;
 }
 
@@ -173,26 +233,23 @@ bool saveRenameFile(const std::string& oldName, const std::string& newName) {
     }
     catch (...) { return false; }
 
-    // Update danh sach
-    std::string list[MAX_SAVE_FILES];
-    int count = saveGetList(list, MAX_SAVE_FILES);
-    std::ofstream f(LIST_FILE);
-    for (int i = 0; i < count; i++) {
-        f << (list[i] == oldName ? newName : list[i]) << "\n";
+    // Cap nhat cache: doi key, giu metadata
+    auto it = g_metaCache.find(oldName);
+    if (it != g_metaCache.end()) {
+        SaveMetadata meta = it->second;
+        meta.name = newName;
+        g_metaCache.erase(it);
+        g_metaCache[newName] = meta;
     }
     return true;
 }
 
 bool saveFileExists(const std::string& filename) {
-    std::string list[MAX_SAVE_FILES];
-    int count = saveGetList(list, MAX_SAVE_FILES);
-    for (int i = 0; i < count; i++) {
-        if (list[i] == filename) return true;
-    }
-    return false;
+    if (!g_scanned) saveScanFiles(); // lazy build neu chua scan lan nao
+    return g_metaCache.find(filename) != g_metaCache.end();
 }
 
 int saveCountFiles() {
-    std::string list[MAX_SAVE_FILES];
-    return saveGetList(list, MAX_SAVE_FILES);
+    if (!g_scanned) saveScanFiles();
+    return (int)g_metaCache.size();
 }

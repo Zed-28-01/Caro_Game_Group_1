@@ -67,13 +67,13 @@ Sprint 4 (Visual AAA):   #31, #32, #33, #36, #37, #34, #35        → ~14 giờ
 | 25 | Exit/Save buttons góc phải dưới gameplay | 1 giờ | 🤖 + 👤🧪 | Low | ✅ **DONE 10/06** |
 | 26 | ESC pause menu expand (Language + Volume + SFX inline) | 1.5 giờ | 🤖 + 👤🧪 | Low | ✅ **DONE 10/06** |
 
-### Sprint 3 — Save/Load Modernize (SKIP binary)
+### Sprint 3 — Save/Load Modernize (SKIP binary) ✅ COMPLETE 10/06/2026
 
 | # | Task | Effort | Owner | Risk | Status |
 |---|------|--------|-------|------|--------|
-| 29 | Bỏ MAX_SAVE_FILES + `filesystem::directory_iterator` | 1 giờ | 🤖 + 👤🧪 | Low | ⏳ Pending |
-| 28 | `unordered_map<string, SaveMetadata>` cho query O(1) | 1 giờ | 🤖 | Low | ⏳ Pending |
-| 30 | Scrollable list (mouse wheel + W/S key) | 1.5 giờ | 🤖 + 👤🧪 | Medium | ⏳ Pending |
+| 29 | Bỏ MAX_SAVE_FILES + `filesystem::directory_iterator` | 1 giờ | 🤖 + 👤🧪 | Low | ✅ **DONE 10/06** |
+| 28 | `unordered_map<string, SaveMetadata>` cho query O(1) | 1 giờ | 🤖 | Low | ✅ **DONE 10/06** |
+| 30 | Scrollable list (mouse wheel + W/S key) | 1.5 giờ | 🤖 + 👤🧪 | Medium | ✅ **DONE 10/06** |
 
 ### Sprint 4 — Visual AAA Upgrade
 
@@ -294,10 +294,10 @@ A: Group A-C là "fix + cleanup" — foundation. Group D là "visual upgrade" �
 - [x] #25 — Exit/Save buttons gameplay
 - [x] #26 — ESC menu expand (6 items inline)
 
-### Sprint 3 [0/3]
-- [ ] #29 — Bỏ MAX_SAVE_FILES + auto-scan
-- [ ] #28 — unordered_map metadata
-- [ ] #30 — Scrollable list
+### Sprint 3 [3/3] ✅
+- [x] #29 — Bỏ MAX_SAVE_FILES + directory_iterator auto-scan ✅ 10/06/2026
+- [x] #28 — unordered_map<string, SaveMetadata> query O(1) ✅ 10/06/2026
+- [x] #30 — Scrollable list (mouse wheel + W/S + arrows + scrollbar) ✅ 10/06/2026
 
 ### Sprint 4 [0/7]
 - [ ] #31 — RoundedRectangleShape + hover glow
@@ -339,9 +339,9 @@ Nếu Claude session mới hoặc User mất context:
 
 ---
 
-**Last updated:** 10/06/2026 — Sprint 2 COMPLETE (+ follow-up polish: Back buttons Load/Help/About, widen Save btn, save-screen Back/ESC context, Exit→Pause)
+**Last updated:** 10/06/2026 — Sprint 3 COMPLETE (+ follow-up: bỏ metadata display line, sort save theo thời gian mới nhất, polish list/scrollbar bằng RoundedRectangleShape — foundation cho #31)
 **Created by:** Claude (Anthropic) — session với @vanhoangnhatbp1
-**Status:** 🚧 V2 IN PROGRESS — Sprint 1 ✅ + Sprint 2 ✅ (#24, #25, #26 done; #27 still defer). Next: Sprint 3 (#28-#30 save/load polish).
+**Status:** 🚧 V2 IN PROGRESS — Sprint 1 ✅ + Sprint 2 ✅ + Sprint 3 ✅ (#28, #29, #30 done; #27 still defer). Next: Sprint 4 (#31-#37 Visual AAA upgrade) — `include/rounded_rect.h` đã sẵn cho #31.
 
 > 🔴 **STANDING RULE active:** Claude tự động update files .md khi hoàn thành mỗi Sprint. Xem Section 7.2.
 
