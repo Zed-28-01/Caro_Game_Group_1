@@ -193,21 +193,21 @@ Research session 01/06/2026 — agent scout 6 topic.
 - Sprint 3 = #28 ✅ + #29 ✅ + #30 ✅
 - Sprint 4 = #31 → #37 all ✅
 
-**Auto-update sequence:**
+**Auto-update CHỈ 3 file (rule chốt từ 09/06/2026):**
 
 | Order | File | Update content |
 |-------|------|---------------|
 | 1 | `CLAUDE.md` | Tạo Section 8d/8e/... — sprint summary, files changed, decisions mới |
 | 2 | `docs/HANDOVER.md` | Thêm subsection trong Section M — chi tiết session log |
 | 3 | `docs/V2_PLAN.md` | Section 11 (check ✅) + Section 4 status + footer last-updated |
-| 4 | `docs/V2_ASSETS_PROMPTS.md` | Nếu sprint affect asset planning |
-| 5 | Other md affected | Update khi cần |
+
+> ⛔ **KHÔNG check / KHÔNG update các file md khác** (build_guide.md, ASSETS_PLAN.md, ARCHITECTURE.md, SETUP.md, PRESENTATION_*.md, README.md, GitCommand.md, v.v.) **trừ khi User explicit yêu cầu.**
 
 **Sau update, REPORT cho User:**
 - Sprint X complete (task list)
 - File code thay đổi
 - Build status (pass/fail)
-- File .md đã update
+- File .md đã update (CHỈ 3 file trên)
 - Next sprint preview
 
 **Quan trọng:** KHÔNG commit tự động — chỉ update md. Commit chỉ khi User explicit yêu cầu "commit" hay "push".
@@ -282,10 +282,11 @@ A: Group A-C là "fix + cleanup" — foundation. Group D là "visual upgrade" �
 
 ## 11. Progress Tracker
 
-### Sprint 1 ✅ COMPLETE [3/3 tasks, 75 phút thực — defer #27]
+### Sprint 1 ✅ COMPLETE [3/3 tasks, 80 phút thực — defer #27]
 - [x] #21 — Xóa board.png unused ✅ 09/06/2026
 - [x] #22 — Tạo utils.h DRY ✅ 09/06/2026
 - [x] #23 — Logic loser→X (hướng A swap UI) ✅ 09/06/2026
+- [x] **BONUS** — Default initializers cho POD struct (silence 13 C26495 warnings) ✅ 09/06/2026
 - [ ] #27 — Sounds ⏸️ DEFER (chờ User cung cấp .wav)
 
 ### Sprint 2 [0/3]

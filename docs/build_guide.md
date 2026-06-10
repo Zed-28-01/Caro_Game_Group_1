@@ -133,7 +133,7 @@ Caro_Game_Group_1/
 - [ ] `boardResetAll()`: xoa ca thong ke
 - [ ] `boardMoveCursor()`: di chuyen cursor, kiem tra khong vuot bien
 - [ ] `boardPlacePiece()`: dat quan, push vao moveHistory, doi luot
-- [ ] `boardIsEmpty()`, `boardIsValid()`, `boardCountEmpty()`
+- [ ] `boardIsEmpty()`, `boardCountEmpty()` (boardIsValid đã chuyển sang `inBounds` trong utils.h - V2 Sprint 1 DRY refactor)
 
 **Tham khao tu CSLT---N---CARO:**
 - `ResetGame()` (Game.cpp dong 139-151) → `boardInit()`
@@ -247,7 +247,7 @@ Caro_Game_Group_1/
       Neu co: them vao candidates[]
   Tra ve so luong candidates
   ```
-- [ ] `botCountConsecutive()`: dem quan lien tiep theo 1 huong
+- [ ] `countConsecutive()` (trong utils.h - V2 Sprint 1 đã extract khỏi bot.cpp): dem quan lien tiep theo 1 huong
 - [ ] `botCheckImmediateWin()`: duyet candidates, thu dat quan, check thang
 - [ ] `botCheckImmediateBlock()`: tuong tu nhung cho doi thu
 
@@ -550,7 +550,7 @@ Vai tro: Toan bo logic ban co, khong lien quan den SFML
 - boardCheckDraw (dem o trong)
 - boardEvaluateResult
 - boardUndo (PvP: 1 nuoc, PvC: 2 nuoc)
-- boardIsEmpty, boardIsValid, boardCountEmpty
+- boardIsEmpty, boardCountEmpty (boardIsValid → inBounds trong utils.h từ V2 Sprint 1)
 ```
 
 ### `src/bot.cpp` (~400-500 dong) *** TRONG TAM ***
