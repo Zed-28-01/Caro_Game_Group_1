@@ -45,13 +45,30 @@ void renderScreen(sf::RenderWindow& window, const GameState& state,
 void renderMainMenu(sf::RenderWindow& window, const GameResources& res,
                     int menuIndex);
 
-// Ve menu chon che do (PvP / PvC)
+// Ve menu chon che do - V2 (11/06): 2 TILE vuong bo goc (PvP | PvC)
+// voi anh + hover glow + nut Back goc trai duoi
 void renderModeSelect(sf::RenderWindow& window, const GameResources& res,
                       int menuIndex);
 
-// Ve menu chon do kho AI
+// Hit-test 2 tile man chon che do. Tra ve 0=PvP, 1=PvC, -1=khong trung.
+int modeSelectHitTest(float mx, float my);
+
+// Ve menu chon do kho AI - V2 (11/06): 4 TILE ngang, moi tile 1 villain
+// dai dien (Frieza/Cell/Buu/Broly) + hover glow + Back + hint ESC
 void renderDifficultySelect(sf::RenderWindow& window, const GameResources& res,
                             int menuIndex);
+
+// Hit-test 4 tile do kho. Tra ve 0..3, -1 = khong trung.
+int diffSelectHitTest(float mx, float my);
+
+// V2 #34: man chon nhan vat - luoi 6 hero (3 tren, 3 duoi).
+// pickingPlayer: 1|2 (PvP chon lan luot; PvC chi P1).
+// takenIndex: hero da bi P1 lay (phase P2 - dim + cam chon), -1 = khong co.
+void renderCharSelect(sf::RenderWindow& window, const GameResources& res,
+                      int menuIndex, int pickingPlayer, int takenIndex);
+
+// Hit-test luoi 6 hero. Tra ve 0..5, -1 = khong trung.
+int charSelectHitTest(float mx, float my);
 
 // Ve menu chon kieu choi (Basic / Speed)
 void renderStyleSelect(sf::RenderWindow& window, const GameResources& res,
@@ -168,6 +185,51 @@ void renderWinEffect(sf::RenderWindow& window, const WinLine& winLine,
 // Hieu ung khi hoa
 void renderDrawEffect(sf::RenderWindow& window, const GameResources& res,
                       float progress);
+
+// ============================================================
+// V2 #32 - CONFETTI (particle system, batched VertexArray)
+// ============================================================
+
+// 1 manh confetti: hinh chu nhat nho, xoay + lat mat + roi theo gravity.
+struct ConfettiPiece {
+  sf::Vector2f pos;        // vi tri hien tai (px)
+  sf::Vector2f vel;        // van toc (px/s)
+  sf::Color color;         // mau (palette le hoi)
+  float angle = 0.f;       // goc xoay hien tai (deg)
+  float angVel = 0.f;      // toc do xoay (deg/s)
+  float spin = 0.f;        // pha tumbling (lat mat 3D gia lap)
+  float spinVel = 0.f;     // toc do lat
+  float size = 8.f;        // canh dai (px)
+  float life = 0.f;        // thoi gian song con lai (s)
+  float maxLife = 1.f;     // tong thoi gian song (de tinh fade)
+};
+
+// He thong confetti - caller so huu (local trong handleGameOver).
+struct ConfettiSystem {
+  std::vector<ConfettiPiece> pieces;
+};
+
+// Phun 1 burst tu (cx, cy): toa ra moi huong + boost len, gravity keo xuong.
+void confettiSpawnBurst(ConfettiSystem& sys, float cx, float cy, int count);
+
+// Cap nhat vat ly (gravity, xoay, fade) theo dt giay. Tu xoa hat het song/roi khoi man.
+void confettiUpdate(ConfettiSystem& sys, float dt);
+
+// Ve toan bo confetti bang 1 sf::VertexArray (Quads) -> 1 draw call.
+void confettiDraw(sf::RenderWindow& window, const ConfettiSystem& sys);
+
+// Con hat dang song khong (de biet con can ve nua khong).
+bool confettiActive(const ConfettiSystem& sys);
+
+// ============================================================
+// V2 #33 - VICTORY SHOCKWAVE (fragment shader, isAvailable-guarded)
+// ============================================================
+
+// Ve vong song radial lan ra tu (cx, cy). elapsed = giay tu luc thang.
+// Tu tat sau ~0.8s. No-op an toan neu res.shockwaveOk = false (GPU khong ho tro).
+// res khong const vi sf::Shader::setUniform can mutate shader.
+void renderShockwave(sf::RenderWindow& window, GameResources& res,
+                     float cx, float cy, float elapsed);
 
 // ============================================================
 // VE MAN HINH KET THUC

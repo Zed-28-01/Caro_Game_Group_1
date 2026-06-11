@@ -86,11 +86,11 @@ Sprint 4 (Visual AAA):   #31, #32, #33, #36, #37, #34, #35        → ~14 giờ
 | # | Task | Effort | Owner | Risk | Status |
 |---|------|--------|-------|------|--------|
 | 31 | RoundedRectangleShape + hover glow | 2 giờ | 🤖 | Low | ✅ **DONE 11/06** (glow toàn UI) |
-| 32 | Particle confetti on win (DIY VertexArray) | 3 giờ | 🤖 | Low | ⏳ Pending |
-| 33 | Fragment shader menu glow + victory shockwave | 4 giờ | 🤖 | Medium | ⏳ Pending |
-| 36 | 4 mascot riêng cho 4 difficulty + PvP/PvC icon | 45 phút | 🤖 + 👤🎨 | None | ⏳ Pending |
-| 37 | Modern input field (cursor blink + glow border) | 1 giờ | 🤖 | None | ⏳ Pending |
-| 34 | Character select screen 4-5 model | 3 giờ | 🤖 + 👤🎨 | Low | ⏳ Pending |
+| 32 | Particle confetti on win (DIY VertexArray) | 3 giờ | 🤖 | Low | ✅ **DONE** (gỡ 11/06 rồi **KHÔI PHỤC 12/06** — chạy cùng shockwave) |
+| 33 | Fragment shader victory shockwave | 4 giờ | 🤖 | Medium | ✅ **DONE 11/06** (shockwave.frag, guard isAvailable; bỏ menu-glow trùng #31) |
+| 36 | Villain theo độ khó + Mode tiles | 45 phút | 🤖 + 👤🎨 | None | ✅ **DONE 11/06** (Frieza/Cell/Buu/Broly + 2 mode tile, bỏ icon khung vàng) |
+| 37 | Modern input field (caret + glow border) | 1 giờ | 🤖 | None | ✅ **DONE 11/06** (caret thở + pop gõ + glow focus) |
+| 34 | Character select screen 6 hero | 3 giờ | 🤖 + 👤🎨 | Low | ✅ **DONE 11/06** (lưới 3×2, PvP 2 phase, save/load hero) |
 | 35 | Animated background (chốt PA-2 video, bỏ PA-1 parallax) | 4 giờ | 🤖 + 👤🎨 | **Medium-high** | ✅ **DONE 11/06** (106f JPG 1280×720, ping-pong 18fps, F2 toggle) |
 
 **Owner legend:**
@@ -305,16 +305,17 @@ A: Group A-C là "fix + cleanup" — foundation. Group D là "visual upgrade" �
 - [x] #28 — unordered_map<string, SaveMetadata> query O(1) ✅ 10/06/2026
 - [x] #30 — Scrollable list (mouse wheel + W/S + arrows + scrollbar) ✅ 10/06/2026
 
-### Sprint 4 [2/7] 🚧 đang làm
-- [x] **#31 — RoundedRectangleShape + hover glow** ✅ 11/06 (glow toàn UI: menu/pause/gameover/back/save-exit; helpers drawGlowPill/drawGlowHalo/drawContentPanel)
-- [x] **#35 — Animated background** ✅ 11/06 — **chốt PA-2 (video)**, bỏ PA-1 parallax. 106 frame JPG 1280×720, ping-pong 18fps, F2 toggle. Frame đã commit (`3d1f27d`).
-- [ ] #32 — Particle confetti on win
-- [ ] #33 — Fragment shader glow + shockwave
-- [ ] #36 — 4 mascot difficulty (Frieza/Cell/Buu/Broly) + PvP/PvC icon — chờ asset user gen
-- [ ] #37 — Modern input field — không cần asset, làm ngay được
-- [ ] #34 — Character select (anh hùng) — chờ asset user gen
+### Sprint 4 [7/7] ✅ COMPLETE — 11/06
+- [x] **#31 — RoundedRectangleShape + hover glow** ✅ (glow toàn UI; helpers drawGlowPill/drawGlowHalo/drawContentPanel)
+- [x] **#35 — Animated background** ✅ — chốt PA-2 (video), bỏ PA-1. 106 frame JPG 1280×720, ping-pong 18fps, F2 toggle. Frame commit `3d1f27d`.
+- [x] **#37 — Modern input field** ✅ — caret thở + pop khi gõ (UTF-8 safe) + hộp bo góc glow focus (drawInputField).
+- [x] **#33 — Shockwave shader** ✅ — `shockwave.frag` 2 vòng sóng vàng, tự tắt 0.8s, BlendAdd; guard isAvailable+exists. Bỏ nửa menu-glow-shader (trùng #31).
+- [x] **#32 — Confetti** ✅ — gỡ 11/06 rồi **KHÔI PHỤC 12/06** (user đổi ý) — chạy CÙNG shockwave khi thắng.
+- [x] **#36 — Villain theo độ khó + Mode tiles** ✅ — Easy=Frieza/Med=Cell/Hard=Buu/Expert=Broly; Mode Select 2 tile + Difficulty 4 tile (ảnh villain) hover glow. Icon khung vàng + aura ĐÃ BỎ.
+- [x] **#34 — Character Select** ✅ — màn mới lưới 6 hero 3×2; PvP 2 phase (cấm trùng, badge P1); PvC chỉ P1; flow Style→CharSelect→Names; heroP1/P2 + save/load backward-compat.
 
-> 📌 Bonus 11/06: đảo nền sang SÁNG mọi màn + readability fix (content panel + viền đen); bỏ mascot 3-state (1 ảnh/nhân vật, xóa _Win/_Over); giữ quân X/O cũ. Chi tiết: CLAUDE.md §8f.
+> 📌 11/06: **Mascot 3-state TRỞ LẠI** (đảo 8f) — MascotSet{idle,win,lose} ×10 nhân vật, 30 ảnh + 2 mode tile wired đủ (Anh_Ver2). Game Over SÁNG RÕ (bỏ overlay dim). Chi tiết: CLAUDE.md §8g.
+> 📌 12/06: **Confetti KHÔI PHỤC** (chạy cùng shockwave). **Avatar màn chọn** — 10 ảnh chân dung riêng cho Character/Difficulty Select (`heroAvatar[6]`/`villainAvatar[4]`, fallback mascot idle), tách khỏi mascot full-body gameplay. Chi tiết: CLAUDE.md §8h.
 
 ---
 
@@ -347,9 +348,9 @@ Nếu Claude session mới hoặc User mất context:
 
 ---
 
-**Last updated:** 11/06/2026 — Sprint 4 [2/7]: **#31 ✅** (glow toàn UI), **#35 ✅ chốt PA-2** (video bg, F2 toggle, frame đã commit `3d1f27d`; bỏ PA-1 parallax). Nền sáng mọi màn + readability fix. Tạo `V2_ASSETS_PROMPTS.md` (Gemini/Veo). Decisions: giữ Dragon Ball, roster hero/villain (Frieza/Cell/Buu/Broly), 1 ảnh/nhân vật, giữ X/O cũ. Còn: #32/#33/#34/#36/#37. Chi tiết: CLAUDE.md §8f.
+**Last updated:** 12/06/2026 — **Sprint 4 [7/7] ✅ COMPLETE** + follow-up. #31-#37 done; **#32 confetti khôi phục 12/06** (chạy cùng shockwave); **avatar màn chọn** (10 ảnh portrait riêng, tách mascot gameplay). Mascot 3-state (30 ảnh). Build pass 0 warning. Chi tiết: CLAUDE.md §8g + §8h.
 **Created by:** Claude (Anthropic) — session với @vanhoangnhatbp1
-**Status:** 🚧 V2 IN PROGRESS — Sprint 1 ✅ + Sprint 2 ✅ + Sprint 3 ✅ (#28, #29, #30 done; #27 still defer). Next: Sprint 4 (#31-#37 Visual AAA upgrade) — `include/rounded_rect.h` đã sẵn cho #31.
+**Status:** 🎉 V2 CODE COMPLETE — Sprint 1-4 ✅ (16/17 task; #27 sounds vẫn DEFER chờ .wav). Toàn bộ asset nhân vật + mode tile wired đủ. Sẵn sàng chạy + commit khi User yêu cầu.
 
 > 🔴 **STANDING RULE active:** Claude tự động update files .md khi hoàn thành mỗi Sprint. Xem Section 7.2.
 

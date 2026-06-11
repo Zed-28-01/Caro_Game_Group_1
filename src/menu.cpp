@@ -35,6 +35,9 @@ void gameRun(sf::RenderWindow& window, GameResources& res) {
         case SCREEN_STYLE_SELECT:
             nextScreen = handleStyleSelect(window, res, state);
             break;
+        case SCREEN_CHAR_SELECT:
+            nextScreen = handleCharSelect(window, res, state);
+            break;
         case SCREEN_INPUT_NAMES:
             nextScreen = handleInputNames(window, res, state);
             break;
@@ -153,15 +156,13 @@ GameScreen handleMainMenu(sf::RenderWindow& window, GameResources& res,
 
 GameScreen handleModeSelect(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
-    int menuIndex = 0;
-    const int MENU_COUNT = 3;
+    int menuIndex = 0; // 0 = PvP, 1 = PvC
 
     auto confirm = [&]() -> GameScreen {
         soundPlaySelect(res);
         if (menuIndex == 0) { state.mode = MODE_PVP; return SCREEN_STYLE_SELECT; }
-        if (menuIndex == 1) { state.mode = MODE_PVC; return SCREEN_DIFFICULTY; }
-        if (menuIndex == 2) return SCREEN_MAIN_MENU;
-        return SCREEN_MAIN_MENU;
+        state.mode = MODE_PVC;
+        return SCREEN_DIFFICULTY;
     };
 
     while (window.isOpen()) {
@@ -169,27 +170,29 @@ GameScreen handleModeSelect(sf::RenderWindow& window, GameResources& res,
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
+            // V2 (11/06): 2 tile ngang (hit-test rieng) + nut Back goc trai duoi
             if (event.type == sf::Event::MouseMoved) {
-                int hit = menuHitTest((float)event.mouseMove.x,
-                    (float)event.mouseMove.y, UI_MENU_START_Y, UI_MENU_STEP, MENU_COUNT);
+                int hit = modeSelectHitTest((float)event.mouseMove.x,
+                    (float)event.mouseMove.y);
                 if (hit >= 0) menuIndex = hit;
             }
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Left) {
-                int hit = menuHitTest((float)event.mouseButton.x,
-                    (float)event.mouseButton.y, UI_MENU_START_Y, UI_MENU_STEP, MENU_COUNT);
+                float mx = (float)event.mouseButton.x;
+                float my = (float)event.mouseButton.y;
+                if (backButtonContains(mx, my)) {
+                    soundPlaySelect(res);
+                    return SCREEN_MAIN_MENU;
+                }
+                int hit = modeSelectHitTest(mx, my);
                 if (hit >= 0) { menuIndex = hit; return confirm(); }
             }
 
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
-                case sf::Keyboard::Up:
-                case sf::Keyboard::W:
-                    menuIndex = (menuIndex - 1 + MENU_COUNT) % MENU_COUNT;
-                    break;
-                case sf::Keyboard::Down:
-                case sf::Keyboard::S:
-                    menuIndex = (menuIndex + 1) % MENU_COUNT;
+                case sf::Keyboard::Left:  case sf::Keyboard::A:
+                case sf::Keyboard::Right: case sf::Keyboard::D:
+                    menuIndex = 1 - menuIndex; // chi 2 tile -> toggle
                     break;
                 case sf::Keyboard::Enter:
                     return confirm();
@@ -212,17 +215,17 @@ GameScreen handleModeSelect(sf::RenderWindow& window, GameResources& res,
 
 GameScreen handleDifficultySelect(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
-    int menuIndex = 0;
-    const int MENU_COUNT = 5;
+    int menuIndex = 0; // 0=Easy 1=Medium 2=Hard 3=Expert
 
     auto confirm = [&]() -> GameScreen {
         soundPlaySelect(res);
-        if (menuIndex == 0) { state.difficulty = BOT_EASY;   return SCREEN_STYLE_SELECT; }
-        if (menuIndex == 1) { state.difficulty = BOT_MEDIUM; return SCREEN_STYLE_SELECT; }
-        if (menuIndex == 2) { state.difficulty = BOT_HARD;   return SCREEN_STYLE_SELECT; }
-        if (menuIndex == 3) { state.difficulty = BOT_EXPERT; return SCREEN_STYLE_SELECT; }
-        if (menuIndex == 4) return SCREEN_MODE_SELECT;
-        return SCREEN_MODE_SELECT;
+        switch (menuIndex) {
+        case 0:  state.difficulty = BOT_EASY;   break;
+        case 1:  state.difficulty = BOT_MEDIUM; break;
+        case 2:  state.difficulty = BOT_HARD;   break;
+        default: state.difficulty = BOT_EXPERT; break;
+        }
+        return SCREEN_STYLE_SELECT;
     };
 
     while (window.isOpen()) {
@@ -230,27 +233,31 @@ GameScreen handleDifficultySelect(sf::RenderWindow& window, GameResources& res,
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
+            // V2 (11/06): 4 tile villain ngang + nut Back goc trai duoi
             if (event.type == sf::Event::MouseMoved) {
-                int hit = menuHitTest((float)event.mouseMove.x,
-                    (float)event.mouseMove.y, UI_MENU_START_Y, UI_MENU_STEP, MENU_COUNT);
+                int hit = diffSelectHitTest((float)event.mouseMove.x,
+                    (float)event.mouseMove.y);
                 if (hit >= 0) menuIndex = hit;
             }
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Left) {
-                int hit = menuHitTest((float)event.mouseButton.x,
-                    (float)event.mouseButton.y, UI_MENU_START_Y, UI_MENU_STEP, MENU_COUNT);
+                float mx = (float)event.mouseButton.x;
+                float my = (float)event.mouseButton.y;
+                if (backButtonContains(mx, my)) {
+                    soundPlaySelect(res);
+                    return SCREEN_MODE_SELECT;
+                }
+                int hit = diffSelectHitTest(mx, my);
                 if (hit >= 0) { menuIndex = hit; return confirm(); }
             }
 
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
-                case sf::Keyboard::Up:
-                case sf::Keyboard::W:
-                    menuIndex = (menuIndex - 1 + MENU_COUNT) % MENU_COUNT;
+                case sf::Keyboard::Left: case sf::Keyboard::A:
+                    menuIndex = (menuIndex + 3) % 4;
                     break;
-                case sf::Keyboard::Down:
-                case sf::Keyboard::S:
-                    menuIndex = (menuIndex + 1) % MENU_COUNT;
+                case sf::Keyboard::Right: case sf::Keyboard::D:
+                    menuIndex = (menuIndex + 1) % 4;
                     break;
                 case sf::Keyboard::Enter:
                     return confirm();
@@ -278,8 +285,9 @@ GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
 
     auto confirm = [&]() -> GameScreen {
         soundPlaySelect(res);
-        if (menuIndex == 0) { state.style = STYLE_BASIC; return SCREEN_INPUT_NAMES; }
-        if (menuIndex == 1) { state.style = STYLE_SPEED; return SCREEN_INPUT_NAMES; }
+        // V2 #34: sau khi chon kieu choi -> sang man chon nhan vat
+        if (menuIndex == 0) { state.style = STYLE_BASIC; return SCREEN_CHAR_SELECT; }
+        if (menuIndex == 1) { state.style = STYLE_SPEED; return SCREEN_CHAR_SELECT; }
         if (menuIndex == 2) {
             return (state.mode == MODE_PVC) ? SCREEN_DIFFICULTY : SCREEN_MODE_SELECT;
         }
@@ -323,6 +331,104 @@ GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
         }
 
         renderStyleSelect(window, res, menuIndex);
+        window.display();
+    }
+    return SCREEN_MAIN_MENU;
+}
+
+
+// ============================================================
+// V2 #34: CHON NHAN VAT (luoi 6 hero)
+// ============================================================
+
+GameScreen handleCharSelect(sf::RenderWindow& window, GameResources& res,
+    GameState& state) {
+    // PvP: P1 chon truoc roi P2 (khong duoc trung hero).
+    // PvC: chi P1 chon (panel bot = villain theo do kho).
+    int pickingPlayer = 1;
+    int takenIndex = -1;                 // hero P1 da lay (phase P2)
+    int menuIndex = state.heroP1;        // bat dau tu hero da chon lan truoc
+
+    auto confirm = [&]() -> GameScreen {
+        // Phase P2: khong cho chon trung hero cua P1
+        if (pickingPlayer == 2 && menuIndex == takenIndex)
+            return SCREEN_CHAR_SELECT;   // sentinel "o lai man nay"
+        soundPlaySelect(res);
+        if (pickingPlayer == 1) {
+            state.heroP1 = menuIndex;
+            if (state.mode == MODE_PVC) return SCREEN_INPUT_NAMES;
+            // PvP: chuyen sang luot P2 chon
+            pickingPlayer = 2;
+            takenIndex = state.heroP1;
+            menuIndex = (state.heroP2 != takenIndex) ? state.heroP2
+                                                     : (takenIndex + 1) % 6;
+            return SCREEN_CHAR_SELECT;
+        }
+        state.heroP2 = menuIndex;
+        return SCREEN_INPUT_NAMES;
+    };
+
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (handleCommonEvent(window, event)) continue;
+
+            if (event.type == sf::Event::MouseMoved) {
+                int hit = charSelectHitTest((float)event.mouseMove.x,
+                    (float)event.mouseMove.y);
+                if (hit >= 0) menuIndex = hit;
+            }
+            if (event.type == sf::Event::MouseButtonPressed
+                && event.mouseButton.button == sf::Mouse::Left) {
+                float mx = (float)event.mouseButton.x;
+                float my = (float)event.mouseButton.y;
+                if (backButtonContains(mx, my)) {
+                    soundPlaySelect(res);
+                    if (pickingPlayer == 2) {  // quay ve cho P1 chon lai
+                        pickingPlayer = 1; takenIndex = -1;
+                        menuIndex = state.heroP1;
+                        continue;
+                    }
+                    return SCREEN_STYLE_SELECT;
+                }
+                int hit = charSelectHitTest(mx, my);
+                if (hit >= 0) {
+                    menuIndex = hit;
+                    GameScreen r = confirm();
+                    if (r != SCREEN_CHAR_SELECT) return r;
+                }
+            }
+
+            if (event.type == sf::Event::KeyPressed) {
+                switch (event.key.code) {
+                case sf::Keyboard::Left: case sf::Keyboard::A:
+                    menuIndex = (menuIndex + 5) % 6;
+                    break;
+                case sf::Keyboard::Right: case sf::Keyboard::D:
+                    menuIndex = (menuIndex + 1) % 6;
+                    break;
+                case sf::Keyboard::Up:   case sf::Keyboard::W:
+                case sf::Keyboard::Down: case sf::Keyboard::S:
+                    menuIndex = (menuIndex + 3) % 6; // nhay hang tren/duoi
+                    break;
+                case sf::Keyboard::Enter: {
+                    GameScreen r = confirm();
+                    if (r != SCREEN_CHAR_SELECT) return r;
+                    break;
+                }
+                case sf::Keyboard::Escape:
+                    if (pickingPlayer == 2) {  // ve buoc P1 chon lai
+                        pickingPlayer = 1; takenIndex = -1;
+                        menuIndex = state.heroP1;
+                        break;
+                    }
+                    return SCREEN_STYLE_SELECT;
+                default: break;
+                }
+            }
+        }
+
+        renderCharSelect(window, res, menuIndex, pickingPlayer, takenIndex);
         window.display();
     }
     return SCREEN_MAIN_MENU;
@@ -396,13 +502,13 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
                 if (backButtonContains((float)event.mouseButton.x,
                                        (float)event.mouseButton.y)) {
                     soundPlaySelect(res);
-                    return SCREEN_STYLE_SELECT;
+                    return SCREEN_CHAR_SELECT; // V2 #34: lui ve man chon nhan vat
                 }
             }
 
             if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::Escape)
-                    return SCREEN_STYLE_SELECT;
+                    return SCREEN_CHAR_SELECT; // V2 #34: lui ve man chon nhan vat
 
                 // Chi cho phep Tab khi PvP (PvC chi co 1 o)
                 if (!isPvC && event.key.code == sf::Keyboard::Tab) {
@@ -943,6 +1049,22 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
     const float btnHalfW = UI_GAMEOVER_BTN_HALF_W;
     const float btnHalfH = UI_GAMEOVER_BTN_HALF_H;
 
+    // V2 #32/#33: confetti + shockwave khi co nguoi thang (khong tinh hoa co)
+    bool hasWinner = (result == RESULT_PLAYER1_WIN || result == RESULT_PLAYER2_WIN);
+    // Tam hieu ung = giua duong thang thang (fallback = giua ban co)
+    float fxCx = UI_BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE * 0.5f;
+    float fxCy = UI_BOARD_OFFSET_Y + BOARD_SIZE * CELL_SIZE * 0.5f;
+    if (hasWinner && winLine.count > 0) {
+        int mid = winLine.count / 2;
+        sf::Vector2f wp = renderBoardToPixel(winLine.positions[mid][0],
+                                             winLine.positions[mid][1]);
+        fxCx = wp.x; fxCy = wp.y;
+    }
+    ConfettiSystem confetti;
+    if (hasWinner) confettiSpawnBurst(confetti, fxCx, fxCy, 280);
+    sf::Clock fxClock;
+    float fxElapsed = 0.f;
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -1027,9 +1149,21 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
             }
         }
 
+        // V2 #32/#33: cap nhat hieu ung (clamp dt tranh nhay sau khi vao nested screen)
+        float dt = fxClock.restart().asSeconds();
+        if (dt > 0.1f) dt = 0.1f;
+        fxElapsed += dt;
+        confettiUpdate(confetti, dt);
+
         // Vẽ màn hình
         renderGameplay(window, state, res, (result != RESULT_DRAW) ? &winLine : nullptr, -1, -1, false, result);
         renderGameOver(window, state, res, result, menuIndex, askingSave); // Truyền biến askingSave vào đây
+        if (hasWinner) {
+            // V2 #33: vong song nang luong lan tu o thang (shader, tu tat 0.8s)
+            renderShockwave(window, res, fxCx, fxCy, fxElapsed);
+            // V2 #32: confetti phun tu o thang, len tren cung
+            confettiDraw(window, confetti);
+        }
         window.display();
     }
     return SCREEN_MAIN_MENU;

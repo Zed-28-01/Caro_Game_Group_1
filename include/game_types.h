@@ -133,6 +133,7 @@ enum GameScreen {
   SCREEN_MODE_SELECT,  // Chon che do: PvP / PvC
   SCREEN_DIFFICULTY,   // Chon do kho AI (chi PvC)
   SCREEN_STYLE_SELECT, // Chon kieu choi: Basic / Speed
+  SCREEN_CHAR_SELECT,  // V2 #34: chon nhan vat (luoi 6 hero)
   SCREEN_INPUT_NAMES,  // Nhap ten nguoi choi
   SCREEN_PLAYING,      // Dang choi
   SCREEN_PAUSE_MENU,   // Menu tam dung (ESC)
@@ -238,11 +239,26 @@ struct GameState {
   // (nguoi thua di truoc van sau, va luon danh ky hieu X)
   // Render logic dung field nay de swap X/O texture + icon
   int firstPlayerOfRound = 1;
+
+  // V2 #34: nhan vat (hero) moi nguoi chon o man Character Select.
+  // Index roster: 0=Goku 1=Vegeta 2=Gohan 3=Piccolo 4=Trunks 5=Krillin
+  // PvC: heroP2 KHONG dung (panel P2 = villain theo do kho)
+  int heroP1 = 0;
+  int heroP2 = 1;
 };
 
 // ============================================================
 // STRUCT - SFML Resources (tai nguyen do hoa/am thanh)
 // ============================================================
+
+// V2 (11/06): bo 3 anh cho 1 nhan vat mascot (idle / win / lose).
+// Anh win/lose co the CHUA ton tai (dang gen dan) -> getSize().x == 0,
+// render se fallback ve idle (loser them tint toi).
+struct MascotSet {
+  sf::Texture idle;
+  sf::Texture win;
+  sf::Texture lose;
+};
 
 // Tat ca font, texture, sound duoc load 1 lan va truyen qua tham chieu
 struct GameResources {
@@ -260,16 +276,35 @@ struct GameResources {
   sf::Texture xPieceTex;     // Texture quan X (neu co)
   sf::Texture oPieceTex;     // Texture quan O (neu co)
 
-  // Mascot textures - V2: moi nhan vat chi 1 tu the (idle).
-  // Thang/thua the hien bang banner + hieu ung code (tint toi loser), khong doi tu the.
-  sf::Texture mascotP1Idle; // Player 1
-  sf::Texture mascotP2Idle; // Player 2
+  // Mascot - V2 (11/06 chieu): quay lai 3 trang thai (idle/win/lose) nhu V1.
+  // Thang/thua = doi ANH tu the; thieu anh win/lose -> fallback idle (+tint loser).
+  MascotSet mascotGoku;   // Hero index 0 (hero_goku*.png)
+  MascotSet mascotVegeta; // Hero index 1 (hero_vegeta*.png)
+
+  // V2 #34: heroes cho man chon nhan vat (player chon).
+  MascotSet heroGohan, heroTrunks, heroKrillin, heroPiccolo;
+  // V2 #36: villains theo do kho bot (PvC): Easy/Medium/Hard/Expert.
+  MascotSet villainFrieza, villainCell, villainBuu, villainBroly;
+
+  // V2 (11/06): anh man chon che do kieu 2 tile (mode_pvp.png / mode_pvc.png).
+  // Chua co anh -> tile fallback ve text. (Icon khung vang cu DA BO.)
+  sf::Texture modePvpTex, modePvcTex;
+
+  // V2 (12/06): avatar CHAN DUNG rieng cho man CHON (Character/Difficulty),
+  // tach khoi mascot full-body dung trong gameplay. Thieu -> fallback mascot idle.
+  sf::Texture heroAvatar[6];     // index roster: 0=Goku..5=Krillin
+  sf::Texture villainAvatar[4];  // index do kho: 0=Easy(Frieza)..3=Expert(Broly)
 
   // UI decoration textures (style polish)
   sf::Texture logoCaroTex;     // Logo "CARO" sticker cho Main Menu
   sf::Texture bannerWinTex;    // Banner "VICTORY" cho winner
   sf::Texture bannerDefeatTex; // Banner "DEFEAT" cho loser
   sf::Texture buttonFrameTex;  // Khung bo tron cho menu items
+
+  // V2 #33: fragment shader cho hieu ung "shockwave" radial khi co nguoi thang.
+  // shockwaveOk = false neu GPU/driver khong ho tro shader -> bo qua (game van chay).
+  sf::Shader shockwaveShader;
+  bool shockwaveOk = false;
 
   sf::SoundBuffer moveSfx;  // Am thanh di chuyen cursor
   sf::SoundBuffer placeSfx; // Am thanh dat quan

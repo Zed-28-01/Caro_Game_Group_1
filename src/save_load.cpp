@@ -67,6 +67,10 @@ bool saveGame(const GameState& state, const std::string& filename) {
             << state.moveHistory[i].player << "\n";
     }
 
+    // V2 #34: hero da chon (APPEND CUOI FILE de khong xo lech header -
+    // parseMetadata van doc dung; file V1/V2 cu thieu dong nay -> load fallback)
+    f << state.heroP1 << " " << state.heroP2 << "\n";
+
     f.close();
 
     // V2 #28: cap nhat cache ngay (khong can scan lai toan bo)
@@ -126,6 +130,17 @@ bool loadGame(GameState& state, const std::string& filename) {
         f >> state.moveHistory[i].row
             >> state.moveHistory[i].col
             >> state.moveHistory[i].player;
+    }
+
+    // V2 #34: hero da chon - dong cuoi file. File save cu khong co dong nay
+    // -> doc fail -> fallback mac dinh Goku/Vegeta (hanh vi giong truoc V2 #34)
+    int h1, h2;
+    if (f >> h1 >> h2 && h1 >= 0 && h1 < 6 && h2 >= 0 && h2 < 6) {
+        state.heroP1 = h1;
+        state.heroP2 = h2;
+    } else {
+        state.heroP1 = 0;
+        state.heroP2 = 1;
     }
 
     f.close();

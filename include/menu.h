@@ -33,6 +33,10 @@ GameScreen handleDifficultySelect(sf::RenderWindow& window, GameResources& res,
 GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
                              GameState& state);
 
+// V2 #34: xu ly chon nhan vat (PvP: P1 roi P2; PvC: chi P1)
+GameScreen handleCharSelect(sf::RenderWindow& window, GameResources& res,
+                            GameState& state);
+
 // Xu ly nhap ten nguoi choi
 GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
                             GameState& state);

@@ -3,6 +3,9 @@
 #include "language.h"
 #include "rounded_rect.h"
 #include <filesystem>
+#include <cmath>       // sin/cos/round cho cac hieu ung glow/pulse
+#include <cstdlib>     // V2 #32: std::rand, RAND_MAX cho confetti
+#include <algorithm>   // V2 #32: std::remove_if
 
 // V2 #31: forward declaration - dinh nghia o duoi (muc VE SAVE / LOAD).
 // Khai bao truoc de cac helper menu (drawMenuButton...) goi duoc.
@@ -163,10 +166,45 @@ bool renderLoadResources(GameResources& res) {
     res.oPieceTex.setSmooth(true);
 
     // Mascot textures - V2: chi load 1 tu the (idle) moi player
-    res.mascotP1Idle.loadFromFile("../assets/textures/mascot_p1.png");
-    res.mascotP1Idle.setSmooth(true);
-    res.mascotP2Idle.loadFromFile("../assets/textures/mascot_p2.png");
-    res.mascotP2Idle.setSmooth(true);
+    // V2 (11/06): mascot 3 trang thai (idle / win / lose). Anh win/lose cua
+    // 8 nhan vat moi dang gen dan -> check exists de khong in loi console;
+    // thieu anh -> fallback idle trong renderPlayerPanel.
+    auto loadMascotSet = [](MascotSet& m, const std::string& idleP,
+                            const std::string& winP, const std::string& loseP) {
+        if (std::filesystem::exists(idleP)) { m.idle.loadFromFile(idleP); m.idle.setSmooth(true); }
+        if (std::filesystem::exists(winP))  { m.win.loadFromFile(winP);   m.win.setSmooth(true); }
+        if (std::filesystem::exists(loseP)) { m.lose.loadFromFile(loseP); m.lose.setSmooth(true); }
+    };
+    // (11/06 toi: file mascot_p1/p2 cu da duoc User doi ten -> hero_goku/hero_vegeta)
+    const std::string T = "../assets/textures/";
+    loadMascotSet(res.mascotGoku,   T + "hero_goku.png",   T + "hero_goku_win.png",   T + "hero_goku_lose.png");
+    loadMascotSet(res.mascotVegeta, T + "hero_vegeta.png", T + "hero_vegeta_win.png", T + "hero_vegeta_lose.png");
+    loadMascotSet(res.heroGohan,    T + "hero_gohan.png",    T + "hero_gohan_win.png",    T + "hero_gohan_lose.png");
+    loadMascotSet(res.heroTrunks,   T + "hero_trunks.png",   T + "hero_trunks_win.png",   T + "hero_trunks_lose.png");
+    loadMascotSet(res.heroKrillin,  T + "hero_krillin.png",  T + "hero_krillin_win.png",  T + "hero_krillin_lose.png");
+    loadMascotSet(res.heroPiccolo,  T + "hero_piccolo.png",  T + "hero_piccolo_win.png",  T + "hero_piccolo_lose.png");
+    loadMascotSet(res.villainFrieza, T + "villain_frieza.png", T + "villain_frieza_win.png", T + "villain_frieza_lose.png");
+    loadMascotSet(res.villainCell,   T + "villain_cell.png",   T + "villain_cell_win.png",   T + "villain_cell_lose.png");
+    loadMascotSet(res.villainBuu,    T + "villain_buu.png",    T + "villain_buu_win.png",    T + "villain_buu_lose.png");
+    loadMascotSet(res.villainBroly,  T + "villain_broly.png",  T + "villain_broly_win.png",  T + "villain_broly_lose.png");
+
+    // V2 (11/06): anh 2 tile man chon che do (chua gen -> tile fallback text)
+    if (std::filesystem::exists(T + "mode_pvp.png")) { res.modePvpTex.loadFromFile(T + "mode_pvp.png"); res.modePvpTex.setSmooth(true); }
+    if (std::filesystem::exists(T + "mode_pvc.png")) { res.modePvcTex.loadFromFile(T + "mode_pvc.png"); res.modePvcTex.setSmooth(true); }
+
+    // V2 (12/06): avatar chan dung cho man chon (Character + Difficulty)
+    const char* heroAvatarFile[6] = { "avatar_goku.png", "avatar_vegeta.png",
+        "avatar_gohan.png", "avatar_piccolo.png", "avatar_trunks.png", "avatar_krillin.png" };
+    const char* villainAvatarFile[4] = { "avatar_frieza.png", "avatar_cell.png",
+        "avatar_buu.png", "avatar_broly.png" };
+    for (int i = 0; i < 6; i++) {
+        std::string p = T + heroAvatarFile[i];
+        if (std::filesystem::exists(p)) { res.heroAvatar[i].loadFromFile(p); res.heroAvatar[i].setSmooth(true); }
+    }
+    for (int i = 0; i < 4; i++) {
+        std::string p = T + villainAvatarFile[i];
+        if (std::filesystem::exists(p)) { res.villainAvatar[i].loadFromFile(p); res.villainAvatar[i].setSmooth(true); }
+    }
 
     // UI decoration textures (smooth de scale dep)
     res.logoCaroTex.loadFromFile("../assets/textures/logo_caro.png");
@@ -186,6 +224,15 @@ bool renderLoadResources(GameResources& res) {
     res.menuSfx.loadFromFile("../assets/sounds/menu.wav");
 
     res.bgMusic.openFromFile("../assets/sounds/bgm.ogg");
+
+    // V2 #33: load fragment shader shockwave - chi khi GPU/driver ho tro + co file.
+    // That bai -> shockwaveOk = false -> renderShockwave thanh no-op (game van chay).
+    if (sf::Shader::isAvailable()
+        && std::filesystem::exists("../assets/shaders/shockwave.frag")
+        && res.shockwaveShader.loadFromFile("../assets/shaders/shockwave.frag",
+                                            sf::Shader::Fragment)) {
+        res.shockwaveOk = true;
+    }
 
     return true;
 }
@@ -361,6 +408,24 @@ void renderWinLine(sf::RenderWindow& window, const WinLine& winLine) {
 
 
 // VE PLAYER PANEL
+// V2 #34: tra ve bo mascot hero theo index roster
+// 0=Goku 1=Vegeta 2=Gohan 3=Piccolo 4=Trunks 5=Krillin
+static const MascotSet* heroSetByIndex(const GameResources& res, int idx) {
+    switch (idx) {
+    case 1:  return &res.mascotVegeta;
+    case 2:  return &res.heroGohan;
+    case 3:  return &res.heroPiccolo;
+    case 4:  return &res.heroTrunks;
+    case 5:  return &res.heroKrillin;
+    default: return &res.mascotGoku;
+    }
+}
+
+// Ten hero hien duoi tile o man chon nhan vat (ten rieng, khong can i18n)
+static const char* HERO_NAMES[6] = {
+    "Goku", "Vegeta", "Gohan", "Piccolo", "Trunks", "Krillin"
+};
+
 void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
     const GameResources& res, GameResult result) {
     TextStrings txt = langGetText(langGetCurrent());
@@ -388,17 +453,42 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
         box.setOutlineColor(isActive ? pieceColor : sf::Color(100, 100, 100));
         window.draw(box);
 
-        // VE MASCOT - V2: luon dung 1 tu the (idle); thang/thua the hien
-        // qua banner + tint (lam toi/xam mascot nguoi thua).
-        const sf::Texture* mascotTex = (i == 0) ? &res.mascotP1Idle : &res.mascotP2Idle;
+        // VE MASCOT - V2 (11/06): 3 trang thai idle/win/lose (doi tu the nhu V1).
+        // P1 = Goku; P2 = villain theo do kho (PvC) hoac Vegeta (PvP).
+        const MascotSet* mset;
+        if (i == 0) {
+            mset = heroSetByIndex(res, state.heroP1); // V2 #34: hero P1 da chon
+        } else if (state.mode == MODE_PVC) {
+            switch (state.difficulty) {
+            case BOT_EASY:   mset = &res.villainFrieza; break;
+            case BOT_MEDIUM: mset = &res.villainCell;   break;
+            case BOT_HARD:   mset = &res.villainBuu;    break;
+            case BOT_EXPERT: mset = &res.villainBroly;  break;
+            default:         mset = &res.mascotVegeta;  break;
+            }
+        } else {
+            mset = heroSetByIndex(res, state.heroP2); // V2 #34: hero P2 da chon (PvP)
+        }
 
-        // Nguoi nay co thua khong? (co ket qua, khong hoa, va khong phai nguoi thang)
-        bool thisPlayerLost = (result != RESULT_NONE && result != RESULT_DRAW)
-            && !((i == 0 && result == RESULT_PLAYER1_WIN) ||
-                 (i == 1 && result == RESULT_PLAYER2_WIN));
+        // Trang thai thang/thua cua nguoi nay
+        bool hasResult = (result != RESULT_NONE && result != RESULT_DRAW);
+        bool thisPlayerWon = hasResult &&
+            ((i == 0 && result == RESULT_PLAYER1_WIN) ||
+             (i == 1 && result == RESULT_PLAYER2_WIN));
+        bool thisPlayerLost = hasResult && !thisPlayerWon;
+
+        // Chon anh theo trang thai; thieu anh win/lose -> fallback idle (+tint loser)
+        const sf::Texture* mascotTex = &mset->idle;
+        bool tintLoser = false;
+        if (thisPlayerWon && mset->win.getSize().x > 0) {
+            mascotTex = &mset->win;
+        } else if (thisPlayerLost) {
+            if (mset->lose.getSize().x > 0) mascotTex = &mset->lose;
+            else tintLoser = true; // chua co anh lose -> idle lam toi
+        }
 
         float mascotLeftX = panelX + panelW;  // fallback: rightmost
-        if (mascotTex != nullptr && mascotTex->getSize().x > 0) {
+        if (mascotTex->getSize().x > 0) {
             sf::Sprite mascot(*mascotTex);
             sf::Vector2u texSize = mascotTex->getSize();
             const float targetH = UI_PANEL_BOX_HEIGHT - 10.f;
@@ -408,17 +498,13 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
             // Dat mascot ben phai box, can giua chieu doc
             float mascotX = panelX + panelW - mascotW - 8.f;
             mascot.setPosition(mascotX, boxY + 5.f);
-            // Loser: lam toi + am xam de the hien thua bang code (thay anh _Over)
-            if (thisPlayerLost) mascot.setColor(sf::Color(110, 110, 130));
+            if (tintLoser) mascot.setColor(sf::Color(110, 110, 130));
             window.draw(mascot);
             mascotLeftX = mascotX;
         }
 
         // VICTORY / DEFEAT banner giua panel box (giua text info va mascot)
-        if (result != RESULT_NONE && result != RESULT_DRAW) {
-            bool thisPlayerWon = (i == 0 && result == RESULT_PLAYER1_WIN) ||
-                                 (i == 1 && result == RESULT_PLAYER2_WIN);
-
+        if (hasResult) {
             // Vung dat banner: giua khu text (left ~200) va mascot
             float bannerCenterX = (panelX + 200.f + mascotLeftX) / 2.f;
             float bannerCenterY = boxY + UI_PANEL_BOX_HEIGHT / 2.f;
@@ -811,20 +897,255 @@ void renderMainMenu(sf::RenderWindow& window, const GameResources& res,
     renderMenuGeneric(window, res, txt.title, items, 6, menuIndex, true);
 }
 
-// Chon che do PvP / PvC
-void renderModeSelect(sf::RenderWindow& window, const GameResources& res,
-    int menuIndex) {
-    TextStrings txt = langGetText(langGetCurrent());
-    std::string items[] = { txt.pvpMode, txt.pvcMode, txt.back };
-    renderMenuGeneric(window, res, txt.chooseMode, items, 3, menuIndex);
+// V2 (11/06): layout 2 tile vuong bo goc cho man chon che do (PvP | PvC)
+static const float MODE_TILE_W = 300.f;
+static const float MODE_TILE_H = 320.f;
+static const float MODE_TILE_GAP = 70.f;
+static const float MODE_TILE_CY = 400.f;
+
+int modeSelectHitTest(float mx, float my) {
+    for (int i = 0; i < 2; i++) {
+        float cx = WINDOW_WIDTH / 2.f
+            + (i == 0 ? -1.f : 1.f) * (MODE_TILE_W + MODE_TILE_GAP) / 2.f;
+        if (mx > cx - MODE_TILE_W / 2.f && mx < cx + MODE_TILE_W / 2.f &&
+            my > MODE_TILE_CY - MODE_TILE_H / 2.f && my < MODE_TILE_CY + MODE_TILE_H / 2.f)
+            return i;
+    }
+    return -1;
 }
 
-// Chon do kho AI
+// Chon che do PvP / PvC - V2 (11/06): 2 tile vuong bo goc + anh + hover glow.
+// Anh tile (mode_pvp/mode_pvc.png) chua gen -> fallback text "1 vs 1"/"1 vs BOT".
+void renderModeSelect(sf::RenderWindow& window, const GameResources& res,
+    int menuIndex) {
+    renderBackdrop(window, res, false);
+    TextStrings txt = langGetText(langGetCurrent());
+
+    renderTextCentered(window, res.titleFont, txt.chooseMode, 40,
+        WINDOW_WIDTH / 2.f, 140.f, sf::Color::White, sf::Color(0, 0, 0, 200), 2.5f);
+
+    const sf::Texture* tex[2] = { &res.modePvpTex, &res.modePvcTex };
+    std::string labels[2] = { txt.pvpMode, txt.pvcMode };
+
+    for (int i = 0; i < 2; i++) {
+        float cx = WINDOW_WIDTH / 2.f
+            + (i == 0 ? -1.f : 1.f) * (MODE_TILE_W + MODE_TILE_GAP) / 2.f;
+        float cy = MODE_TILE_CY;
+        bool sel = (i == menuIndex);
+        // Tile phong to nhe + glow nhip dap khi hover/chon
+        float w = sel ? MODE_TILE_W + 14.f : MODE_TILE_W;
+        float h = sel ? MODE_TILE_H + 14.f : MODE_TILE_H;
+
+        if (sel) drawGlowHalo(window, cx, cy, w, h,
+            sf::Color(255, 205, 90), menuGlowPulse());
+        drawRoundedCentered(window, cx, cy, w, h, 24.f,
+            sf::Color(16, 24, 40, sel ? 190 : 140),
+            sel ? sf::Color(255, 220, 120, 230) : sf::Color(120, 150, 190, 100),
+            sel ? 2.5f : 1.5f);
+
+        // Anh che do (khi co) chiem phan tren tile
+        if (tex[i]->getSize().x > 0) {
+            sf::Sprite sp(*tex[i]);
+            sf::Vector2u s = tex[i]->getSize();
+            sp.setOrigin(s.x / 2.f, s.y / 2.f);
+            float scW = (w - 50.f) / (float)s.x;
+            float scH = (h - 115.f) / (float)s.y;
+            float sc = (scW < scH) ? scW : scH;
+            sp.setScale(sc, sc);
+            sp.setPosition(std::round(cx), std::round(cy - 28.f));
+            if (!sel) sp.setColor(sf::Color(218, 218, 228, 235)); // mo nhe khi khong chon
+            window.draw(sp);
+        } else {
+            // Fallback chua co anh
+            renderTextCentered(window, res.titleFont,
+                (i == 0) ? "1 vs 1" : "1 vs BOT", 36,
+                cx, cy - 30.f,
+                sel ? sf::Color(255, 230, 100) : sf::Color(205, 210, 225),
+                sf::Color(0, 0, 0, 200), 2.f);
+        }
+
+        // Nhan ten che do o day tile
+        renderTextCentered(window, res.mainFont, labels[i], sel ? 23 : 21,
+            cx, cy + h / 2.f - 40.f,
+            sel ? sf::Color(255, 230, 100) : sf::Color::White,
+            sf::Color(0, 0, 0, 220), 1.5f);
+    }
+
+    // Hint ESC (trang dam) + nut Back goc trai duoi - dong nhat cac man select
+    renderTextCentered(window, res.mainFont, txt.escBack, 18,
+        WINDOW_WIDTH / 2.f, 632.f, sf::Color::White, sf::Color(0, 0, 0, 230), 2.f);
+    sf::Vector2f mp = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    renderBackButton(window, res, mp.x, mp.y);
+}
+
+// V2 (11/06): 4 tile do kho ngang hang, moi tile 1 villain dai dien
+static const float DIFF_TILE_W = 240.f;
+static const float DIFF_TILE_H = 330.f;
+static const float DIFF_TILE_GAP = 36.f;
+static const float DIFF_TILE_CY = 400.f;
+
+int diffSelectHitTest(float mx, float my) {
+    float total = 4.f * DIFF_TILE_W + 3.f * DIFF_TILE_GAP;
+    float left = (WINDOW_WIDTH - total) / 2.f;
+    for (int i = 0; i < 4; i++) {
+        float cx = left + DIFF_TILE_W / 2.f + i * (DIFF_TILE_W + DIFF_TILE_GAP);
+        if (mx > cx - DIFF_TILE_W / 2.f && mx < cx + DIFF_TILE_W / 2.f &&
+            my > DIFF_TILE_CY - DIFF_TILE_H / 2.f && my < DIFF_TILE_CY + DIFF_TILE_H / 2.f)
+            return i;
+    }
+    return -1;
+}
+
+// Chon do kho AI - V2 (11/06): 4 tile vuong bo goc, moi tile 1 villain
+// (Easy=Frieza, Medium=Cell, Hard=Buu, Expert=Broly) + hover glow + Back + ESC hint
 void renderDifficultySelect(sf::RenderWindow& window, const GameResources& res,
     int menuIndex) {
+    renderBackdrop(window, res, false);
     TextStrings txt = langGetText(langGetCurrent());
-    std::string items[] = { txt.easy, txt.medium, txt.hard, txt.expert, txt.back };
-    renderMenuGeneric(window, res, txt.chooseDifficulty, items, 5, menuIndex);
+
+    renderTextCentered(window, res.titleFont, txt.chooseDifficulty, 40,
+        WINDOW_WIDTH / 2.f, 130.f, sf::Color::White, sf::Color(0, 0, 0, 200), 2.5f);
+
+    const MascotSet* vil[4] = { &res.villainFrieza, &res.villainCell,
+                                &res.villainBuu, &res.villainBroly };
+    std::string labels[4] = { txt.easy, txt.medium, txt.hard, txt.expert };
+    float total = 4.f * DIFF_TILE_W + 3.f * DIFF_TILE_GAP;
+    float left = (WINDOW_WIDTH - total) / 2.f;
+
+    for (int i = 0; i < 4; i++) {
+        float cx = left + DIFF_TILE_W / 2.f + i * (DIFF_TILE_W + DIFF_TILE_GAP);
+        float cy = DIFF_TILE_CY;
+        bool sel = (i == menuIndex);
+        float w = sel ? DIFF_TILE_W + 14.f : DIFF_TILE_W;
+        float h = sel ? DIFF_TILE_H + 14.f : DIFF_TILE_H;
+
+        if (sel) drawGlowHalo(window, cx, cy, w, h,
+            sf::Color(255, 205, 90), menuGlowPulse());
+        drawRoundedCentered(window, cx, cy, w, h, 22.f,
+            sf::Color(16, 24, 40, sel ? 190 : 140),
+            sel ? sf::Color(255, 220, 120, 230) : sf::Color(120, 150, 190, 100),
+            sel ? 2.5f : 1.5f);
+
+        // Avatar chan dung villain (fallback mascot idle neu thieu); fit khung, chua label duoi
+        const sf::Texture* face = (res.villainAvatar[i].getSize().x > 0)
+            ? &res.villainAvatar[i] : &vil[i]->idle;
+        if (face->getSize().x > 0) {
+            sf::Sprite sp(*face);
+            sf::Vector2u s = face->getSize();
+            sp.setOrigin(s.x / 2.f, s.y / 2.f);
+            float scW = (w - 36.f) / (float)s.x;
+            float scH = (h - 100.f) / (float)s.y;
+            float sc = (scW < scH) ? scW : scH;
+            sp.setScale(sc, sc);
+            sp.setPosition(std::round(cx), std::round(cy - 22.f));
+            if (!sel) sp.setColor(sf::Color(218, 218, 228, 235));
+            window.draw(sp);
+        }
+
+        // Ten do kho o day tile
+        renderTextCentered(window, res.mainFont, labels[i], sel ? 23 : 20,
+            cx, cy + h / 2.f - 36.f,
+            sel ? sf::Color(255, 230, 100) : sf::Color::White,
+            sf::Color(0, 0, 0, 220), 1.5f);
+    }
+
+    // Hint ESC (trang dam) + nut Back goc trai duoi
+    renderTextCentered(window, res.mainFont, txt.escBack, 18,
+        WINDOW_WIDTH / 2.f, 632.f, sf::Color::White, sf::Color(0, 0, 0, 230), 2.f);
+    sf::Vector2f mp = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    renderBackButton(window, res, mp.x, mp.y);
+}
+
+// V2 #34: luoi 6 hero - 3 cot x 2 hang
+static const float CHAR_TILE_W = 250.f;
+static const float CHAR_TILE_H = 212.f;
+static const float CHAR_TILE_GAP_X = 40.f;
+static const float CHAR_TILE_GAP_Y = 26.f;
+static const float CHAR_GRID_CY = 420.f; // tam ca luoi 2 hang
+
+int charSelectHitTest(float mx, float my) {
+    for (int i = 0; i < 6; i++) {
+        int col = i % 3, row = i / 3;
+        float cx = WINDOW_WIDTH / 2.f + (col - 1) * (CHAR_TILE_W + CHAR_TILE_GAP_X);
+        float cy = CHAR_GRID_CY
+            + (row == 0 ? -1.f : 1.f) * (CHAR_TILE_H + CHAR_TILE_GAP_Y) / 2.f;
+        if (mx > cx - CHAR_TILE_W / 2.f && mx < cx + CHAR_TILE_W / 2.f &&
+            my > cy - CHAR_TILE_H / 2.f && my < cy + CHAR_TILE_H / 2.f)
+            return i;
+    }
+    return -1;
+}
+
+// V2 #34: man chon nhan vat - 6 tile hero, hover glow, ho tro 2 phase PvP
+void renderCharSelect(sf::RenderWindow& window, const GameResources& res,
+    int menuIndex, int pickingPlayer, int takenIndex) {
+    renderBackdrop(window, res, false);
+    TextStrings txt = langGetText(langGetCurrent());
+
+    renderTextCentered(window, res.titleFont, txt.chooseCharacter, 36,
+        WINDOW_WIDTH / 2.f, 95.f, sf::Color::White, sf::Color(0, 0, 0, 200), 2.5f);
+
+    // Ai dang chon: P1 cam (X) / P2 xanh (O)
+    std::string picker = (pickingPlayer == 1) ? txt.charPickerP1 : txt.charPickerP2;
+    renderTextCentered(window, res.mainFont, picker, 22,
+        WINDOW_WIDTH / 2.f, 148.f,
+        (pickingPlayer == 1) ? sf::Color(255, 170, 100) : sf::Color(130, 195, 255),
+        sf::Color(0, 0, 0, 230), 2.f);
+
+    for (int i = 0; i < 6; i++) {
+        int col = i % 3, row = i / 3;
+        float cx = WINDOW_WIDTH / 2.f + (col - 1) * (CHAR_TILE_W + CHAR_TILE_GAP_X);
+        float cy = CHAR_GRID_CY
+            + (row == 0 ? -1.f : 1.f) * (CHAR_TILE_H + CHAR_TILE_GAP_Y) / 2.f;
+        bool sel = (i == menuIndex);
+        bool taken = (i == takenIndex); // P1 da lay (phase P2)
+        float w = sel ? CHAR_TILE_W + 12.f : CHAR_TILE_W;
+        float h = sel ? CHAR_TILE_H + 12.f : CHAR_TILE_H;
+
+        if (sel) drawGlowHalo(window, cx, cy, w, h,
+            sf::Color(255, 205, 90), menuGlowPulse());
+        drawRoundedCentered(window, cx, cy, w, h, 20.f,
+            sf::Color(16, 24, 40, sel ? 190 : 140),
+            sel ? sf::Color(255, 220, 120, 230) : sf::Color(120, 150, 190, 100),
+            sel ? 2.5f : 1.5f);
+
+        // Avatar chan dung hero (fallback mascot idle neu thieu)
+        const sf::Texture* face = (res.heroAvatar[i].getSize().x > 0)
+            ? &res.heroAvatar[i] : &heroSetByIndex(res, i)->idle;
+        if (face->getSize().x > 0) {
+            sf::Sprite sp(*face);
+            sf::Vector2u s = face->getSize();
+            sp.setOrigin(s.x / 2.f, s.y / 2.f);
+            float scW = (w - 26.f) / (float)s.x;
+            float scH = (h - 62.f) / (float)s.y;
+            float sc = (scW < scH) ? scW : scH;
+            sp.setScale(sc, sc);
+            sp.setPosition(std::round(cx), std::round(cy - 12.f));
+            if (taken) sp.setColor(sf::Color(110, 110, 125, 200));      // da bi P1 chon
+            else if (!sel) sp.setColor(sf::Color(222, 222, 232, 240));
+            window.draw(sp);
+        }
+
+        // Ten hero o day tile
+        renderTextCentered(window, res.mainFont, HERO_NAMES[i], sel ? 19 : 17,
+            cx, cy + h / 2.f - 20.f,
+            taken ? sf::Color(140, 140, 150)
+                  : (sel ? sf::Color(255, 230, 100) : sf::Color::White),
+            sf::Color(0, 0, 0, 220), 1.5f);
+
+        // Badge "P1" goc tren-phai tile da bi P1 chon
+        if (taken) {
+            renderTextCentered(window, res.mainFont, "P1", 15,
+                cx + w / 2.f - 20.f, cy - h / 2.f + 16.f,
+                sf::Color(255, 170, 100), sf::Color(0, 0, 0, 230), 2.f);
+        }
+    }
+
+    // Hint ESC (trang dam) + nut Back goc trai duoi
+    renderTextCentered(window, res.mainFont, txt.escBack, 18,
+        WINDOW_WIDTH / 2.f, 676.f, sf::Color::White, sf::Color(0, 0, 0, 230), 2.f);
+    sf::Vector2f mp = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+    renderBackButton(window, res, mp.x, mp.y);
 }
 
 // Chon kieu choi Basic / Speed
@@ -1106,6 +1427,128 @@ void renderGameplay(sf::RenderWindow& window, const GameState& state,
 }
 
 
+// ============================================================
+// V2 #32 - CONFETTI (particle system)
+// ============================================================
+
+// Helper: so thuc ngau nhien trong [lo, hi].
+static float confRand(float lo, float hi) {
+    return lo + (hi - lo) * ((float)std::rand() / (float)RAND_MAX);
+}
+
+void confettiSpawnBurst(ConfettiSystem& sys, float cx, float cy, int count) {
+    // Palette le hoi (do / xanh duong / vang / luc / tim / trang / cam)
+    static const sf::Color PALETTE[] = {
+        sf::Color(231, 76, 60),  sf::Color(52, 152, 219), sf::Color(241, 196, 15),
+        sf::Color(46, 204, 113), sf::Color(155, 89, 182), sf::Color(236, 240, 241),
+        sf::Color(230, 126, 34)
+    };
+    const int PN = (int)(sizeof(PALETTE) / sizeof(PALETTE[0]));
+
+    sys.pieces.reserve(sys.pieces.size() + count);
+    for (int i = 0; i < count; i++) {
+        ConfettiPiece p;
+        p.pos = sf::Vector2f(cx, cy);
+        // Toa ra moi huong + boost len tren (tru vao vy -> bay len truoc khi roi)
+        float ang = confRand(0.f, 6.2831853f);
+        float speed = confRand(120.f, 560.f);
+        p.vel = sf::Vector2f(std::cos(ang) * speed,
+                             std::sin(ang) * speed - confRand(120.f, 320.f));
+        p.color = PALETTE[std::rand() % PN];
+        p.angle = confRand(0.f, 360.f);
+        p.angVel = confRand(-360.f, 360.f);
+        p.spin = confRand(0.f, 6.2831853f);
+        p.spinVel = confRand(4.f, 11.f);
+        p.size = confRand(7.f, 13.f);
+        p.maxLife = confRand(1.4f, 2.3f);
+        p.life = p.maxLife;
+        sys.pieces.push_back(p);
+    }
+}
+
+void confettiUpdate(ConfettiSystem& sys, float dt) {
+    const float GRAVITY = 540.f;
+    for (ConfettiPiece& p : sys.pieces) {
+        p.vel.y += GRAVITY * dt;
+        p.vel.x *= std::pow(0.86f, dt * 4.f);   // can khong khi nhe (vx giam dan)
+        p.pos += p.vel * dt;
+        p.angle += p.angVel * dt;
+        p.spin += p.spinVel * dt;
+        p.life -= dt;
+    }
+    // Xoa hat het song hoac roi qua duoi man hinh
+    sys.pieces.erase(
+        std::remove_if(sys.pieces.begin(), sys.pieces.end(),
+            [](const ConfettiPiece& p) {
+                return p.life <= 0.f || p.pos.y > WINDOW_HEIGHT + 40.f;
+            }),
+        sys.pieces.end());
+}
+
+void confettiDraw(sf::RenderWindow& window, const ConfettiSystem& sys) {
+    if (sys.pieces.empty()) return;
+    sf::VertexArray va(sf::Quads, sys.pieces.size() * 4);
+    const float DEG2RAD = 3.14159265f / 180.f;
+    int v = 0;
+    for (const ConfettiPiece& p : sys.pieces) {
+        float rad = p.angle * DEG2RAD;
+        float c = std::cos(rad), s = std::sin(rad);
+        // Tumbling: thu hep be ngang theo |cos(spin)| -> cam giac lat mat 3D
+        float hw = (p.size * 0.5f) * (0.25f + 0.75f * std::fabs(std::cos(p.spin)));
+        float hh = p.size * 0.5f;
+
+        // Fade trong 0.6s cuoi doi
+        float a = 1.f;
+        const float FADE = 0.6f;
+        if (p.life < FADE) a = p.life / FADE;
+        if (a < 0.f) a = 0.f;
+        sf::Color col = p.color;
+        col.a = (sf::Uint8)(255.f * a);
+
+        // 4 goc local -> xoay -> dich ve pos
+        const float lx[4] = { -hw,  hw,  hw, -hw };
+        const float ly[4] = { -hh, -hh,  hh,  hh };
+        for (int k = 0; k < 4; k++) {
+            va[v].position = sf::Vector2f(p.pos.x + lx[k] * c - ly[k] * s,
+                                          p.pos.y + lx[k] * s + ly[k] * c);
+            va[v].color = col;
+            v++;
+        }
+    }
+    window.draw(va);
+}
+
+bool confettiActive(const ConfettiSystem& sys) {
+    return !sys.pieces.empty();
+}
+
+// ============================================================
+// V2 #33 - VICTORY SHOCKWAVE (fragment shader)
+// ============================================================
+void renderShockwave(sf::RenderWindow& window, GameResources& res,
+    float cx, float cy, float elapsed) {
+    if (!res.shockwaveOk) return;                  // GPU khong ho tro -> bo qua
+    if (elapsed < 0.f || elapsed > 0.8f) return;   // chi hieu luc trong 0.8s
+
+    // u_center + u_resolution theo PIXEL THUC cua framebuffer (qua mapCoordsToPixel)
+    // -> dinh vi dung ca khi maximize/letterbox. Shader tu lat y cho gl_FragCoord.
+    sf::Vector2i cpx = window.mapCoordsToPixel(sf::Vector2f(cx, cy));
+    sf::Vector2u ws = window.getSize();
+    res.shockwaveShader.setUniform("u_time", elapsed);
+    res.shockwaveShader.setUniform("u_resolution",
+        sf::Glsl::Vec2((float)ws.x, (float)ws.y));
+    res.shockwaveShader.setUniform("u_center",
+        sf::Glsl::Vec2((float)cpx.x, (float)cpx.y));
+
+    // Quad phu vung game (world 0..1280 x 0..720) - ve voi shader + cong sang
+    sf::RectangleShape full(sf::Vector2f((float)WINDOW_WIDTH, (float)WINDOW_HEIGHT));
+    full.setPosition(0.f, 0.f);
+    sf::RenderStates states;
+    states.shader = &res.shockwaveShader;
+    states.blendMode = sf::BlendAdd;
+    window.draw(full, states);
+}
+
 
 // VE MAN HINH KET THUC
 // VE MAN HINH KET THUC (Đã dời xuống để không đè timer)
@@ -1121,10 +1564,8 @@ void renderGameOver(sf::RenderWindow& window, const GameState& state,
         animClock.restart();
     }
 
-    // Overlay lam mo ban co
-    sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-    overlay.setFillColor(sf::Color(0, 0, 0, 100));
-    window.draw(overlay);
+    // V2 (11/06): BO overlay lam mo toan man - giu ban co + panel SANG RO
+    // khi ket thuc van. Khu thong bao ben duoi da co plate toi rieng.
 
     float panelX = BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + UI_PANEL_GAP_LEFT;
     float panelW = WINDOW_WIDTH - panelX - UI_PANEL_GAP_RIGHT;
@@ -1592,6 +2033,9 @@ void renderScreen(sf::RenderWindow& window, const GameState& state,
         break;
     case SCREEN_STYLE_SELECT:
         renderStyleSelect(window, res, 0);
+        break;
+    case SCREEN_CHAR_SELECT:
+        renderCharSelect(window, res, 0, 1, -1);
         break;
     case SCREEN_PLAYING:
         renderGameplay(window, state, res, nullptr, -1, -1, false);

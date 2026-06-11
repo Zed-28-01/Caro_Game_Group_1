@@ -51,11 +51,11 @@ Mọi prompt dưới đây đã tự động bám phong cách này để asset �
 > - **PvP** → 2 panel = 2 anh hùng (mỗi người chọn 1).
 > - **PvC** → panel bạn = anh hùng đã chọn; panel đối thủ = **phản diện theo độ khó** (Easy=Frieza … Expert=Broly).
 
-> 🏆 **Về ảnh thắng/thua — KHÔNG cần gen thêm.** Mỗi nhân vật chỉ cần **1 ảnh** (tư thế đứng). Thắng/thua xử lý hoàn toàn bằng:
-> - Banner sẵn có `banner_winner.png` / `banner_defeat.png` đè lên panel.
-> - Hiệu ứng code Sprint 4: winner nảy + aura sáng + confetti; loser bị **làm tối/xám** (color tint).
->
-> → Không gen 3 tư thế/nhân vật (vừa tốn, vừa khó đồng nhất khi AI gen). Chỉ 1 ảnh/nhân vật.
+> 🔄 **CẬP NHẬT 11/06 (chiều) — ĐẢO QUYẾT ĐỊNH:** quay lại **mascot 3 trạng thái** (idle / win / lose) như V1. Bỏ hẳn **aura + confetti** (User thích đổi tư thế hơn).
+> - Thắng/thua giờ = **đổi ẢNH tư thế**: winner → ảnh ăn mừng, loser → ảnh gục.
+> - **Goku + Vegeta:** đã có đủ idle + win + lose (giữ nguyên, **KHÔNG gen lại**).
+> - **8 nhân vật còn lại** (4 anh hùng + 4 phản diện): idle đã có (gen đợt trước). Cần gen thêm **Win + Lose** → **16 ảnh** (xem **mục 2C**).
+> - Banner `banner_winner.png` / `banner_defeat.png` vẫn đè lên panel như cũ.
 
 > 📐 Tất cả gen dạng **dọc, toàn thân** (tall vertical full-body), nền trắng.
 
@@ -116,38 +116,114 @@ A gigantic hyper-muscular legendary super saiyan berserker with glowing spiky gr
 ```
 > Nếu bị từ chối: *"A Broly-style legendary super saiyan, spiky green hair, massive muscular body, green aura"*.
 
+### 2C — Ảnh THẮNG / THUA cho 8 nhân vật (16 ảnh) — #36 + #34
+
+> Mỗi nhân vật **2 ảnh**: **Win** (ăn mừng) + **Lose** (gục/thua). Goku & Vegeta đã có → bỏ qua.
+> 💡 **Mẹo giữ đồng nhất:** ở Gemini, **đính kèm ảnh idle** của chính nhân vật đó làm tham chiếu *rồi mới* dán prompt → AI giữ đúng trang phục + màu.
+> 📐 Vẫn **dọc, toàn thân, nền trắng trơn** → remove.bg.
+
+#### Anh hùng (4 nhân vật × 2)
+
+**[Gohan — WIN]**
+```
+A determined young half-saiyan teenager with short spiky black hair, wearing a purple gi with a blue undershirt, celebrating victory with one fist raised high in the air, proud confident triumphant smile, a faint glowing golden energy aura, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+**[Gohan — LOSE]**
+```
+A young half-saiyan teenager with short spiky black hair, wearing a torn dirty purple gi with a blue undershirt, defeated and exhausted, kneeling down on one knee with head lowered and shoulders slumped, weak dejected expression, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+
+**[Piccolo — WIN]**
+```
+A tall green-skinned Namekian warrior with pointed ears and antennae, wearing a purple gi with a white cape and white turban, standing tall in a confident victorious pose with a proud smirk, cape billowing dramatically, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+**[Piccolo — LOSE]**
+```
+A tall green-skinned Namekian warrior with pointed ears and antennae, wearing a torn purple gi with a ragged tattered white cape, defeated and down on one knee with head bowed low, exhausted pained expression, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+
+**[Trunks — WIN]**
+```
+A cool young swordsman with lavender-purple hair and a blue jacket, raising his sword high in a triumphant victory pose, confident proud smile, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+**[Trunks — LOSE]**
+```
+A young swordsman with lavender-purple hair and a torn blue jacket, defeated and kneeling with his sword planted in the ground in front of him for support, head lowered, exhausted expression, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+
+**[Krillin — WIN]**
+```
+A short friendly bald martial artist with six dots on his forehead, wearing an orange gi with a blue belt, cheerful victory pose giving a big thumbs up with a wide happy grin, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+**[Krillin — LOSE]**
+```
+A short bald martial artist with six dots on his forehead, wearing a dirty torn orange gi with a blue belt, defeated and sitting dazed on the ground with dizzy swirly eyes, comical exhausted expression, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+
+#### Phản diện (4 nhân vật × 2)
+
+**[Frieza — WIN]**
+```
+A sleek sinister alien emperor with smooth white and purple bio-armor skin, large dark eyes and a long tail, triumphant cruel pose laughing with both arms spread wide, evil confident grin, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+**[Frieza — LOSE]**
+```
+A sleek alien emperor with white and purple bio-armor skin and a long tail, defeated and collapsed kneeling on the ground, battered scorched and damaged, furious humiliated expression, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+
+**[Cell — WIN]**
+```
+A tall insectoid bio-android villain with a green and black spotted exoskeleton and dark crystalline wings, menacing triumphant pose with arms crossed and a confident evil grin, glowing pink and orange accents, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+**[Cell — LOSE]**
+```
+A tall insectoid bio-android villain with a cracked damaged green and black exoskeleton and broken wings, defeated and kneeling, body crumbling with glowing cracks, pained furious expression, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+
+**[Majin Buu — WIN]**
+```
+A monstrous muscular pink magical creature with a head tentacle, wearing white villain pants with a black and gold belt, bare pink torso, gleeful evil victory pose with both arms raised and a wide menacing grin, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+**[Majin Buu — LOSE]**
+```
+A monstrous pink magical creature with a head tentacle, wearing torn white villain pants, defeated and deflated, slumped over with a dazed beaten expression and sagging body, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+
+**[Broly — WIN]**
+```
+A gigantic hyper-muscular legendary super saiyan berserker with glowing spiky green hair, roaring in furious triumph with both fists clenched, an intense flaring green energy aura, overwhelming unstoppable power, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+**[Broly — LOSE]**
+```
+A gigantic muscular saiyan berserker with dimming dark green hair, defeated and collapsed down on one knee, his green energy aura fading and flickering out, exhausted enraged battle-worn expression, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, tall vertical portrait, full body visible from head to toe, single character only on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, or border.
+```
+
 ---
 
 
-## 3. NHÓM C — Mode Icons (màn chọn PvP / PvC)
+## 3. NHÓM C — Ảnh màn CHỌN CHẾ ĐỘ (PvP / PvC)
 
-> Gen dạng **vuông** (square), icon phẳng.
+> 🔄 **Làm lại 11/06 (chiều):** bỏ kiểu "icon khung vuông gold" (xấu). Giờ là **ảnh 2 nhân vật đối đầu, đẹp như mascot**, nền trắng → remove.bg.
+> Khung bo góc + glow hover do **code vẽ**; ảnh chỉ là 2 nhân vật trong suốt đặt vào ô.
+> 📐 Gen dạng **vuông hoặc hơi ngang** (square-ish), 2 nhân vật toàn thân đối mặt nhau, **KHÔNG khung, KHÔNG badge**.
 
-**[Icon PvP]**
+**[Mode PvP] — Goku đối đầu Vegeta**
 ```
-A clean flat game icon: two stylized anime fighters facing each other ready to battle, an orange fighter on the left versus a blue fighter on the right, an energy spark between them, inside a circular gold-rimmed badge, vibrant anime style, simple bold shapes, centered on a plain solid white background. Do not include any text, watermark, or border outside the badge.
+Two Dragon Ball Z fighters facing off against each other ready to battle: Goku with spiky black hair in an orange gi on the left, versus Vegeta with upright flame-shaped black hair in blue saiyan armor on the right, dynamic confrontation pose facing each other with a bright crackling energy spark clashing between them, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, both characters full body, centered on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, frame, or border.
 ```
 
-**[Icon PvC]**
+**[Mode PvC] — Goku đối đầu robot AI**
 ```
-A clean flat game icon: a human fighter facing a glowing robot AI opponent, an orange human silhouette on the left versus a blue cyber-robot head with circuit glow on the right, inside a circular gold-rimmed badge, vibrant anime style, simple bold shapes, centered on a plain solid white background. Do not include any text, watermark, or border outside the badge.
+A Dragon Ball Z hero facing off against a robot opponent ready to battle: Goku with spiky black hair in an orange gi on the left, versus a sleek glowing blue cyber-robot android with circuit lines and glowing eyes on the right, dynamic confrontation pose facing each other with a bright crackling energy spark clashing between them, in the exact art style of Dragon Ball Z anime by Akira Toriyama and Toei Animation, cel-shaded, bold black outlines, vibrant saturated flat colors with clean cel shading, both characters full body, centered on a plain solid white background. Do not include any scenery, ground, shadow, text, watermark, logo, frame, or border.
 ```
+> Khung bo góc + hiệu ứng hover do code lo. Bạn chỉ cần 2 ảnh nhân vật nền trắng → remove.bg.
 
 ---
 
-## 4. NHÓM D — Aura + Confetti (tùy chọn)
+## 4. NHÓM D — Aura + Confetti — ❌ ĐÃ BỎ (không dùng nữa)
 
-**[Aura glow]** — đặt sau mascot cho hiệu ứng "thở" (additive). *Tùy chọn, Claude tự làm bằng shader cũng được.*
-```
-A soft radial golden energy aura glow, a smooth gradient from a bright golden center fading to black at the edges, ethereal light only, no shapes, square image on a solid black background. Do not include any text or objects.
-```
-> ⚠️ Aura dùng **nền ĐEN** (không phải trắng) — vì sẽ blend kiểu "additive" (đen = trong suốt).
-
-**[Confetti]** — hạt pháo khi thắng. *Tùy chọn, code chạy không cần.*
-```
-A single small soft glowing white four-pointed sparkle star, soft edges, simple, square image centered on a solid black background. Do not include any text or objects.
-```
-> ⚠️ Confetti cũng dùng **nền ĐEN**.
+> 🔄 **11/06 (chiều):** User chọn hiệu ứng **đổi tư thế mascot** thay cho aura + confetti → **bỏ hẳn**, không gen 2 ảnh này.
+> (Bạn lỡ gen rồi cũng không sao — để dành, code không dùng tới.)
 
 ---
 
