@@ -3,6 +3,13 @@
 #include "language.h"
 #include "rounded_rect.h"
 
+// V2 #31: forward declaration - dinh nghia o duoi (muc VE SAVE / LOAD).
+// Khai bao truoc de cac helper menu (drawMenuButton...) goi duoc.
+// Default args dat o day, KHONG lap lai o phan dinh nghia.
+static void drawRoundedCentered(sf::RenderWindow& window, float cx, float cy,
+    float w, float h, float radius, sf::Color fill,
+    sf::Color outline = sf::Color::Transparent, float outlineThick = 0.f);
+
 // Su dung hang so chia se tu game_types.h cho de chinh sua sau nay
 // (UI_BOARD_OFFSET_X, UI_BOARD_OFFSET_Y)
 #define BOARD_OFFSET_X  UI_BOARD_OFFSET_X
@@ -132,19 +139,11 @@ bool renderLoadResources(GameResources& res) {
     res.oPieceTex.loadFromFile("../assets/textures/o_piece.png");
     res.oPieceTex.setSmooth(true);
 
-    // Mascot textures
+    // Mascot textures - V2: chi load 1 tu the (idle) moi player
     res.mascotP1Idle.loadFromFile("../assets/textures/mascot_p1.png");
     res.mascotP1Idle.setSmooth(true);
-    res.mascotP1Win.loadFromFile("../assets/textures/mascot_p1_Win.png");
-    res.mascotP1Win.setSmooth(true);
-    res.mascotP1Over.loadFromFile("../assets/textures/mascot_p1_Over.png");
-    res.mascotP1Over.setSmooth(true);
     res.mascotP2Idle.loadFromFile("../assets/textures/mascot_p2.png");
     res.mascotP2Idle.setSmooth(true);
-    res.mascotP2Win.loadFromFile("../assets/textures/mascot_p2_Win.png");
-    res.mascotP2Win.setSmooth(true);
-    res.mascotP2Over.loadFromFile("../assets/textures/mascot_p2_Over.png");
-    res.mascotP2Over.setSmooth(true);
 
     // UI decoration textures (smooth de scale dep)
     res.logoCaroTex.loadFromFile("../assets/textures/logo_caro.png");
@@ -343,19 +342,14 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
         box.setOutlineColor(isActive ? pieceColor : sf::Color(100, 100, 100));
         window.draw(box);
 
-        // VE MASCOT - chon texture theo trang thai game
-        const sf::Texture* mascotTex = nullptr;
-        if (i == 0) {
-            // Player 1
-            if (result == RESULT_PLAYER1_WIN)      mascotTex = &res.mascotP1Win;
-            else if (result == RESULT_PLAYER2_WIN) mascotTex = &res.mascotP1Over;
-            else                                    mascotTex = &res.mascotP1Idle;
-        } else {
-            // Player 2
-            if (result == RESULT_PLAYER2_WIN)      mascotTex = &res.mascotP2Win;
-            else if (result == RESULT_PLAYER1_WIN) mascotTex = &res.mascotP2Over;
-            else                                    mascotTex = &res.mascotP2Idle;
-        }
+        // VE MASCOT - V2: luon dung 1 tu the (idle); thang/thua the hien
+        // qua banner + tint (lam toi/xam mascot nguoi thua).
+        const sf::Texture* mascotTex = (i == 0) ? &res.mascotP1Idle : &res.mascotP2Idle;
+
+        // Nguoi nay co thua khong? (co ket qua, khong hoa, va khong phai nguoi thang)
+        bool thisPlayerLost = (result != RESULT_NONE && result != RESULT_DRAW)
+            && !((i == 0 && result == RESULT_PLAYER1_WIN) ||
+                 (i == 1 && result == RESULT_PLAYER2_WIN));
 
         float mascotLeftX = panelX + panelW;  // fallback: rightmost
         if (mascotTex != nullptr && mascotTex->getSize().x > 0) {
@@ -368,6 +362,8 @@ void renderPlayerPanel(sf::RenderWindow& window, const GameState& state,
             // Dat mascot ben phai box, can giua chieu doc
             float mascotX = panelX + panelW - mascotW - 8.f;
             mascot.setPosition(mascotX, boxY + 5.f);
+            // Loser: lam toi + am xam de the hien thua bang code (thay anh _Over)
+            if (thisPlayerLost) mascot.setColor(sf::Color(110, 110, 130));
             window.draw(mascot);
             mascotLeftX = mascotX;
         }
@@ -543,25 +539,78 @@ void renderBotThinking(sf::RenderWindow& window, const GameResources& res) {
 }
 // VE MENU
 
-// Helper: ve khung button bo tron (texture button_frame.png)
+// V2 #31: nhip dap (pulse) cho glow - dao dong muot 0.56 .. 1.0 theo thoi gian.
+// Dung sf::Clock module-static (doc moi frame) -> animation khong can doi signature.
+static float menuGlowPulse() {
+    static sf::Clock c;
+    float t = c.getElapsedTime().asSeconds();
+    return 0.78f + 0.22f * std::sin(t * 3.0f);
+}
+
+// V2 #31: ve quang sang (glow halo) bo tron quanh (cx, cy).
+// Nhieu lop rounded-rect dang vien thuoc (pill), lop ngoai to + mo dan
+// -> gia lap hieu ung blur sang. intensity: cuong do tong (0..1).
+static void drawGlowHalo(sf::RenderWindow& window, float cx, float cy,
+    float w, float h, sf::Color col, float intensity) {
+    // grow ti le theo chieu cao button -> nut nho glow nho, nut to glow to.
+    struct Layer { float growFrac; float alpha; };
+    const Layer layers[] = { { 0.70f, 0.10f }, { 0.45f, 0.15f }, { 0.22f, 0.22f } };
+    for (const Layer& l : layers) {
+        float grow = h * l.growFrac;
+        sf::Uint8 a = (sf::Uint8)(255.f * l.alpha * intensity);
+        drawRoundedCentered(window, cx, cy, w + grow, h + grow,
+            (h + grow) / 2.f, sf::Color(col.r, col.g, col.b, a));
+    }
+}
+
+// Helper: ve 1 button menu (V2 #31: glow halo + nen bo tron + khung gold texture)
 // centerY: vi tri Y trung tam button
-// selected: true = button highlight (sang vang), false = button thuong (mo)
+// selected: true = button highlight/hover (glow vang + sang hon)
 static void drawMenuButton(sf::RenderWindow& window, const GameResources& res,
     float centerY, bool selected) {
-    if (res.buttonFrameTex.getSize().x == 0) return;
+    float btnW = selected ? 420.f : 380.f;
+    float btnH = selected ? 64.f : 56.f;
+    float cx = std::round(WINDOW_WIDTH / 2.f);
+    float cy = std::round(centerY);
 
+    // 1) Glow halo vang nhap nhay sau item dang chon/hover
+    if (selected) {
+        drawGlowHalo(window, cx, cy, btnW, btnH,
+            sf::Color(255, 205, 90), menuGlowPulse());
+    }
+
+    // 2) Nen button bo tron mo (tat ca button) - tang chieu sau + tuong phan chu
+    drawRoundedCentered(window, cx, cy, btnW, btnH, btnH / 2.f,
+        sf::Color(16, 24, 40, selected ? 165 : 120),
+        selected ? sf::Color(255, 220, 120, 220)
+                 : sf::Color(120, 150, 190, 90),
+        selected ? 2.f : 1.5f);
+
+    // 3) Khung gold texture (button_frame.png) ben tren - giu phong cach cu
+    if (res.buttonFrameTex.getSize().x == 0) return;
     sf::Sprite frame(res.buttonFrameTex);
     sf::Vector2u s = res.buttonFrameTex.getSize();
     frame.setOrigin(s.x / 2.f, s.y / 2.f);
-
-    // Selected to ra to hon mot chut + sang hon
-    float btnW = selected ? 420.f : 380.f;
-    float btnH = selected ? 64.f : 56.f;
     frame.setScale(btnW / s.x, btnH / s.y);
-    frame.setPosition(std::round(WINDOW_WIDTH / 2.f), std::round(centerY));
+    frame.setPosition(cx, cy);
     frame.setColor(selected ? sf::Color(255, 240, 180, 255)   // golden warm
                             : sf::Color(200, 200, 220, 200)); // soft white
     window.draw(frame);
+}
+
+// V2 #31: ve 1 "pill" bo tron lam nen cho 1 muc UI (pause / game over / back...).
+// Khong dung texture - dung cho cac man co layout rieng (slider, nut nho...).
+// selected -> them glow halo nhap nhay + vien sang mau accent.
+static void drawGlowPill(sf::RenderWindow& window, float cx, float cy,
+    float w, float h, bool selected, sf::Color accent) {
+    if (selected) {
+        drawGlowHalo(window, cx, cy, w, h, accent, menuGlowPulse());
+    }
+    drawRoundedCentered(window, cx, cy, w, h, h / 2.f,
+        sf::Color(16, 24, 40, selected ? 175 : 120),
+        selected ? sf::Color(accent.r, accent.g, accent.b, 220)
+                 : sf::Color(120, 150, 190, 80),
+        selected ? 2.f : 1.5f);
 }
 
 // Helper: ve logo CARO o vi tri tieu de Main Menu
@@ -683,6 +732,11 @@ void renderPauseMenu(sf::RenderWindow& window, const GameResources& res,
         int fontSize = selected ? 26 : 22;
         float itemY = PAUSE_START_Y + i * PAUSE_STEP;
 
+        // V2 #31: nen pill bo tron + glow vang khi selected/hover.
+        // Row volume (i==3) cao hon de bao ca label + thanh slider.
+        drawGlowPill(window, WINDOW_WIDTH / 2.f, itemY, 380.f,
+            (i == 3) ? 74.f : 46.f, selected, COLOR_MENU_HOVER);
+
         if (i == 3) {
             // VOLUME ROW: label + slider bar (giong renderSettings)
             std::string volLabel = txt.bgmVolume + " " + std::to_string(volume) + "%";
@@ -758,13 +812,8 @@ bool gameplayExitBtnContains(float mx, float my) {
 static void drawActionBtn(sf::RenderWindow& window, const GameResources& res,
                           float x, float y, float w, const std::string& label,
                           bool hover, sf::Color accent) {
-    sf::RectangleShape box(sf::Vector2f(w, ACT_BTN_H));
-    box.setPosition(x, y);
-    box.setFillColor(hover ? sf::Color(80, 80, 110, 230)
-                            : sf::Color(40, 40, 60, 210));
-    box.setOutlineThickness(2.f);
-    box.setOutlineColor(hover ? accent : sf::Color(180, 180, 180));
-    window.draw(box);
+    // V2 #31: nen pill bo tron + glow theo accent (xanh Save / do Exit) khi hover
+    drawGlowPill(window, x + w / 2.f, y + ACT_BTN_H / 2.f, w, ACT_BTN_H, hover, accent);
 
     renderTextCentered(window, res.mainFont, label, hover ? 22 : 20,
         x + w / 2.f, y + ACT_BTN_H / 2.f,
@@ -787,13 +836,9 @@ void renderBackButton(sf::RenderWindow& window, const GameResources& res,
     TextStrings txt = langGetText(langGetCurrent());
     bool hover = backButtonContains(mx, my);
 
-    sf::RectangleShape box(sf::Vector2f(BACK_BTN_W, BACK_BTN_H));
-    box.setPosition(BACK_BTN_X, BACK_BTN_Y);
-    box.setFillColor(hover ? sf::Color(80, 80, 110, 230)
-                            : sf::Color(40, 40, 60, 210));
-    box.setOutlineThickness(2.f);
-    box.setOutlineColor(hover ? COLOR_MENU_HOVER : sf::Color(180, 180, 180));
-    window.draw(box);
+    // V2 #31: nut Back bo tron + glow vang khi hover (thay box vuong cu)
+    drawGlowPill(window, BACK_BTN_X + BACK_BTN_W / 2.f, BACK_BTN_Y + BACK_BTN_H / 2.f,
+        BACK_BTN_W, BACK_BTN_H, hover, COLOR_MENU_HOVER);
 
     // Label "< Back" / "< Quay lai"
     std::string label = std::string("< ") + txt.back;
@@ -1053,9 +1098,12 @@ void renderGameOver(sf::RenderWindow& window, const GameState& state,
     for (int i = 0; i < 2; i++) {
         bool selected = (i == menuIndex);
         float btnX = centerX - UI_GAMEOVER_BTN_GAP_X + i * (UI_GAMEOVER_BTN_GAP_X * 2);
+        float btnY = startY + UI_GAMEOVER_BTN_DY;
+        // V2 #31: nen pill bo tron + glow khi selected/hover
+        drawGlowPill(window, btnX, btnY, 110.f, 44.f, selected, COLOR_MENU_HOVER);
         renderTextCentered(window, res.mainFont, items[i],
             selected ? 24 : 20,
-            btnX, startY + UI_GAMEOVER_BTN_DY,
+            btnX, btnY,
             selected ? COLOR_MENU_HOVER : COLOR_MENU_TEXT,
             sf::Color(0, 0, 0, 200), 1.5f);
     }
@@ -1064,9 +1112,10 @@ void renderGameOver(sf::RenderWindow& window, const GameState& state,
 // VE SAVE / LOAD
 
 // V2 #30: helper ve 1 rounded rect can giua tai (cx, cy)
+// (default args khai bao o forward declaration dau file)
 static void drawRoundedCentered(sf::RenderWindow& window, float cx, float cy,
     float w, float h, float radius, sf::Color fill,
-    sf::Color outline = sf::Color::Transparent, float outlineThick = 0.f) {
+    sf::Color outline, float outlineThick) {
     RoundedRectangleShape r(sf::Vector2f(w, h), radius, 8);
     r.setOrigin(w / 2.f, h / 2.f);
     r.setPosition(cx, cy);

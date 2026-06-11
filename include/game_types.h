@@ -119,8 +119,8 @@
 #define UI_GAMEOVER_STATS_DY 40.f    // Cach text ket qua bao nhieu (cho stats)
 #define UI_GAMEOVER_QUESTION_DY 75.f // Cach text ket qua (cho "Choi tiep?")
 #define UI_GAMEOVER_BTN_DY 110.f     // Cach text ket qua (cho nut Yes/No)
-#define UI_GAMEOVER_BTN_GAP_X 50.f   // Khoang cach Yes/No tu tam panel
-#define UI_GAMEOVER_BTN_HALF_W 40.f  // Half-width cho hit-test
+#define UI_GAMEOVER_BTN_GAP_X 95.f   // Khoang cach Yes/No tu tam panel (gian de glow khong de nhau)
+#define UI_GAMEOVER_BTN_HALF_W 55.f  // Half-width cho hit-test (khop be rong pill)
 #define UI_GAMEOVER_BTN_HALF_H 22.f  // Half-height cho hit-test
 
 // ============================================================
@@ -253,13 +253,10 @@ struct GameResources {
   sf::Texture xPieceTex;     // Texture quan X (neu co)
   sf::Texture oPieceTex;     // Texture quan O (neu co)
 
-  // Mascot textures - moi player co 3 trang thai
-  sf::Texture mascotP1Idle; // Player 1: dang choi
-  sf::Texture mascotP1Win;  // Player 1: thang
-  sf::Texture mascotP1Over; // Player 1: thua
-  sf::Texture mascotP2Idle; // Player 2: dang choi
-  sf::Texture mascotP2Win;  // Player 2: thang
-  sf::Texture mascotP2Over; // Player 2: thua
+  // Mascot textures - V2: moi nhan vat chi 1 tu the (idle).
+  // Thang/thua the hien bang banner + hieu ung code (tint toi loser), khong doi tu the.
+  sf::Texture mascotP1Idle; // Player 1
+  sf::Texture mascotP2Idle; // Player 2
 
   // UI decoration textures (style polish)
   sf::Texture logoCaroTex;     // Logo "CARO" sticker cho Main Menu
