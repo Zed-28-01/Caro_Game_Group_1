@@ -667,6 +667,90 @@ static void drawContentPanel(sf::RenderWindow& window, float cx, float cy,
         sf::Color(15, 22, 38, 180), sf::Color(120, 150, 190, 90), 1.5f);
 }
 
+// V2 #37: do mo (alpha) caret dao dong muot theo thoi gian (breathing) -
+// cam giac AAA hon blink cung on/off. Khong tat han (min 40) cho de nhin.
+static sf::Uint8 inputCaretAlpha() {
+    static sf::Clock c;
+    float t = c.getElapsedTime().asSeconds();
+    float a = 0.5f + 0.5f * std::sin(t * 4.5f);   // 0..1, chu ky ~1.4s
+    return (sf::Uint8)(40.f + 215.f * a);          // 40..255
+}
+
+// V2 #37: hieu ung "pop" nhe khi vua go them ky tu vao o dang focus.
+// Theo doi chuoi focus qua bien static; khi no DAI RA va van giu prefix cu
+// (tranh false-pop luc Tab doi o) -> restart clock. Tra ve scale 1.12 -> 1.0
+// ease-out trong ~0.12s. Lam UTF-8 safe (so sanh byte prefix, khong dem ky tu).
+static float inputPopScale(const std::string& focusedText) {
+    static std::string prev;
+    static sf::Clock clk;
+    static bool started = false;
+    bool grew = focusedText.size() > prev.size()
+        && focusedText.compare(0, prev.size(), prev) == 0;
+    if (grew) { clk.restart(); started = true; }
+    prev = focusedText;
+    if (!started) return 1.f;
+    float t = clk.getElapsedTime().asSeconds();
+    const float DUR = 0.12f;
+    if (t >= DUR) return 1.f;
+    float k = t / DUR;                           // 0..1
+    float ease = 1.f - (1.f - k) * (1.f - k);    // ease-out quad
+    return 1.12f - 0.12f * ease;                 // 1.12 -> 1.0
+}
+
+// V2 #37: ve 1 o nhap ten kieu modern (Genshin/HSR feel):
+//  - hop bo goc nen toi trong
+//  - focus: glow halo nhap nhay + vien accent sang + caret nhap nhay
+//  - text "pop" nhe khi vua go (textScale)
+//  - trong + focus: an placeholder, chi hien caret giua o
+static void drawInputField(sf::RenderWindow& window, const GameResources& res,
+    float cx, float cy, float w, float h,
+    const std::string& value, const std::string& placeholder,
+    bool focused, float textScale) {
+    const sf::Color accent = COLOR_MENU_HOVER;
+    const bool empty = value.empty();
+
+    // 1) Glow halo nhap nhay khi focus
+    if (focused)
+        drawGlowHalo(window, cx, cy, w, h, accent, menuGlowPulse());
+
+    // 2) Hop bo goc - nen toi + vien accent khi focus
+    drawRoundedCentered(window, cx, cy, w, h, 14.f,
+        sf::Color(18, 26, 44, focused ? 210 : 170),
+        focused ? sf::Color(accent.r, accent.g, accent.b, 235)
+                : sf::Color(120, 150, 190, 110),
+        focused ? 2.5f : 1.5f);
+
+    // 3) Noi dung text (bo qua placeholder khi vua focus vua trong -> chi caret)
+    float textHalfW = 0.f;
+    if (!(empty && focused)) {
+        sf::Text t;
+        t.setFont(res.mainFont);
+        std::string shown = empty ? placeholder : value;
+        t.setString(sf::String::fromUtf8(shown.begin(), shown.end()));
+        t.setCharacterSize(24);
+        t.setFillColor(empty ? sf::Color(140, 145, 160) : sf::Color::White);
+        sf::FloatRect b = t.getLocalBounds();
+        t.setOrigin(std::round(b.left + b.width / 2.f),
+            std::round(b.top + b.height / 2.f));
+        t.setPosition(std::round(cx), std::round(cy));
+        if (!empty && textScale != 1.f) t.setScale(textScale, textScale);
+        window.draw(t);
+        if (!empty) textHalfW = (b.width * textScale) / 2.f;
+    }
+
+    // 4) Caret nhap nhay (chi khi focus). Sau text neu co, giua o neu trong.
+    if (focused) {
+        float caretX = std::round(cx + textHalfW + (textHalfW > 0.f ? 7.f : 0.f));
+        float maxX = cx + w / 2.f - 12.f;        // khong tran ra ngoai hop
+        if (caretX > maxX) caretX = maxX;
+        sf::RectangleShape caret(sf::Vector2f(2.f, h * 0.5f));
+        caret.setOrigin(1.f, h * 0.25f);
+        caret.setPosition(caretX, std::round(cy));
+        caret.setFillColor(sf::Color(255, 255, 255, inputCaretAlpha()));
+        window.draw(caret);
+    }
+}
+
 // Helper: ve logo CARO o vi tri tieu de Main Menu
 static void drawCaroLogo(sf::RenderWindow& window, const GameResources& res) {
     if (res.logoCaroTex.getSize().x == 0) return;
@@ -911,29 +995,22 @@ void renderInputNames(sf::RenderWindow& window, const GameResources& res,
     renderBackdrop(window, res, false);
     TextStrings txt = langGetText(langGetCurrent());
 
+    // V2 #37: scale "pop" cho o dang focus (chi ap cho text that, khong placeholder)
+    const std::string& focusedText = (isPvC || isEditingPlayer1) ? name1 : name2;
+    float pop = inputPopScale(focusedText);
+
     if (isPvC) {
-        // PVC: chỉ 1 ô nhập tên, bỏ luôn số "1" cho mượt
-        // V2: ha xuong vung co (tranh trung mau may) + vien den cho tieu de
+        // PVC: chi 1 o nhap ten, bo luon so "1" cho muot
         // V2: canh giua man hinh + vien den cho tieu de (nen sang)
         std::string titleStr = (langGetCurrent() == LANG_VIETNAMESE) ? u8"Nhập tên Người chơi:" : "Enter Player Name:";
         renderTextCentered(window, res.titleFont, titleStr, 32,
             WINDOW_WIDTH / 2.f, 300.f, sf::Color::White,
             sf::Color(0, 0, 0, 200), 2.f);
 
-        sf::RectangleShape box1(sf::Vector2f(420.f, 56.f));
-        box1.setOrigin(210.f, 28.f);
-        box1.setPosition(WINDOW_WIDTH / 2.f, 375.f);
-        box1.setFillColor(sf::Color(60, 60, 80));
-        box1.setOutlineThickness(3.f);
-        box1.setOutlineColor(COLOR_MENU_HOVER);
-        window.draw(box1);
-
-        // Placeholder đổi thành "Player" / "Người chơi" thay vì có số 1
+        // V2 #37: o nhap modern (bo goc + glow focus + caret + pop)
         std::string placeholder = (langGetCurrent() == LANG_VIETNAMESE) ? u8"Người chơi" : "Player";
-        renderTextCentered(window, res.mainFont,
-            name1.empty() ? placeholder : name1, 24,
-            WINDOW_WIDTH / 2.f, 375.f,
-            name1.empty() ? sf::Color(150, 150, 150) : sf::Color::White);
+        drawInputField(window, res, WINDOW_WIDTH / 2.f, 375.f, 420.f, 56.f,
+            name1, placeholder, /*focused*/ true, pop);
 
         // ĐÃ XÓA DÒNG RENDER THÔNG TIN MÁY Ở ĐÂY
 
@@ -950,40 +1027,22 @@ void renderInputNames(sf::RenderWindow& window, const GameResources& res,
             sf::Color(0, 0, 0, 180), 1.5f);
     }
     else {
-        // PVP: 2 o nhap ten
+        // PVP: 2 o nhap ten - o dang chinh sua = focused (glow + caret)
         renderTextCentered(window, res.titleFont, txt.enterName1, 30,
             WINDOW_WIDTH / 2.f, 150.f, sf::Color::White,
             sf::Color(0, 0, 0, 200), 2.f);
 
-        sf::RectangleShape box1(sf::Vector2f(400.f, 50.f));
-        box1.setOrigin(200.f, 25.f);
-        box1.setPosition(WINDOW_WIDTH / 2.f, 220.f);
-        box1.setFillColor(sf::Color(60, 60, 80));
-        box1.setOutlineThickness(isEditingPlayer1 ? 3.f : 1.f);
-        box1.setOutlineColor(isEditingPlayer1 ? COLOR_MENU_HOVER : sf::Color(100, 100, 100));
-        window.draw(box1);
-
-        renderTextCentered(window, res.mainFont,
-            name1.empty() ? "Player 1" : name1, 22,
-            WINDOW_WIDTH / 2.f, 220.f,
-            name1.empty() ? sf::Color(150, 150, 150) : sf::Color::White);
+        drawInputField(window, res, WINDOW_WIDTH / 2.f, 220.f, 400.f, 54.f,
+            name1, "Player 1", isEditingPlayer1,
+            isEditingPlayer1 ? pop : 1.f);
 
         renderTextCentered(window, res.titleFont, txt.enterName2, 30,
             WINDOW_WIDTH / 2.f, 320.f, sf::Color::White,
             sf::Color(0, 0, 0, 200), 2.f);
 
-        sf::RectangleShape box2(sf::Vector2f(400.f, 50.f));
-        box2.setOrigin(200.f, 25.f);
-        box2.setPosition(WINDOW_WIDTH / 2.f, 390.f);
-        box2.setFillColor(sf::Color(60, 60, 80));
-        box2.setOutlineThickness(!isEditingPlayer1 ? 3.f : 1.f);
-        box2.setOutlineColor(!isEditingPlayer1 ? COLOR_MENU_HOVER : sf::Color(100, 100, 100));
-        window.draw(box2);
-
-        renderTextCentered(window, res.mainFont,
-            name2.empty() ? "Player 2" : name2, 22,
-            WINDOW_WIDTH / 2.f, 390.f,
-            name2.empty() ? sf::Color(150, 150, 150) : sf::Color::White);
+        drawInputField(window, res, WINDOW_WIDTH / 2.f, 390.f, 400.f, 54.f,
+            name2, "Player 2", !isEditingPlayer1,
+            !isEditingPlayer1 ? pop : 1.f);
 
         if (!errorMsg.empty()) {
             renderTextCentered(window, res.mainFont, errorMsg, 18,

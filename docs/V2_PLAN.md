@@ -33,7 +33,7 @@ Các quyết định đã chốt trong session ngày 09/06/2026. **KHÔNG đề 
 | Sprint 4 làm full 7 task | ✅ | Maximum visual upgrade |
 | Asset strategy: Claude viết prompt AI gen cụ thể | ✅ | Sẽ tạo `docs/V2_ASSETS_PROMPTS.md` trước Sprint 4 |
 | Giữ Dragon Ball theme cho V2 | ✅ 11/06 | Đồ án môn học, không kinh doanh → bản quyền không phải vấn đề. Theme ki/aura cộng hưởng mạnh với shader/particle Sprint 4. KHÔNG đổi art style. |
-| #35 = A/B test 2 phương án | ✅ 11/06 | Làm CẢ parallax layers (PA-1, chắc ăn) + image-to-video 24 frame (PA-2, trần đẹp cao hơn nhưng rủi ro melt/seam). Wire qua flag toggle, so trực tiếp trong game, giữ cái đẹp hơn. |
+| #35 = CHỐT PA-2 (video), BỎ PA-1 | ✅ 11/06 | Ban đầu định A/B parallax vs video. User test PA-2 (image-to-video Veo → 106 frame JPG 1280×720) thấy đẹp → **bỏ hẳn PA-1 parallax**. #35 DONE. F2 toggle nền động/tĩnh giữ lại. |
 | Reskin hiệu ứng #32/#33 theo chất DB | ✅ 11/06 | Confetti → vụ nổ tia ki vàng; victory flash kiểu Super Saiyan; aura glow theo màu player (cam X / xanh O). Không thêm task mới, chỉ reskin trong scope sẵn có. |
 | ~~Nâng cấp quân X/O → ki orb glossy~~ | ❌ ĐẢO 11/06 | User thấy ki-orb không hợp gu → **GIỮ quân X/O cũ** (`x_piece.png` đỏ / `o_piece.png` xanh). Không gen mới. |
 | Tách roster: anh hùng vs phản diện | ✅ 11/06 | **Anh hùng** (Goku/Vegeta sẵn + Gohan/Piccolo/Trunks/Krillin) = người chơi chọn (#34). **Phản diện** = độ khó bot (#36): Easy=Frieza, Medium=Cell, Hard=Buu, Expert=Broly. 2 pool KHÔNG trùng. PvC: panel bạn = anh hùng, panel đối thủ = phản diện theo độ khó. |
@@ -85,13 +85,13 @@ Sprint 4 (Visual AAA):   #31, #32, #33, #36, #37, #34, #35        → ~14 giờ
 
 | # | Task | Effort | Owner | Risk | Status |
 |---|------|--------|-------|------|--------|
-| 31 | RoundedRectangleShape + hover glow | 2 giờ | 🤖 | Low | ⏳ Pending |
+| 31 | RoundedRectangleShape + hover glow | 2 giờ | 🤖 | Low | ✅ **DONE 11/06** (glow toàn UI) |
 | 32 | Particle confetti on win (DIY VertexArray) | 3 giờ | 🤖 | Low | ⏳ Pending |
 | 33 | Fragment shader menu glow + victory shockwave | 4 giờ | 🤖 | Medium | ⏳ Pending |
 | 36 | 4 mascot riêng cho 4 difficulty + PvP/PvC icon | 45 phút | 🤖 + 👤🎨 | None | ⏳ Pending |
 | 37 | Modern input field (cursor blink + glow border) | 1 giờ | 🤖 | None | ⏳ Pending |
 | 34 | Character select screen 4-5 model | 3 giờ | 🤖 + 👤🎨 | Low | ⏳ Pending |
-| 35 | Animated background — A/B test: parallax layers (PA-1) vs video 24-frame (PA-2), giữ cái đẹp hơn | 4 giờ | 🤖 + 👤🎨 | **Medium-high** | ⏳ Pending |
+| 35 | Animated background (chốt PA-2 video, bỏ PA-1 parallax) | 4 giờ | 🤖 + 👤🎨 | **Medium-high** | ✅ **DONE 11/06** (106f JPG 1280×720, ping-pong 18fps, F2 toggle) |
 
 **Owner legend:**
 - 🤖 = Claude code độc lập
@@ -305,14 +305,16 @@ A: Group A-C là "fix + cleanup" — foundation. Group D là "visual upgrade" �
 - [x] #28 — unordered_map<string, SaveMetadata> query O(1) ✅ 10/06/2026
 - [x] #30 — Scrollable list (mouse wheel + W/S + arrows + scrollbar) ✅ 10/06/2026
 
-### Sprint 4 [0/7]
-- [ ] #31 — RoundedRectangleShape + hover glow
+### Sprint 4 [2/7] 🚧 đang làm
+- [x] **#31 — RoundedRectangleShape + hover glow** ✅ 11/06 (glow toàn UI: menu/pause/gameover/back/save-exit; helpers drawGlowPill/drawGlowHalo/drawContentPanel)
+- [x] **#35 — Animated background** ✅ 11/06 — **chốt PA-2 (video)**, bỏ PA-1 parallax. 106 frame JPG 1280×720, ping-pong 18fps, F2 toggle. Frame đã commit (`3d1f27d`).
 - [ ] #32 — Particle confetti on win
 - [ ] #33 — Fragment shader glow + shockwave
-- [ ] #36 — 4 mascot difficulty + PvP/PvC icon
-- [ ] #37 — Modern input field
-- [ ] #34 — Character select 4-5 model
-- [ ] #35 — Spritesheet animated background
+- [ ] #36 — 4 mascot difficulty (Frieza/Cell/Buu/Broly) + PvP/PvC icon — chờ asset user gen
+- [ ] #37 — Modern input field — không cần asset, làm ngay được
+- [ ] #34 — Character select (anh hùng) — chờ asset user gen
+
+> 📌 Bonus 11/06: đảo nền sang SÁNG mọi màn + readability fix (content panel + viền đen); bỏ mascot 3-state (1 ảnh/nhân vật, xóa _Win/_Over); giữ quân X/O cũ. Chi tiết: CLAUDE.md §8f.
 
 ---
 
@@ -345,7 +347,7 @@ Nếu Claude session mới hoặc User mất context:
 
 ---
 
-**Last updated:** 11/06/2026 — Tạo `V2_ASSETS_PROMPTS.md`; giữ Dragon Ball theme; #35 = A/B test (parallax vs Veo 3.1 video); tách roster anh hùng (#34) vs phản diện Frieza/Cell/Buu/Broly (#36), 1 ảnh/nhân vật; GIỮ quân X/O cũ (bỏ ki-orb); reskin #32/#33 chất DB
+**Last updated:** 11/06/2026 — Sprint 4 [2/7]: **#31 ✅** (glow toàn UI), **#35 ✅ chốt PA-2** (video bg, F2 toggle, frame đã commit `3d1f27d`; bỏ PA-1 parallax). Nền sáng mọi màn + readability fix. Tạo `V2_ASSETS_PROMPTS.md` (Gemini/Veo). Decisions: giữ Dragon Ball, roster hero/villain (Frieza/Cell/Buu/Broly), 1 ảnh/nhân vật, giữ X/O cũ. Còn: #32/#33/#34/#36/#37. Chi tiết: CLAUDE.md §8f.
 **Created by:** Claude (Anthropic) — session với @vanhoangnhatbp1
 **Status:** 🚧 V2 IN PROGRESS — Sprint 1 ✅ + Sprint 2 ✅ + Sprint 3 ✅ (#28, #29, #30 done; #27 still defer). Next: Sprint 4 (#31-#37 Visual AAA upgrade) — `include/rounded_rect.h` đã sẵn cho #31.
 
