@@ -249,7 +249,14 @@ struct GameResources {
   sf::Font mainFont;  // Font chinh cho menu, UI
   sf::Font titleFont; // Font cho tieu de lon
 
-  sf::Texture backgroundTex; // Hinh nen
+  sf::Texture backgroundTex; // Hinh nen (tinh)
+
+  // V2 #35 PA-2: cac frame nen dong (cat tu video Veo). bgFrameCount=0 -> dung nen tinh.
+  // 120 frame @ 24fps = muot (gan toc do video goc). ~237MB VRAM.
+  static const int BG_FRAME_COUNT = 120;
+  sf::Texture bgFrames[BG_FRAME_COUNT];
+  int bgFrameCount = 0;
+
   sf::Texture xPieceTex;     // Texture quan X (neu co)
   sf::Texture oPieceTex;     // Texture quan O (neu co)
 

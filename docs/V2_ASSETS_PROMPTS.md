@@ -118,13 +118,8 @@ A gigantic hyper-muscular legendary super saiyan berserker with glowing spiky gr
 
 ---
 
-## 3. Quân cờ X / O — GIỮ NGUYÊN bản cũ
 
-> ❌ **Chốt 11/06:** KHÔNG gen mới. Giữ `x_piece.png` (cờ đỏ) + `o_piece.png` (cờ xanh) hiện có. (Bản ki-orb thử nghiệm bị bỏ vì không hợp gu.) → Bạn **không cần làm gì** ở mục này.
-
----
-
-## 4. NHÓM C — Mode Icons (màn chọn PvP / PvC)
+## 3. NHÓM C — Mode Icons (màn chọn PvP / PvC)
 
 > Gen dạng **vuông** (square), icon phẳng.
 
@@ -140,7 +135,7 @@ A clean flat game icon: a human fighter facing a glowing robot AI opponent, an o
 
 ---
 
-## 5. NHÓM D — Aura + Confetti (tùy chọn)
+## 4. NHÓM D — Aura + Confetti (tùy chọn)
 
 **[Aura glow]** — đặt sau mascot cho hiệu ứng "thở" (additive). *Tùy chọn, Claude tự làm bằng shader cũng được.*
 ```
@@ -156,11 +151,11 @@ A single small soft glowing white four-pointed sparkle star, soft edges, simple,
 
 ---
 
-## 6. NHÓM E — Animated Background (#35) — A/B test 2 phương án
+## 5. NHÓM E — Animated Background (#35) — A/B test 2 phương án
 
 > 🎯 Chốt: làm **CẢ HAI**, so trực tiếp trong game, giữ cái đẹp hơn. Claude wire qua 1 flag để bật/tắt.
 
-### 6A. Phương án 1 — Parallax (Gemini gen 2 dải ảnh)
+### 5. Phương án 1 — Parallax (Gemini gen 2 dải ảnh)
 
 Giữ `background.png` làm nền tĩnh, thêm 2 lớp chuyển động + bụi ki vàng (Claude code phần động).
 
@@ -177,19 +172,21 @@ A horizontal strip of lush green grass blades and small white and pink wildflowe
 ```
 > Cỏ xanh → nền **magenta** (hồng cánh sen) để tách; mây trắng → nền **green**. Tránh nền trùng màu chủ thể.
 
-### 6B. Phương án 2 — Veo 3.1 (image-to-video → 24 frame)
+### 5B. Phương án 2 — Veo 3.1 (image-to-video → 24 frame)
 
 **Tool khuyên dùng:** **Veo 3.1 Fast** (model `veo-3.1-fast`) qua **Google Flow** hoặc **Google AI Studio**. (Hoặc **Gemini Omni / Omni Flash** trên gemini.google.com nếu tiện hơn — cũng giữ nét cel-shaded tốt.)
 
 > ⭐ **Vì sao Veo 3.1 hợp task này** (info từ Gemini Pro 3): nó hỗ trợ **Seamless Loop** sẵn (giải quyết đúng nỗi lo điểm nối loop bị giật) và cho **upload tới 3 ảnh tham chiếu** để giữ đúng style. Đây là lý do PA-2 giờ bớt rủi ro hẳn so với lúc đầu.
 
-1. Mở **Google Flow / AI Studio**, chọn model **`veo-3.1-fast`**.
-2. Upload ảnh **`assets/textures/background.png`** làm ảnh đầu (reference).
-3. **Bật option "Seamless Loop"** (nếu giao diện có) — rất quan trọng để loop không giật.
-4. Prompt:
+1. Mở **Google Flow** (thường có sẵn trong gói Pro/Ultra) **hoặc AI Studio** (cần API key trả phí), chọn model **`veo-3.1-fast`**.
+2. ⭐ **LOOP liền mạch:** AI Studio có **2 ô ảnh = frame ĐẦU và frame CUỐI** (2 icon ảnh, dấu `↔` ở giữa). → Up **`background.png` vào CẢ HAI ô** để video bắt đầu = kết thúc cùng 1 khung → loop khớp, không giật. (Flow có thể có toggle "Loop" riêng — bật nếu thấy.)
+3. **Settings:** Aspect **16:9**, Resolution **720p**, 24 fps, duration 2-4s. (Number of results 2-3 để chọn bản ít melt nhất nếu được.)
+4. Prompt (bản chống "melt" — yêu cầu giữ nguyên ảnh gốc, chỉ thêm chuyển động chậm):
 ```
-Subtle living-wallpaper animation of this anime landscape: clouds drift slowly to the left, grass and tree leaves sway gently in a soft breeze, faint sunlight shimmer. Seamless looping motion. No camera movement, no zoom, no pan — completely static viewpoint. Calm and peaceful.
+Animate this exact anime landscape painting as a subtle living wallpaper. Keep the original art style, colors, and every detail unchanged — do not redraw, morph, or distort the mountains, trees, rocks, or path. Only add very slow, gentle motion: clouds drift slowly to the left, grass and tree leaves sway softly in a light breeze, faint sunlight shimmer. Static camera — no zoom, no pan, no rotation. Smooth seamless loop. Calm and peaceful.
 ```
+
+> 💬 **Gemini chat (Omni):** không có ô chỉnh duration/fps — clip tự ra ~8s, Claude resample về 24 frame nên không cần lo. Chỉ cần set **16:9** + up `background.png`.
 5. Xuất clip **2–4 giây**.
 6. ✅ **Xem kỹ trước khi đưa Claude:** núi/cây/đá có bị "melt" (chảy/biến dạng) không? Điểm nối đầu-cuối loop có giật không? Nếu có → gen lại, đừng dùng bản lỗi.
 7. Đưa Claude **file video** (mp4) — Claude tự chạy `ffmpeg` cắt 24 frame + resize 960×540 + ghép spritesheet (hoặc để 24 file rời).
@@ -200,7 +197,7 @@ Subtle living-wallpaper animation of this anime landscape: clouds drift slowly t
 
 ---
 
-## 7. Bảng giao nộp (Claude resize — bạn KHÔNG cần đụng kích thước)
+## 6. Bảng giao nộp - không cần chỉnh kích thước, nhờ AI chỉnh sau
 
 | Asset | Bạn gen | Claude xuất ra | Cho task |
 |-------|---------|----------------|----------|
@@ -225,9 +222,3 @@ Subtle living-wallpaper animation of this anime landscape: clouds drift slowly t
 5. **Video Veo (PA-2)** — thử để so A/B.
 6. **Aura / confetti** — tùy chọn.
 
-> ✅ Trong lúc bạn gen, Claude code song song các task không cần asset: **#31** (đang làm) → #37 → #32 → #33.
-
----
-
-**Last updated:** 11/06/2026 — tách roster: anh hùng (người chơi #34) vs phản diện (độ khó bot #36 = Frieza/Cell/Buu/Broly), không trùng nhau; 1 ảnh/nhân vật (thắng/thua xử lý bằng code+banner); GIỮ quân X/O cũ (bỏ ki-orb). Workflow Gemini/Veo: prompt ghép sẵn (nền trắng + "Do not include"), Claude lo resize.
-**By:** Claude (Anthropic) — session với @vanhoangnhatbp1
