@@ -7,6 +7,7 @@ void timerStart(TimerState &timer, float gameTime, float turnTime) {
   timer.gameTimeLeftP2 = gameTime;
   timer.turnTimeLeft = turnTime;
   timer.isRunning = true;
+  timer.turnAlarmFired = false;
 }
 
 // FPS = 60 -> detatime (khoảng cách mỗi frame) = 1/FPS (nhưng được đo bằng
@@ -37,7 +38,10 @@ void timerUpdate(TimerState &timer, float deltaTime, bool isPlayer1Turn) {
   }
 }
 
-void timerResetTurn(TimerState &timer) { timer.turnTimeLeft = MAX_TURN_TIME; }
+void timerResetTurn(TimerState &timer) {
+  timer.turnTimeLeft = MAX_TURN_TIME;
+  timer.turnAlarmFired = false; // V2 #27: re-arm chuong cho luot moi
+}
 
 void timerPause(TimerState &timer) { timer.isRunning = false; }
 

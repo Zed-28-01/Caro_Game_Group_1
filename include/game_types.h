@@ -9,14 +9,8 @@
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
-#include <stack> // dùng cho undo nhưng thay phương án thành mảng tính cho dễ implement
 #include <string>
-#include <vector> // phần lớn dùng mảng tĩnh hết
-
-// hiện đã không dùng -> chỉ trên một main chính
-#include <atomic>
-#include <mutex>
-#include <thread>
+#include <vector>
 
 // ============================================================
 // HANG SO GAME (Game Constants)
@@ -38,6 +32,7 @@
 // Thoi gian (giay)
 #define MAX_GAME_TIME 600 // 10 phut moi van
 #define MAX_TURN_TIME 20  // 20 giay moi luot
+#define TURN_ALARM_SECONDS 5.f // V2 #27: reo chuong canh bao khi luot con <= 5s
 
 // Mau sac (SFML Colors) - Theme mac dinh
 #define COLOR_BACKGROUND sf::Color(245, 222, 179) // Wheat - nen chinh
@@ -208,6 +203,7 @@ struct TimerState {
   float gameTimeLeftP2 = 0.f; // Thoi gian van con lai cua Player 2 (giay)
   float turnTimeLeft = 0.f;   // Thoi gian con lai cua luot hien tai (giay)
   bool isRunning = false;     // Timer co dang chay khong
+  bool turnAlarmFired = false; // V2 #27: da reo chuong canh bao cho luot nay chua
 };
 
 // Vi tri 5 quan thang (dung de ve hieu ung)
@@ -306,11 +302,13 @@ struct GameResources {
   sf::Shader shockwaveShader;
   bool shockwaveOk = false;
 
-  sf::SoundBuffer moveSfx;  // Am thanh di chuyen cursor
   sf::SoundBuffer placeSfx; // Am thanh dat quan
   sf::SoundBuffer winSfx;   // Am thanh thang
   sf::SoundBuffer drawSfx;  // Am thanh hoa
   sf::SoundBuffer menuSfx;  // Am thanh menu select
+  sf::SoundBuffer undoSfx;  // V2 #27: am thanh hoan tac (phim Z)
+  sf::SoundBuffer hintSfx;  // V2 #27: am thanh goi y (phim H, PvC)
+  sf::SoundBuffer alarmSfx; // V2 #27: chuong canh bao luot sap het gio (Speed)
 
   sf::Music bgMusic; // Nhac nen
 };

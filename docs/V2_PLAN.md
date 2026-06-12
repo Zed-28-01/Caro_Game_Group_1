@@ -62,7 +62,7 @@ Sprint 4 (Visual AAA):   #31, #32, #33, #36, #37, #34, #35        → ~14 giờ
 |---|------|--------|-------|------|--------|
 | 21 | Xóa load `board.png` unused | 5 phút | 🤖 Claude | None | ✅ **DONE 09/06** |
 | 22 | Tạo `utils.h` DRY (`inBounds`, `DIRS`, `countConsecutive`) | 25 phút | 🤖 Claude | Low | ✅ **DONE 09/06** |
-| 27 | Wire moveSfx + thêm undoSfx, hintSfx, tickSfx, backSfx | 30 phút | 🤖 + 👤🎨 | None | ⏸️ Defer (chờ .wav) |
+| 27 | Sounds: undo + hint + alarm (SFX) + BGM theo màn (menu/gameplay) | 30 phút | 🤖 + 👤🎨 | None | ✅ **DONE 12/06** |
 | 23 | Logic loser→X (hướng A: swap UI display) | 45 phút | 🤖 + 👤🧪 | Medium | ✅ **DONE 09/06** |
 
 ### Sprint 2 — Navigation Polish
@@ -293,7 +293,7 @@ A: Group A-C là "fix + cleanup" — foundation. Group D là "visual upgrade" �
 - [x] #22 — Tạo utils.h DRY ✅ 09/06/2026
 - [x] #23 — Logic loser→X (hướng A swap UI) ✅ 09/06/2026
 - [x] **BONUS** — Default initializers cho POD struct (silence 13 C26495 warnings) ✅ 09/06/2026
-- [ ] #27 — Sounds ⏸️ DEFER (chờ User cung cấp .wav)
+- [x] #27 — Sounds ✅ 12/06/2026 (undo + hint + alarm SFX + BGM menu/gameplay; xóa moveSfx)
 
 ### Sprint 2 [3/3] ✅
 - [x] #24 — Back button NewGame flow (Enter Name screen)
@@ -348,9 +348,9 @@ Nếu Claude session mới hoặc User mất context:
 
 ---
 
-**Last updated:** 12/06/2026 — **Sprint 4 [7/7] ✅ COMPLETE** + follow-up. #31-#37 done; **#32 confetti khôi phục 12/06** (chạy cùng shockwave); **avatar màn chọn** (10 ảnh portrait riêng, tách mascot gameplay). Mascot 3-state (30 ảnh). Build pass 0 warning. Chi tiết: CLAUDE.md §8g + §8h.
+**Last updated:** 12/06/2026 — **V2 100% COMPLETE [17/17]**. Sprint 4 done; #32 confetti khôi phục; avatar màn chọn; **#27 sounds DONE** (undo/hint/alarm SFX + BGM menu↔gameplay). Cleanup: xóa moveSfx + 4 include thừa. Build pass 0 warning. Chi tiết: CLAUDE.md §8i.
 **Created by:** Claude (Anthropic) — session với @vanhoangnhatbp1
-**Status:** 🎉 V2 CODE COMPLETE — Sprint 1-4 ✅ (16/17 task; #27 sounds vẫn DEFER chờ .wav). Toàn bộ asset nhân vật + mode tile wired đủ. Sẵn sàng chạy + commit khi User yêu cầu.
+**Status:** 🎉 V2 CODE COMPLETE — Sprint 1-4 ✅ (**17/17 task** — #27 sounds DONE 12/06). Toàn bộ asset nhân vật + mode tile + âm thanh wired đủ. Sẵn sàng chạy + commit khi User yêu cầu.
 
 > 🔴 **STANDING RULE active:** Claude tự động update files .md khi hoàn thành mỗi Sprint. Xem Section 7.2.
 

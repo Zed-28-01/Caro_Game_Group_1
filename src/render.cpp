@@ -217,13 +217,16 @@ bool renderLoadResources(GameResources& res) {
     res.buttonFrameTex.setSmooth(true);
 
     // Sound
-    res.moveSfx.loadFromFile("../assets/sounds/move.wav");
     res.placeSfx.loadFromFile("../assets/sounds/place.wav");
     res.winSfx.loadFromFile("../assets/sounds/win.wav");
     res.drawSfx.loadFromFile("../assets/sounds/draw.wav");
     res.menuSfx.loadFromFile("../assets/sounds/menu.wav");
+    res.undoSfx.loadFromFile("../assets/sounds/undo.ogg");
+    res.hintSfx.loadFromFile("../assets/sounds/hint.ogg");
+    res.alarmSfx.loadFromFile("../assets/sounds/alarm.wav");
 
-    res.bgMusic.openFromFile("../assets/sounds/bgm.ogg");
+    // V2 #27: BGM khong mo o day nua. soundPlayBGMTrack() se tu mo bgm_menu.ogg /
+    // bgm_game.ogg theo tung man (menu vs gameplay).
 
     // V2 #33: load fragment shader shockwave - chi khi GPU/driver ho tro + co file.
     // That bai -> shockwaveOk = false -> renderShockwave thanh no-op (game van chay).
@@ -617,9 +620,9 @@ void renderTurnTimer(sf::RenderWindow& window, const GameResources& res,
     float barY = UI_TIMER_BAR_Y;
     float barH = UI_TIMER_BAR_HEIGHT;
 
-    // PLATE den mo phia sau ca khu vuc timer (label + bar + game time)
-    // Cao 90px de bao trum tu "THOI GIAN LUOT" den "Thoi gian van"
-    sf::RectangleShape timerPlate(sf::Vector2f(panelW, 90.f));
+    // PLATE den mo lam nen phia sau thanh timer luot: label "THOI GIAN LUOT" + bar.
+    // (Truoc day plate con bao ca "Thoi gian van", nay da chuyen vao tung player box.)
+    sf::RectangleShape timerPlate(sf::Vector2f(panelW, 64.f));
     timerPlate.setPosition(panelX, barY - 32.f);
     timerPlate.setFillColor(sf::Color(20, 30, 50, 180));  // dark blue, 70% opacity
     timerPlate.setOutlineThickness(2.f);

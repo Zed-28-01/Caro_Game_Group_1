@@ -47,6 +47,23 @@ void soundSetBGMVolume(GameResources& res, int volume) {
     res.bgMusic.setVolume((float)volume);
 }
 
+// V2 #27: track BGM dang phat (-1 = chua co). Tranh mo lai file moi frame.
+static int currentBGMTrack = -1;
+
+void soundPlayBGMTrack(GameResources& res, int track) {
+    if (track == currentBGMTrack) return; // dang phat track nay roi -> bo qua
+    const char* file = (track == BGM_GAME) ? "../assets/sounds/bgm_game.ogg"
+                                           : "../assets/sounds/bgm_menu.ogg";
+    if (!fs::exists(file)) return; // thieu file -> bo qua (tranh loi console)
+    currentBGMTrack = track;
+    res.bgMusic.stop();
+    if (res.bgMusic.openFromFile(file)) {
+        res.bgMusic.setLoop(true);
+        res.bgMusic.setVolume((float)bgmVolume);
+        res.bgMusic.play();
+    }
+}
+
 // ============================================================
 // HIEU UNG AM THANH (SFX)
 // ============================================================
@@ -61,11 +78,13 @@ static void playSfx(const sf::SoundBuffer& buffer) {
     soundIndex = (soundIndex + 1) % 8;
 }
 
-void soundPlayMove(GameResources& res)   { playSfx(res.moveSfx); }
 void soundPlayPlace(GameResources& res)  { playSfx(res.placeSfx); }
 void soundPlaySelect(GameResources& res) { playSfx(res.menuSfx); }
 void soundPlayWin(GameResources& res)    { playSfx(res.winSfx); }
 void soundPlayDraw(GameResources& res)   { playSfx(res.drawSfx); }
+void soundPlayUndo(GameResources& res)   { playSfx(res.undoSfx); }
+void soundPlayHint(GameResources& res)   { playSfx(res.hintSfx); }
+void soundPlayAlarm(GameResources& res)  { playSfx(res.alarmSfx); }
 
 void soundSetSFXEnabled(bool enabled) { sfxEnabled = enabled; }
 bool soundIsSFXEnabled() { return sfxEnabled; }

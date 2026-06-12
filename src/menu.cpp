@@ -13,14 +13,17 @@ void gameRun(sf::RenderWindow& window, GameResources& res) {
     GameState state;
     boardResetAll(state);
 
-    // Khoi tao am thanh + phat nhac nen
+    // Khoi tao am thanh + phat nhac nen menu
     soundLoadAll(res);
-    soundPlayBGM(res, true);
+    soundPlayBGMTrack(res, BGM_MENU);
 
     GameScreen currentScreen = SCREEN_MAIN_MENU;
 
     while (window.isOpen()) {
         GameScreen nextScreen = currentScreen;
+
+        // V2 #27: nhac nen theo man - man choi dung bgm_game, con lai dung bgm_menu
+        soundPlayBGMTrack(res, (currentScreen == SCREEN_PLAYING) ? BGM_GAME : BGM_MENU);
 
         switch (currentScreen) {
         case SCREEN_MAIN_MENU:
@@ -700,6 +703,13 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
         if (state.style == STYLE_SPEED && result == RESULT_NONE) {
             timerUpdate(state.timer, deltaTime, state.isPlayer1Turn);
 
+            // V2 #27: chuong canh bao khi luot sap het gio (reo 1 lan moi luot)
+            if (!state.timer.turnAlarmFired &&
+                timerGetTurnSecondsLeft(state.timer) <= TURN_ALARM_SECONDS) {
+                soundPlayAlarm(res);
+                state.timer.turnAlarmFired = true;
+            }
+
             // --- XỬ LÝ HẾT GIỜ LƯỢT NÀY ---
             if (timerIsTurnExpired(state.timer)) {
                 if (state.isPlayer1Turn) {
@@ -805,7 +815,12 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
 
                     // Undo
                 case sf::Keyboard::Z:
-                    boardUndo(state);
+                    if (boardUndo(state) > 0) {
+                        soundPlayUndo(res);
+                        // Undo -> reset thanh thoi gian luot ve 20s (Speed mode)
+                        // (timerResetTurn cung re-arm chuong canh bao cho luot moi)
+                        if (state.style == STYLE_SPEED) timerResetTurn(state.timer);
+                    }
                     showHint = false;
                     break;
 
@@ -813,6 +828,7 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                     if (state.mode == MODE_PVC && state.isPlayer1Turn) {
                         botGetHint(state, hintRow, hintCol);
                         showHint = true;
+                        soundPlayHint(res);
                     }
                     break;
 
@@ -1681,11 +1697,15 @@ GameScreen handleHelp(sf::RenderWindow& window, GameResources& res) {
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
             if (event.type == sf::Event::KeyPressed &&
-                event.key.code == sf::Keyboard::Escape)
+                event.key.code == sf::Keyboard::Escape) {
+                soundPlaySelect(res);
                 return SCREEN_MAIN_MENU;
-            // Click bat ky → ve menu chinh
-            if (event.type == sf::Event::MouseButtonPressed)
+            }
+            // Click bat ky (gom nut Back) → ve menu chinh
+            if (event.type == sf::Event::MouseButtonPressed) {
+                soundPlaySelect(res);
                 return SCREEN_MAIN_MENU;
+            }
         }
         renderHelp(window, res);
         window.display();
@@ -1698,12 +1718,16 @@ GameScreen handleAbout(sf::RenderWindow& window, GameResources& res) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
-            // Click bat ky → ve menu chinh
-            if (event.type == sf::Event::MouseButtonPressed)
+            // Click bat ky (gom nut Back) → ve menu chinh
+            if (event.type == sf::Event::MouseButtonPressed) {
+                soundPlaySelect(res);
                 return SCREEN_MAIN_MENU;
+            }
             if (event.type == sf::Event::KeyPressed &&
-                event.key.code == sf::Keyboard::Escape)
+                event.key.code == sf::Keyboard::Escape) {
+                soundPlaySelect(res);
                 return SCREEN_MAIN_MENU;
+            }
         }
         renderAbout(window, res);
         window.display();
