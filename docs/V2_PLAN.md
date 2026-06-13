@@ -423,5 +423,4 @@ Phạm vi: **D9 + D10 + 3.7.** (3.5 `goto`→lambda User loại trừ; R4 path e
 **Created by:** Claude (Anthropic) — session với @vanhoangnhatbp1
 **Status:** 🎉 V2 CODE COMPLETE — Sprint 1-4 ✅ (**17/17 task** — #27 sounds DONE 12/06). Toàn bộ asset nhân vật + mode tile + âm thanh wired đủ. Sẵn sàng chạy + commit khi User yêu cầu.
 
-> 🔴 **STANDING RULE active:** Claude tự động update files .md khi hoàn thành mỗi Sprint. Xem Section 7.2.
 
