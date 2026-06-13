@@ -12,34 +12,15 @@ static const std::string SETTINGS_FILE = "../saves/settings.txt";
 // ============================================================
 // Pool 8 sf::Sound de phat nhieu am thanh chong cheo nhau
 // sf::Sound PHAI ton tai trong khi phat → dung mang static
-static sf::Sound soundPool[8];
+static const int SOUND_POOL_SIZE = 8; // so sf::Sound chay luan phien (chong cheo am)
+static sf::Sound soundPool[SOUND_POOL_SIZE];
 static int soundIndex = 0;
 static bool sfxEnabled = true;
 static int bgmVolume = 50;
 
 // ============================================================
-// KHOI TAO
-// ============================================================
-bool soundLoadAll(GameResources& res) {
-    // SoundBuffer + Music da duoc load trong renderLoadResources()
-    // Ham nay setup BGM ban dau (loop, volume mac dinh)
-    res.bgMusic.setLoop(true);
-    res.bgMusic.setVolume((float)bgmVolume);
-    return true;
-}
-
-// ============================================================
 // NHAC NEN (BGM)
 // ============================================================
-void soundPlayBGM(GameResources& res, bool play) {
-    if (play) {
-        if (res.bgMusic.getStatus() != sf::SoundSource::Playing)
-            res.bgMusic.play();
-    } else {
-        res.bgMusic.pause();
-    }
-}
-
 void soundSetBGMVolume(GameResources& res, int volume) {
     if (volume < 0) volume = 0;
     if (volume > 100) volume = 100;
@@ -75,7 +56,7 @@ static void playSfx(const sf::SoundBuffer& buffer) {
 
     soundPool[soundIndex].setBuffer(buffer);
     soundPool[soundIndex].play();
-    soundIndex = (soundIndex + 1) % 8;
+    soundIndex = (soundIndex + 1) % SOUND_POOL_SIZE;
 }
 
 void soundPlayPlace(GameResources& res)  { playSfx(res.placeSfx); }
@@ -89,6 +70,30 @@ void soundPlayAlarm(GameResources& res)  { playSfx(res.alarmSfx); }
 void soundSetSFXEnabled(bool enabled) { sfxEnabled = enabled; }
 bool soundIsSFXEnabled() { return sfxEnabled; }
 int soundGetBGMVolume() { return bgmVolume; }
+
+// V2 #6 (audit): load cac SFX buffer (truoc day o renderLoadResources - sai module).
+// loadFromFile khong check ket qua: file thieu -> getSampleCount()==0 -> playSfx bo qua.
+void soundLoadResources(GameResources& res) {
+    res.placeSfx.loadFromFile("../assets/sounds/place.wav");
+    res.winSfx.loadFromFile("../assets/sounds/win.wav");
+    res.drawSfx.loadFromFile("../assets/sounds/draw.wav");
+    res.menuSfx.loadFromFile("../assets/sounds/menu.wav");
+    res.undoSfx.loadFromFile("../assets/sounds/undo.ogg");
+    res.hintSfx.loadFromFile("../assets/sounds/hint.ogg");
+    res.alarmSfx.loadFromFile("../assets/sounds/alarm.wav");
+}
+
+// V2 R8 (audit): dung + go buffer khoi pool truoc khi static teardown.
+void soundShutdown() {
+    for (int i = 0; i < SOUND_POOL_SIZE; i++) {
+        soundPool[i].stop();
+        soundPool[i].resetBuffer();
+    }
+    // side-effect-2: reset guard BGM. soundShutdown chi chay luc thoat app nen
+    // hien tai vo hai, nhung giu bat bien "currentBGMTrack phan anh nhac dang phat"
+    // -> neu sau nay co code mo lai BGM sau shutdown thi khong bi bo qua nham.
+    currentBGMTrack = -1;
+}
 
 // ============================================================
 // LUU / TAI SETTINGS

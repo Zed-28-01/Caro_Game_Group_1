@@ -17,8 +17,8 @@ static const int SCORE_TWO_HALF = 50;      // 2 mo 1 dau
 static const int SCORE_ONE_OPEN = 10;      // 1 mo 2 dau
 static const int SCORE_ONE_HALF = 5;       // 1 mo 1 dau
 
-static const int BOT_PLAYER = 1;
-static const int HUMAN_PLAYER = -1;
+static const int BOT_PLAYER = CELL_P2;   // May danh P2 (+1)
+static const int HUMAN_PLAYER = CELL_P1; // Nguoi danh P1 (-1)
 
 // DIRS, inBounds, countConsecutive da duoc chuyen sang utils.h
 // (de chia se voi board.cpp - DRY principle)
@@ -304,6 +304,21 @@ void botMediumMove(const GameState &state, int &outRow, int &outCol) {
   }
 }
 
+// V2 3.2 (audit): kiem tra nuoc vua dat tai (r,c) co tao 5-lien khong (tren raw board).
+// Dung de cat node terminal trong minimax: tranh dao sau lam loang diem thang ep buoc.
+// Logic giong inner-loop cua botCheckImmediateWin (quan da nam san tren board).
+static bool botIsWinningMove(const Cell board[BOARD_SIZE][BOARD_SIZE], int r, int c) {
+  int player = board[r][c].value;
+  if (player == 0) return false;
+  for (int d = 0; d < 4; d++) {
+    int total = 1
+        + countConsecutive(board, r, c, DIRS[d][0], DIRS[d][1], player)
+        + countConsecutive(board, r, c, -DIRS[d][0], -DIRS[d][1], player);
+    if (total >= WIN_COUNT) return true;
+  }
+  return false;
+}
+
 int botMinimax(Cell board[BOARD_SIZE][BOARD_SIZE], int depth, int maxDepth,
                int alpha, int beta, bool isMaximizing, int botPlayer) {
   if (depth == maxDepth) {
@@ -325,8 +340,10 @@ int botMinimax(Cell board[BOARD_SIZE][BOARD_SIZE], int depth, int maxDepth,
     for (int i = 0; i < count; i++) {
       int r = candidates[i][0], c = candidates[i][1];
       board[r][c].value = currentPlayer;
-      int eval =
-          botMinimax(board, depth + 1, maxDepth, alpha, beta, false, botPlayer);
+      // V2 3.2: bot vua dat thang ngay -> node terminal, uu tien thang nhanh (-depth)
+      int eval = botIsWinningMove(board, r, c)
+          ? (SCORE_WIN - depth)
+          : botMinimax(board, depth + 1, maxDepth, alpha, beta, false, botPlayer);
       board[r][c].value = 0;
 
       if (eval > maxEval)
@@ -342,8 +359,10 @@ int botMinimax(Cell board[BOARD_SIZE][BOARD_SIZE], int depth, int maxDepth,
     for (int i = 0; i < count; i++) {
       int r = candidates[i][0], c = candidates[i][1];
       board[r][c].value = currentPlayer;
-      int eval =
-          botMinimax(board, depth + 1, maxDepth, alpha, beta, true, botPlayer);
+      // V2 3.2: doi thu vua dat thang ngay -> node terminal (diem am cho bot)
+      int eval = botIsWinningMove(board, r, c)
+          ? -(SCORE_WIN - depth)
+          : botMinimax(board, depth + 1, maxDepth, alpha, beta, true, botPlayer);
       board[r][c].value = 0;
 
       if (eval < minEval)

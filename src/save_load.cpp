@@ -1,18 +1,20 @@
 #include "save_load.h"
+#include "utils.h" // Fix R3: inBounds - validate toa do doc tu file save
 #include <fstream>
-#include <sstream>
 #include <algorithm>
 #include <filesystem>
+#include <unordered_set> // cache ten file (g_saveNames) cho saveFileExists O(1)
 
 namespace fs = std::filesystem;
 
 static const std::string SAVE_DIR = "../saves/";
 static const std::string SAVE_EXT = ".txt";
 
-// V2 #28: Cache metadata trong RAM. Key = ten file (khong .txt).
-// Build lai moi khi saveScanFiles() chay (vao man hinh Save/Load),
-// hoac sau khi saveGame/saveDeleteFile/saveRenameFile thay doi disk.
-static std::unordered_map<std::string, SaveMetadata> g_metaCache;
+// V2 #28 (don §5.18): cache TEN cac file save trong RAM -> saveFileExists() query
+// O(1) (khong mo + doc lai disk). Truoc la unordered_map<string,SaveMetadata> nhung
+// 3 field mode/style/moveCount khong UI nao doc (preview da go o Sprint 3) -> rut gon
+// con set ten file. Rebuild khi saveScanFiles() chay, hoac sau saveGame/saveDeleteFile.
+static std::unordered_set<std::string> g_saveNames;
 static bool g_scanned = false;
 
 // Cac file KHONG phai save game (bo qua khi scan)
@@ -67,19 +69,14 @@ bool saveGame(const GameState& state, const std::string& filename) {
             << state.moveHistory[i].player << "\n";
     }
 
-    // V2 #34: hero da chon (APPEND CUOI FILE de khong xo lech header -
-    // parseMetadata van doc dung; file V1/V2 cu thieu dong nay -> load fallback)
+    // V2 #34: hero da chon (APPEND CUOI FILE - file V1/V2 cu thieu dong nay ->
+    // loadGame se fallback Goku/Vegeta)
     f << state.heroP1 << " " << state.heroP2 << "\n";
 
     f.close();
 
-    // V2 #28: cap nhat cache ngay (khong can scan lai toan bo)
-    SaveMetadata meta;
-    meta.name = filename;
-    meta.moveCount = state.moveCount;
-    meta.mode = (int)state.mode;
-    meta.style = (int)state.style;
-    g_metaCache[filename] = meta;
+    // V2 #28: cap nhat cache ten file ngay (khong can scan lai toan bo)
+    g_saveNames.insert(filename);
     return true;
 }
 
@@ -116,21 +113,52 @@ bool loadGame(GameState& state, const std::string& filename) {
     f >> state.timer.gameTimeLeftP1 >> state.timer.gameTimeLeftP2
       >> state.timer.turnTimeLeft >> isRunning;
     state.timer.isRunning = (isRunning == 1);
+
+    // Fix R1 (audit 12/06): moi duong save deu timerPause truoc khi ghi file
+    // -> isRunning trong file LUON la 0. Neu giu nguyen, van Speed sau khi
+    // load se dung dong ho vinh vien (khong dem nguoc, khong het gio, chuong
+    // khong reo). Load la de choi tiep -> ep timer chay lai.
+    if (state.style == STYLE_SPEED) {
+        state.timer.isRunning = true;
+        state.timer.turnAlarmFired = false; // re-arm chuong cho luot dang do
+    }
+
     f >> state.moveCount;
+
+    // Fix R3 (audit 12/06): validate du lieu doc tu file - file hong/sua tay
+    // co the chua so rac. Nguy hiem nhat: moveCount qua lon lam vong doc lich
+    // su ghi TRAN MANG moveHistory[225]. Sai -> return false, man Load hien
+    // msgLoadError (co che bao loi co san).
+    if (!f) return false;
+    if (mode < 0 || mode > 1 || style < 0 || style > 1 || diff < 0 || diff > 3)
+        return false;
+    if (!inBounds(state.cursorRow, state.cursorCol)) return false;
+    if (state.moveCount < 0 || state.moveCount > BOARD_SIZE * BOARD_SIZE)
+        return false;
 
     // Ban co
     for (int r = 0; r < BOARD_SIZE; r++) {
         for (int c = 0; c < BOARD_SIZE; c++) {
             f >> state.board[r][c].value;
+            // Fix R3: o hop le chi co CELL_P1 (quan P1) / 0 (trong) / CELL_P2 (quan P2)
+            if (state.board[r][c].value < CELL_P1 || state.board[r][c].value > CELL_P2)
+                return false;
         }
     }
+    if (!f) return false;
 
     // Lich su
     for (int i = 0; i < state.moveCount; i++) {
         f >> state.moveHistory[i].row
             >> state.moveHistory[i].col
             >> state.moveHistory[i].player;
+        // Fix R3: toa do phai nam trong ban co, player chi co CELL_P1/CELL_P2
+        if (!inBounds(state.moveHistory[i].row, state.moveHistory[i].col))
+            return false;
+        if (state.moveHistory[i].player != CELL_P1 && state.moveHistory[i].player != CELL_P2)
+            return false;
     }
+    if (!f) return false;
 
     // V2 #34: hero da chon - dong cuoi file. File save cu khong co dong nay
     // -> doc fail -> fallback mac dinh Goku/Vegeta (hanh vi giong truoc V2 #34)
@@ -148,35 +176,11 @@ bool loadGame(GameState& state, const std::string& filename) {
 }
 
 // ============================================================
-// PARSE METADATA (V2 #28) - doc nhanh phan header de lay tom tat
-// ============================================================
-// Khop dung thu tu ghi trong saveGame():
-//   line 1: ten P1            | line 6: firstPlayerOfRound
-//   line 2: moves wins P1     | line 7: cursorRow cursorCol
-//   line 3: ten P2            | line 8: mode style difficulty
-//   line 4: moves wins P2     | line 9: timer (4 so)
-//   line 5: isPlayer1Turn     | line 10: moveCount
-static bool parseMetadata(const std::string& path, SaveMetadata& meta) {
-    std::ifstream f(path);
-    if (!f.is_open()) return false;
-
-    std::string skip;
-    for (int i = 0; i < 7; i++) std::getline(f, skip); // bo qua line 1..7
-
-    int diff = 0;
-    if (!(f >> meta.mode >> meta.style >> diff)) return false; // line 8
-    std::getline(f, skip); // an phan con lai cua line 8
-    std::getline(f, skip); // line 9 (timer)
-    if (!(f >> meta.moveCount)) return false; // line 10
-    return true;
-}
-
-// ============================================================
 // SCAN THU MUC SAVE (V2 #29) - thay the Gamelist.txt manifest
 // ============================================================
 std::vector<std::string> saveScanFiles() {
     ensureSaveDir();
-    g_metaCache.clear();
+    g_saveNames.clear();
 
     // Thu thap (thoi gian sua, ten) de sort theo thoi gian
     std::vector<std::pair<fs::file_time_type, std::string>> items;
@@ -189,11 +193,7 @@ std::vector<std::string> saveScanFiles() {
             std::string stem = entry.path().stem().string();
             if (isReservedFile(stem)) continue;
 
-            SaveMetadata meta;
-            meta.name = stem;
-            // Best-effort: neu parse loi (file rac) van giu ten, metadata = 0
-            parseMetadata(entry.path().string(), meta);
-            g_metaCache[stem] = meta;
+            g_saveNames.insert(stem);
 
             fs::file_time_type wt{};
             try { wt = entry.last_write_time(); } catch (...) {}
@@ -217,54 +217,19 @@ std::vector<std::string> saveScanFiles() {
 }
 
 // ============================================================
-// QUERY METADATA O(1) (V2 #28)
-// ============================================================
-const SaveMetadata* saveGetMetadata(const std::string& filename) {
-    auto it = g_metaCache.find(filename);
-    if (it == g_metaCache.end()) return nullptr;
-    return &it->second;
-}
-
-// ============================================================
 // QUAN LY FILE
 // ============================================================
 bool saveDeleteFile(const std::string& filename) {
-    bool found = (g_metaCache.find(filename) != g_metaCache.end());
+    bool found = (g_saveNames.count(filename) > 0);
     try {
         fs::remove(SAVE_DIR + filename + SAVE_EXT);
     }
     catch (...) { return false; }
-    g_metaCache.erase(filename); // cap nhat cache
+    g_saveNames.erase(filename); // cap nhat cache
     return found;
-}
-
-bool saveRenameFile(const std::string& oldName, const std::string& newName) {
-    if (!saveFileExists(oldName)) return false;
-    if (saveFileExists(newName)) return false;
-
-    try {
-        fs::rename(SAVE_DIR + oldName + SAVE_EXT,
-            SAVE_DIR + newName + SAVE_EXT);
-    }
-    catch (...) { return false; }
-
-    // Cap nhat cache: doi key, giu metadata
-    auto it = g_metaCache.find(oldName);
-    if (it != g_metaCache.end()) {
-        SaveMetadata meta = it->second;
-        meta.name = newName;
-        g_metaCache.erase(it);
-        g_metaCache[newName] = meta;
-    }
-    return true;
 }
 
 bool saveFileExists(const std::string& filename) {
     if (!g_scanned) saveScanFiles(); // lazy build neu chua scan lan nao
-    return g_metaCache.find(filename) != g_metaCache.end();
-}
-
-int saveCountFiles() {
-    if (!g_scanned) saveScanFiles();
-    return (int)g_metaCache.size();
+    return g_saveNames.count(filename) > 0;
 }

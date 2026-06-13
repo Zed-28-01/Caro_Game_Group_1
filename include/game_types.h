@@ -4,13 +4,7 @@
 
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
-#include <algorithm>
-#include <cmath>
-#include <cstdlib>
-#include <ctime>
-#include <fstream>
 #include <string>
-#include <vector>
 
 // ============================================================
 // HANG SO GAME (Game Constants)
@@ -29,6 +23,12 @@
 // Gamelist.txt manifest. So file gio chi gioi han boi o dia.
 #define WIN_COUNT 5       // So quan lien tiep de thang
 
+// Ma hoa nguoi choi trong Cell.value va Move.player (1 nguon duy nhat).
+// P1 = -1, P2 = +1. Ky hieu X/O HIEN THI dong theo firstPlayerOfRound (xem #23)
+// -> KHONG suy ra X/O truc tiep tu gia tri nay.
+#define CELL_P1 (-1) // Player 1
+#define CELL_P2 1    // Player 2
+
 // Thoi gian (giay)
 #define MAX_GAME_TIME 600 // 10 phut moi van
 #define MAX_TURN_TIME 20  // 20 giay moi luot
@@ -36,13 +36,10 @@
 
 // Mau sac (SFML Colors) - Theme mac dinh
 #define COLOR_BACKGROUND sf::Color(245, 222, 179) // Wheat - nen chinh
-#define COLOR_BOARD_BG sf::Color(222, 184, 135)   // BurlyWood - nen ban co
-#define COLOR_GRID_LINE sf::Color(139, 90, 43)    // Brown - duong ke
 #define COLOR_PLAYER_X sf::Color(220, 50, 50)     // Do - quan X
 #define COLOR_PLAYER_O sf::Color(30, 100, 200)    // Xanh - quan O
 #define COLOR_HIGHLIGHT                                                        \
   sf::Color(255, 255, 0, 120)               // Vang trong suot - o dang chon
-#define COLOR_WIN_LINE sf::Color(0, 200, 0) // Xanh la - duong thang
 #define COLOR_MENU_BG sf::Color(44, 62, 80) // Dark blue - nen menu
 #define COLOR_MENU_TEXT sf::Color(236, 240, 241) // Trang - chu menu
 #define COLOR_MENU_HOVER sf::Color(52, 152, 219) // Xanh sang - hover menu
@@ -59,13 +56,6 @@
 #define UI_MENU_TITLE_Y 120.f    // Y cua tieu de
 #define UI_MENU_START_Y 280.f    // Y cua item dau tien
 #define UI_MENU_STEP 60.f        // Khoang cach giua cac items
-#define UI_MENU_HALF_WIDTH 200.f // Nua chieu rong cho hit-test chuot
-#define UI_MENU_HALF_HEIGHT 22.f // Nua chieu cao cho hit-test
-
-// Pause Menu (overlay khi nhan ESC trong game)
-#define UI_PAUSE_TITLE_Y 240.f
-#define UI_PAUSE_START_Y 340.f
-#define UI_PAUSE_STEP 55.f
 
 // Settings (Volume row co the rong hon cho de click)
 #define UI_SETTINGS_TITLE_Y 100.f
@@ -88,6 +78,12 @@
 #define UI_LIST_HALF_HEIGHT 15.f
 // V2 #30: so file hien thi cung luc (scrollable list). Neu nhieu hon thi cuon.
 #define UI_LIST_VISIBLE 10
+
+// Pause Menu (overlay ESC) - V2 D10: 1 nguon duy nhat, render.cpp + menu.cpp dung chung
+// (truoc day khai bao cuc bo o ca 2 file, "phai khop" thu cong).
+#define UI_PAUSE_TITLE_Y 150.f  // Y cua chu "PAUSE"
+#define UI_PAUSE_START_Y 230.f  // Y cua item dau tien (6 items)
+#define UI_PAUSE_STEP    60.f   // Khoang cach giua cac items
 
 // ============================================================
 // GAMEPLAY LAYOUT - VI TRI BAN CO + PANEL + TIMER
@@ -178,14 +174,15 @@ enum Language { LANG_VIETNAMESE, LANG_ENGLISH };
 // Mot o tren ban co
 // Default 0 (o trong) - tranh warning C26495 (uninitialized member)
 struct Cell {
-  int value = 0; // 0: trong, -1: Player 1 (X), 1: Player 2 (O)
+  int value = 0; // 0: o trong, CELL_P1(-1): Player 1, CELL_P2(+1): Player 2
+                 // (X/O hien thi dong theo firstPlayerOfRound, xem #23)
 };
 
 // Mot nuoc di (dung cho undo va replay)
 // Default zero-init - tranh warning C26495
 struct Move {
   int row = 0, col = 0; // Vi tri tren ban co (0-14)
-  int player = 0;       // -1: Player 1, 1: Player 2
+  int player = 0;       // CELL_P1(-1): Player 1, CELL_P2(+1): Player 2
 };
 
 // Thong tin nguoi choi
@@ -264,7 +261,8 @@ struct GameResources {
   sf::Texture backgroundTex; // Hinh nen (tinh)
 
   // V2 #35 PA-2: cac frame nen dong (cat tu video Veo). bgFrameCount=0 -> dung nen tinh.
-  // 120 frame @ 24fps = muot (gan toc do video goc). ~237MB VRAM.
+  // 120 = suc chua toi da cua mang; thuc te chi ~106 frame ton tai tren dia (.jpg),
+  // phat ping-pong @ BG_FPS=18 (~390MB VRAM khi load du).
   static const int BG_FRAME_COUNT = 120;
   sf::Texture bgFrames[BG_FRAME_COUNT];
   int bgFrameCount = 0;
@@ -274,8 +272,8 @@ struct GameResources {
 
   // Mascot - V2 (11/06 chieu): quay lai 3 trang thai (idle/win/lose) nhu V1.
   // Thang/thua = doi ANH tu the; thieu anh win/lose -> fallback idle (+tint loser).
-  MascotSet mascotGoku;   // Hero index 0 (hero_goku*.png)
-  MascotSet mascotVegeta; // Hero index 1 (hero_vegeta*.png)
+  MascotSet heroGoku;   // Hero index 0 (hero_goku*.png)
+  MascotSet heroVegeta; // Hero index 1 (hero_vegeta*.png)
 
   // V2 #34: heroes cho man chon nhan vat (player chon).
   MascotSet heroGohan, heroTrunks, heroKrillin, heroPiccolo;

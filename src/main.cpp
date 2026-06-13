@@ -22,10 +22,16 @@ int main() {
     return -1; // Khong load duoc font → thoat
   }
 
+  // V2 #6 (audit): load cac SFX (sound.cpp so huu) - tach khoi renderLoadResources
+  soundLoadResources(res);
+
   // Load settings (language, volume, sfx) tu file - phai goi SAU loadResources
   settingsLoad(res);
 
   gameRun(window, res);
+
+  // V2 R8 (audit): dung + go buffer pool truoc khi res va audio device teardown
+  soundShutdown();
 
   return 0;
 }

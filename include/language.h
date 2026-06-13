@@ -44,15 +44,11 @@ struct TextStrings {
     // Nhap ten
     std::string enterName1;
     std::string enterName2;
-    std::string nameError;
     std::string nameDuplicate;
 
     // Gameplay
-    std::string turn;           // "Luot cua: "
     std::string moves;          // "So nuoc: "
     std::string wins;           // "Thang: "
-    std::string hintText;       // "Nhan H de xem goi y"
-    std::string undoText;       // "Nhan Z de huy nuoc"
 
     // Ket qua
     std::string playerWin;      // "{name} da thang!"
@@ -63,13 +59,7 @@ struct TextStrings {
 
     // Save/Load
     std::string enterSaveName;
-    std::string saveSuccess;
-    std::string loadSuccess;
     std::string fileNotFound;
-    std::string fileExists;
-    std::string maxSaveReached;
-    std::string deleteFile;
-    std::string renameFile;
 
     // Settings
     std::string language;
@@ -83,11 +73,6 @@ struct TextStrings {
     std::string resume;
     std::string saveGame;
     std::string returnMenu;
-
-    // Timer
-    std::string gameTime;       // "Thoi gian: "
-    std::string turnTime;       // "Luot: "
-    std::string timeUp;         // "Het gio!"
 
     // Guide (huong dan dieu khien)
     std::string guideMove;      // "W/A/S/D: Di chuyen"
@@ -111,6 +96,7 @@ struct TextStrings {
     // Input name screen
     std::string inputNameHintPvP;  // "Tab: Chuyen o | Enter: Xac nhan"
     std::string inputNameHintPvC;  // "Enter: Xac nhan"
+    std::string nameTooLong;       // "Ten nguoi choi chi toi da 15 ky tu!"
     std::string botName;           // "May" / "Computer"
 
     // Panel + timer (gameplay)
@@ -123,8 +109,7 @@ struct TextStrings {
     // Save/Load messages
     std::string msgSaveOK;         // "Luu thanh cong!"
     std::string msgSaveError;      // "Loi luu file!"
-    std::string msgFileExists;     // "File da ton tai!"
-    std::string msgMaxFiles;       // "Da dat gioi han 15 file!"
+    std::string msgFileExists;     // "File da ton tai - Enter lan nua de ghi de!" (Fix R5: cau xac nhan ghi de)
     std::string msgFileDeleted;    // "Da xoa file!"
     std::string msgLoadError;      // "Loi tai file!"
 };
@@ -133,8 +118,8 @@ struct TextStrings {
 // HAM
 // ============================================================
 
-// Lay bo van ban theo ngon ngu
-TextStrings langGetText(Language lang);
+// Lay bo van ban theo ngon ngu - tra const& (3.1: cache 2 ban static, khong copy)
+const TextStrings& langGetText(Language lang);
 
 // Lay ngon ngu hien tai (bien global)
 Language langGetCurrent();

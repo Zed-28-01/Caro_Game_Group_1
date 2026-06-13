@@ -41,10 +41,6 @@ void timerConsumeP2(TimerState& timer, float seconds);
 // Dung de ve progress bar
 float timerGetTurnPercent(const TimerState& timer);
 
-// Lay phan tram thoi gian van con lai cua tung nguoi (0.0 - 1.0)
-float timerGetGamePercentP1(const TimerState& timer);
-float timerGetGamePercentP2(const TimerState& timer);
-
 // Kiem tra luot hien tai het thoi gian chua
 bool timerIsTurnExpired(const TimerState& timer);
 
