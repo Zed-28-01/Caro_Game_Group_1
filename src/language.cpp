@@ -45,6 +45,12 @@ TextStrings langGetText(Language lang) {
         t.hard = "Hard";
         t.expert = "Expert";
 
+        // V2 #34: man chon nhan vat
+        t.chooseCharacter = "CHOOSE YOUR FIGHTER";
+        t.charPickerP1 = "Player 1 - pick your fighter";
+        t.charPickerP2 = "Player 2 - pick your fighter";
+        t.escBack = "ESC: Back";
+
         // Kiểu chơi
         t.chooseStyle = "CHOOSE PLAY STYLE";
         t.basicStyle = "Basic Mode";
@@ -157,6 +163,12 @@ TextStrings langGetText(Language lang) {
         t.medium = u8"Trung bình";
         t.hard = u8"Khó";
         t.expert = u8"Chuyên gia";
+
+        // V2 #34: man chon nhan vat
+        t.chooseCharacter = u8"CHỌN NHÂN VẬT";
+        t.charPickerP1 = u8"Người chơi 1 — chọn nhân vật";
+        t.charPickerP2 = u8"Người chơi 2 — chọn nhân vật";
+        t.escBack = u8"ESC: Quay lại";
 
         // Kiểu chơi
         t.chooseStyle = u8"CHỌN KIỂU CHƠI";

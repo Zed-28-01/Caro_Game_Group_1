@@ -30,6 +30,12 @@ struct TextStrings {
     std::string hard;
     std::string expert;
 
+    // V2 #34: man chon nhan vat
+    std::string chooseCharacter; // tieu de "CHON NHAN VAT"
+    std::string charPickerP1;    // "Nguoi choi 1 - chon nhan vat"
+    std::string charPickerP2;    // "Nguoi choi 2 - chon nhan vat"
+    std::string escBack;         // hint "ESC: Quay lai" (dung chung man select)
+
     // Chon kieu choi
     std::string chooseStyle;
     std::string basicStyle;

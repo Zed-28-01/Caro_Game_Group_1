@@ -9,14 +9,8 @@
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
-#include <stack> // dùng cho undo nhưng thay phương án thành mảng tính cho dễ implement
 #include <string>
-#include <vector> // phần lớn dùng mảng tĩnh hết
-
-// hiện đã không dùng -> chỉ trên một main chính
-#include <atomic>
-#include <mutex>
-#include <thread>
+#include <vector>
 
 // ============================================================
 // HANG SO GAME (Game Constants)
@@ -31,12 +25,14 @@
 // rất dày đặc).
 #define WINDOW_WIDTH 1280 // Chieu rong cua so
 #define WINDOW_HEIGHT 720 // Chieu cao cua so
-#define MAX_SAVE_FILES 12 // So file save toi da
+// V2 #29: bo gioi han so file save - dung directory_iterator scan thay vi
+// Gamelist.txt manifest. So file gio chi gioi han boi o dia.
 #define WIN_COUNT 5       // So quan lien tiep de thang
 
 // Thoi gian (giay)
 #define MAX_GAME_TIME 600 // 10 phut moi van
 #define MAX_TURN_TIME 20  // 20 giay moi luot
+#define TURN_ALARM_SECONDS 5.f // V2 #27: reo chuong canh bao khi luot con <= 5s
 
 // Mau sac (SFML Colors) - Theme mac dinh
 #define COLOR_BACKGROUND sf::Color(245, 222, 179) // Wheat - nen chinh
@@ -90,6 +86,8 @@
 #define UI_LIST_STEP 35.f // Khoang cach giua cac file
 #define UI_LIST_HALF_WIDTH 250.f
 #define UI_LIST_HALF_HEIGHT 15.f
+// V2 #30: so file hien thi cung luc (scrollable list). Neu nhieu hon thi cuon.
+#define UI_LIST_VISIBLE 10
 
 // ============================================================
 // GAMEPLAY LAYOUT - VI TRI BAN CO + PANEL + TIMER
@@ -116,8 +114,8 @@
 #define UI_GAMEOVER_STATS_DY 40.f    // Cach text ket qua bao nhieu (cho stats)
 #define UI_GAMEOVER_QUESTION_DY 75.f // Cach text ket qua (cho "Choi tiep?")
 #define UI_GAMEOVER_BTN_DY 110.f     // Cach text ket qua (cho nut Yes/No)
-#define UI_GAMEOVER_BTN_GAP_X 50.f   // Khoang cach Yes/No tu tam panel
-#define UI_GAMEOVER_BTN_HALF_W 40.f  // Half-width cho hit-test
+#define UI_GAMEOVER_BTN_GAP_X 95.f   // Khoang cach Yes/No tu tam panel (gian de glow khong de nhau)
+#define UI_GAMEOVER_BTN_HALF_W 55.f  // Half-width cho hit-test (khop be rong pill)
 #define UI_GAMEOVER_BTN_HALF_H 22.f  // Half-height cho hit-test
 
 // ============================================================
@@ -130,6 +128,7 @@ enum GameScreen {
   SCREEN_MODE_SELECT,  // Chon che do: PvP / PvC
   SCREEN_DIFFICULTY,   // Chon do kho AI (chi PvC)
   SCREEN_STYLE_SELECT, // Chon kieu choi: Basic / Speed
+  SCREEN_CHAR_SELECT,  // V2 #34: chon nhan vat (luoi 6 hero)
   SCREEN_INPUT_NAMES,  // Nhap ten nguoi choi
   SCREEN_PLAYING,      // Dang choi
   SCREEN_PAUSE_MENU,   // Menu tam dung (ESC)
@@ -177,73 +176,120 @@ enum Language { LANG_VIETNAMESE, LANG_ENGLISH };
 // ============================================================
 
 // Mot o tren ban co
+// Default 0 (o trong) - tranh warning C26495 (uninitialized member)
 struct Cell {
-  int value; // 0: trong, -1: Player 1 (X), 1: Player 2 (O)
+  int value = 0; // 0: trong, -1: Player 1 (X), 1: Player 2 (O)
 };
 
 // Mot nuoc di (dung cho undo va replay)
+// Default zero-init - tranh warning C26495
 struct Move {
-  int row, col; // Vi tri tren ban co (0-14)
-  int player;   // -1: Player 1, 1: Player 2
+  int row = 0, col = 0; // Vi tri tren ban co (0-14)
+  int player = 0;       // -1: Player 1, 1: Player 2
 };
 
 // Thong tin nguoi choi
+// Default zero-init - tranh warning C26495
 struct Player {
-  std::string name; // Ten (toi da 15 ky tu)
-  int moves;        // So nuoc da di trong van hien tai
-  int totalWins;    // Tong so van thang
+  std::string name;   // Ten (toi da 15 ky tu) - std::string co default empty
+  int moves = 0;      // So nuoc da di trong van hien tai
+  int totalWins = 0;  // Tong so van thang
 };
 
 // Trang thai timer (chess-clock style: moi nguoi co thoi gian rieng)
+// Default zero-init - tranh warning C26495
 struct TimerState {
-  float gameTimeLeftP1; // Thoi gian van con lai cua Player 1 (giay)
-  float gameTimeLeftP2; // Thoi gian van con lai cua Player 2 (giay)
-  float turnTimeLeft;   // Thoi gian con lai cua luot hien tai (giay)
-  bool isRunning;       // Timer co dang chay khong
+  float gameTimeLeftP1 = 0.f; // Thoi gian van con lai cua Player 1 (giay)
+  float gameTimeLeftP2 = 0.f; // Thoi gian van con lai cua Player 2 (giay)
+  float turnTimeLeft = 0.f;   // Thoi gian con lai cua luot hien tai (giay)
+  bool isRunning = false;     // Timer co dang chay khong
+  bool turnAlarmFired = false; // V2 #27: da reo chuong canh bao cho luot nay chua
 };
 
 // Vi tri 5 quan thang (dung de ve hieu ung)
+// Default zero-init - tranh warning C26495
 struct WinLine {
-  int positions[WIN_COUNT][2]; // [i][0] = row, [i][1] = col
-  int count;                   // So quan thang thuc te (co the > 5)
+  int positions[WIN_COUNT][2] = {}; // [i][0] = row, [i][1] = col
+  int count = 0;                    // So quan thang thuc te (co the > 5)
 };
 
 // Toan bo trang thai cua 1 van game (dung cho save/load)
+// Default values cho moi field - tranh warning C26495 va dam bao safe
+// neu code quen goi boardInit/boardResetAll truoc khi doc
 struct GameState {
-  Cell board[BOARD_SIZE][BOARD_SIZE]; // Ban co
-  Player player1;
-  Player player2;
-  bool isPlayer1Turn;       // true = luot Player 1
-  int cursorRow, cursorCol; // Vi tri con tro hien tai
-  GameMode mode;
-  GameStyle style;
-  BotDifficulty difficulty;
-  TimerState timer;
-  Move moveHistory[BOARD_SIZE * BOARD_SIZE]; // Lich su nuoc di (mang tinh)
-  int moveCount;                             // So nuoc di da thuc hien
+  Cell board[BOARD_SIZE][BOARD_SIZE] = {}; // Ban co (zero-init het)
+  Player player1;                          // Default-construct
+  Player player2;                          // Default-construct
+  bool isPlayer1Turn = true;               // Mac dinh P1 di truoc
+  int cursorRow = BOARD_SIZE / 2;          // Mac dinh cursor o tam
+  int cursorCol = BOARD_SIZE / 2;
+  GameMode mode = MODE_PVP;                // Mac dinh PvP
+  GameStyle style = STYLE_BASIC;           // Mac dinh Basic mode
+  BotDifficulty difficulty = BOT_EASY;     // Mac dinh Easy
+  TimerState timer;                        // Default-construct
+  Move moveHistory[BOARD_SIZE * BOARD_SIZE] = {}; // Zero-init history
+  int moveCount = 0;
+
+  // V2: Ai di truoc van nay (1 = P1, 2 = P2)
+  // Mac dinh 1. Sau khi ket thuc 1 van, set = id cua nguoi thua
+  // (nguoi thua di truoc van sau, va luon danh ky hieu X)
+  // Render logic dung field nay de swap X/O texture + icon
+  int firstPlayerOfRound = 1;
+
+  // V2 #34: nhan vat (hero) moi nguoi chon o man Character Select.
+  // Index roster: 0=Goku 1=Vegeta 2=Gohan 3=Piccolo 4=Trunks 5=Krillin
+  // PvC: heroP2 KHONG dung (panel P2 = villain theo do kho)
+  int heroP1 = 0;
+  int heroP2 = 1;
 };
 
 // ============================================================
 // STRUCT - SFML Resources (tai nguyen do hoa/am thanh)
 // ============================================================
 
+// V2 (11/06): bo 3 anh cho 1 nhan vat mascot (idle / win / lose).
+// Anh win/lose co the CHUA ton tai (dang gen dan) -> getSize().x == 0,
+// render se fallback ve idle (loser them tint toi).
+struct MascotSet {
+  sf::Texture idle;
+  sf::Texture win;
+  sf::Texture lose;
+};
+
 // Tat ca font, texture, sound duoc load 1 lan va truyen qua tham chieu
 struct GameResources {
   sf::Font mainFont;  // Font chinh cho menu, UI
   sf::Font titleFont; // Font cho tieu de lon
 
-  sf::Texture backgroundTex; // Hinh nen
-  sf::Texture boardTex;      // Texture ban co (neu co)
+  sf::Texture backgroundTex; // Hinh nen (tinh)
+
+  // V2 #35 PA-2: cac frame nen dong (cat tu video Veo). bgFrameCount=0 -> dung nen tinh.
+  // 120 frame @ 24fps = muot (gan toc do video goc). ~237MB VRAM.
+  static const int BG_FRAME_COUNT = 120;
+  sf::Texture bgFrames[BG_FRAME_COUNT];
+  int bgFrameCount = 0;
+
   sf::Texture xPieceTex;     // Texture quan X (neu co)
   sf::Texture oPieceTex;     // Texture quan O (neu co)
 
-  // Mascot textures - moi player co 3 trang thai
-  sf::Texture mascotP1Idle; // Player 1: dang choi
-  sf::Texture mascotP1Win;  // Player 1: thang
-  sf::Texture mascotP1Over; // Player 1: thua
-  sf::Texture mascotP2Idle; // Player 2: dang choi
-  sf::Texture mascotP2Win;  // Player 2: thang
-  sf::Texture mascotP2Over; // Player 2: thua
+  // Mascot - V2 (11/06 chieu): quay lai 3 trang thai (idle/win/lose) nhu V1.
+  // Thang/thua = doi ANH tu the; thieu anh win/lose -> fallback idle (+tint loser).
+  MascotSet mascotGoku;   // Hero index 0 (hero_goku*.png)
+  MascotSet mascotVegeta; // Hero index 1 (hero_vegeta*.png)
+
+  // V2 #34: heroes cho man chon nhan vat (player chon).
+  MascotSet heroGohan, heroTrunks, heroKrillin, heroPiccolo;
+  // V2 #36: villains theo do kho bot (PvC): Easy/Medium/Hard/Expert.
+  MascotSet villainFrieza, villainCell, villainBuu, villainBroly;
+
+  // V2 (11/06): anh man chon che do kieu 2 tile (mode_pvp.png / mode_pvc.png).
+  // Chua co anh -> tile fallback ve text. (Icon khung vang cu DA BO.)
+  sf::Texture modePvpTex, modePvcTex;
+
+  // V2 (12/06): avatar CHAN DUNG rieng cho man CHON (Character/Difficulty),
+  // tach khoi mascot full-body dung trong gameplay. Thieu -> fallback mascot idle.
+  sf::Texture heroAvatar[6];     // index roster: 0=Goku..5=Krillin
+  sf::Texture villainAvatar[4];  // index do kho: 0=Easy(Frieza)..3=Expert(Broly)
 
   // UI decoration textures (style polish)
   sf::Texture logoCaroTex;     // Logo "CARO" sticker cho Main Menu
@@ -251,11 +297,18 @@ struct GameResources {
   sf::Texture bannerDefeatTex; // Banner "DEFEAT" cho loser
   sf::Texture buttonFrameTex;  // Khung bo tron cho menu items
 
-  sf::SoundBuffer moveSfx;  // Am thanh di chuyen cursor
+  // V2 #33: fragment shader cho hieu ung "shockwave" radial khi co nguoi thang.
+  // shockwaveOk = false neu GPU/driver khong ho tro shader -> bo qua (game van chay).
+  sf::Shader shockwaveShader;
+  bool shockwaveOk = false;
+
   sf::SoundBuffer placeSfx; // Am thanh dat quan
   sf::SoundBuffer winSfx;   // Am thanh thang
   sf::SoundBuffer drawSfx;  // Am thanh hoa
   sf::SoundBuffer menuSfx;  // Am thanh menu select
+  sf::SoundBuffer undoSfx;  // V2 #27: am thanh hoan tac (phim Z)
+  sf::SoundBuffer hintSfx;  // V2 #27: am thanh goi y (phim H, PvC)
+  sf::SoundBuffer alarmSfx; // V2 #27: chuong canh bao luot sap het gio (Speed)
 
   sf::Music bgMusic; // Nhac nen
 };

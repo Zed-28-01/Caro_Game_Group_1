@@ -16,8 +16,15 @@ bool soundLoadAll(GameResources& res);
 // NHAC NEN
 // ============================================================
 
-// Bat/tat nhac nen
+// V2 #27: track nhac nen theo man (menu vs gameplay)
+enum BGMTrack { BGM_MENU = 0, BGM_GAME = 1 };
+
+// Bat/tat nhac nen (pause/resume track hien tai)
 void soundPlayBGM(GameResources& res, bool play);
+
+// V2 #27: chuyen sang track BGM tuong ung (mo file + loop + play).
+// Goi lap lai cung track = no-op (khong mo lai) -> an toan goi moi frame.
+void soundPlayBGMTrack(GameResources& res, int track);
 
 // Thay doi am luong nhac nen (0 - 100)
 void soundSetBGMVolume(GameResources& res, int volume);
@@ -25,9 +32,6 @@ void soundSetBGMVolume(GameResources& res, int volume);
 // ============================================================
 // HIEU UNG AM THANH
 // ============================================================
-
-// Phat am thanh di chuyen cursor
-void soundPlayMove(GameResources& res);
 
 // Phat am thanh dat quan co
 void soundPlayPlace(GameResources& res);
@@ -40,6 +44,11 @@ void soundPlayWin(GameResources& res);
 
 // Phat am thanh hoa
 void soundPlayDraw(GameResources& res);
+
+// V2 #27: am thanh hoan tac (undo), goi y (hint), chuong canh bao het gio luot
+void soundPlayUndo(GameResources& res);
+void soundPlayHint(GameResources& res);
+void soundPlayAlarm(GameResources& res);
 
 // Bat/tat toan bo hieu ung am thanh
 void soundSetSFXEnabled(bool enabled);

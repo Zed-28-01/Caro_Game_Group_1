@@ -28,6 +28,7 @@
     <ClCompile Include="..\src\save_load.cpp" />
     <ClCompile Include="..\src\sound.cpp" />
     <ClCompile Include="..\src\timer.cpp" />
+    <ClCompile Include="..\src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\board.h" />
@@ -36,9 +37,11 @@
     <ClInclude Include="..\include\language.h" />
     <ClInclude Include="..\include\menu.h" />
     <ClInclude Include="..\include\render.h" />
+    <ClInclude Include="..\include\rounded_rect.h" />
     <ClInclude Include="..\include\save_load.h" />
     <ClInclude Include="..\include\sound.h" />
     <ClInclude Include="..\include\timer.h" />
+    <ClInclude Include="..\include\utils.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

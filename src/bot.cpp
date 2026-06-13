@@ -1,4 +1,5 @@
 #include "bot.h"
+#include "utils.h" // DIRS, inBounds, countConsecutive (dung chung voi board.cpp)
 #include <climits>
 #include <cstdlib>
 #include <ctime>
@@ -19,28 +20,8 @@ static const int SCORE_ONE_HALF = 5;       // 1 mo 1 dau
 static const int BOT_PLAYER = 1;
 static const int HUMAN_PLAYER = -1;
 
-// 4 huong
-static const int DIRS[4][2] = {
-    {0, 1}, {1, 0}, {1, 1}, {1, -1}}; // trùng với board.cpp
-
-// Tien ich noi bo - giống hàm trong board.cpp
-static bool inBounds(int r, int c) {
-  return r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
-}
-
-// Ham dem lien tiep 1 huong - giống countDirection trong board nhưng bỏ khối
-// GameState& State để nhẹ đi
-int botCountConsecutive(const Cell board[BOARD_SIZE][BOARD_SIZE], int row,
-                        int col, int dRow, int dCol, int player) {
-  int count = 0;
-  int r = row + dRow, c = col + dCol;
-  while (inBounds(r, c) && board[r][c].value == player) {
-    count++;
-    r += dRow;
-    c += dCol;
-  }
-  return count;
-}
+// DIRS, inBounds, countConsecutive da duoc chuyen sang utils.h
+// (de chia se voi board.cpp - DRY principle)
 
 // Tìm kiếm các ô ứng viên để giảm số lượng kịch bản mà bot cần nghĩ
 // Xét các ô trong mà có quan cách tới ô đã có đánh trong bán kính radius (2)
@@ -120,8 +101,8 @@ bool botCheckImmediateWin(const Cell board[BOARD_SIZE][BOARD_SIZE], int player,
       for (int d = 0; d < 4; d++) {
         int total =
             1 +
-            botCountConsecutive(board, r, c, DIRS[d][0], DIRS[d][1], player) +
-            botCountConsecutive(board, r, c, -DIRS[d][0], -DIRS[d][1], player);
+            countConsecutive(board, r, c, DIRS[d][0], DIRS[d][1], player) +
+            countConsecutive(board, r, c, -DIRS[d][0], -DIRS[d][1], player);
         if (total >= WIN_COUNT) {
           outRow = r;
           outCol = c;
@@ -148,8 +129,8 @@ bool botCheckImmediateBlock(const Cell board[BOARD_SIZE][BOARD_SIZE],
 int botScoreLine(const Cell board[BOARD_SIZE][BOARD_SIZE], int row, int col,
                  int dRow, int dCol, int player) {
   // Dem lien tiep 2 phia
-  int forward = botCountConsecutive(board, row, col, dRow, dCol, player);
-  int backward = botCountConsecutive(board, row, col, -dRow, -dCol, player);
+  int forward = countConsecutive(board, row, col, dRow, dCol, player);
+  int backward = countConsecutive(board, row, col, -dRow, -dCol, player);
   int total = forward + backward + 1; // +1 cho o (row,col)
 
   // Dem so dau "mo" (o trong) - quan trong de phan biet 3 mo 2 dau vs 3 bi chan
