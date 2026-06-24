@@ -6,9 +6,7 @@
 #include <SFML/Graphics.hpp>
 #include <string>
 
-// ============================================================
 // HANG SO GAME (Game Constants)
-// ============================================================
 
 #define BOARD_SIZE 15 // Kich thuoc ban co 15x15
 #define CELL_SIZE 40 // Mỗi ô trên bàn cờ được vẽ với kích thước 40 x 40 (pixel)
@@ -46,11 +44,8 @@
 #define COLOR_TIMER_BAR sf::Color(46, 204, 113)  // Xanh la - timer bar day
 #define COLOR_TIMER_LOW sf::Color(231, 76, 60)   // Do - timer sap het
 
-// ============================================================
-// HANG SO LAYOUT UI (CHIA SE GIUA render.cpp VA menu.cpp)
-// Khi redesign UI: chi can sua o day, ca 2 file kia tu khop
-// Don vi su dung là pixel
-// ============================================================
+// HANG SO LAYOUT UI (CHIA SE GIUA render.cpp VA menu.cpp). Don vi pixel.
+// Khi redesign UI: chi can sua o day, ca 2 file kia tu khop.
 
 // Menu chuan (Main/Mode/Difficulty/Style) - items o giua man hinh
 #define UI_MENU_TITLE_Y 120.f    // Y cua tieu de
@@ -85,9 +80,7 @@
 #define UI_PAUSE_START_Y 230.f  // Y cua item dau tien (6 items)
 #define UI_PAUSE_STEP    60.f   // Khoang cach giua cac items
 
-// ============================================================
 // GAMEPLAY LAYOUT - VI TRI BAN CO + PANEL + TIMER
-// ============================================================
 
 // Ban co (goc trai-tren)
 #define UI_BOARD_OFFSET_X 40.f
@@ -114,9 +107,7 @@
 #define UI_GAMEOVER_BTN_HALF_W 55.f  // Half-width cho hit-test (khop be rong pill)
 #define UI_GAMEOVER_BTN_HALF_H 22.f  // Half-height cho hit-test
 
-// ============================================================
 // ENUM - Trang thai game
-// ============================================================
 
 // Trang thai man hinh hien tai
 enum GameScreen {
@@ -167,9 +158,7 @@ enum GameResult {
 // Ngon ngu
 enum Language { LANG_VIETNAMESE, LANG_ENGLISH };
 
-// ============================================================
 // STRUCT - Cau truc du lieu
-// ============================================================
 
 // Mot o tren ban co
 // Default 0 (o trong) - tranh warning C26495 (uninitialized member)
@@ -240,9 +229,7 @@ struct GameState {
   int heroP2 = 1;
 };
 
-// ============================================================
 // STRUCT - SFML Resources (tai nguyen do hoa/am thanh)
-// ============================================================
 
 // V2 (11/06): bo 3 anh cho 1 nhan vat mascot (idle / win / lose).
 // Anh win/lose co the CHUA ton tai (dang gen dan) -> getSize().x == 0,

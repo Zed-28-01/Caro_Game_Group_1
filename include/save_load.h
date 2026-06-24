@@ -6,29 +6,21 @@
 #include <string>
 #include <vector>
 
-// ============================================================
 // LUU GAME
-// ============================================================
 
-// Luu toan bo trang thai game vao file
-// filename: ten file (khong can duoi .txt, se tu them)
+// Luu toan bo trang thai game vao file (se tu them duoi .txt)
 // Tra ve true neu luu thanh cong
 bool saveGame(const GameState& state, const std::string& filename);
 
-// ============================================================
 // TAI GAME
-// ============================================================
 
 // Tai trang thai game tu file
 // Tra ve true neu tai thanh cong, false neu file loi
 bool loadGame(GameState& state, const std::string& filename);
 
-// ============================================================
-// QUAN LY DANH SACH SAVE (V2 #29 - directory scan, bo Gamelist.txt)
-// ============================================================
+// QUAN LY DANH SACH SAVE (directory scan)
 
-// Scan thu muc saves/ bang std::filesystem::directory_iterator, rebuild cache ten
-// file, tra ve danh sach ten (sort theo thoi gian sua - moi nhat len dau).
+// Scan thu muc saves/ va tra ve danh sach ten file (sort theo thoi gian sua - moi nhat len dau)
 // KHONG con gioi han so luong file (bo MAX_SAVE_FILES).
 std::vector<std::string> saveScanFiles();
 

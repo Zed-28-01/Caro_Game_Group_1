@@ -4,9 +4,7 @@
 
 #include "game_types.h"
 
-// ============================================================
 // STRUCT CHUA TAT CA VAN BAN
-// ============================================================
 
 struct TextStrings {
     // Menu chinh
@@ -114,9 +112,7 @@ struct TextStrings {
     std::string msgLoadError;      // "Loi tai file!"
 };
 
-// ============================================================
 // HAM
-// ============================================================
 
 // Lay bo van ban theo ngon ngu - tra const& (3.1: cache 2 ban static, khong copy)
 const TextStrings& langGetText(Language lang);

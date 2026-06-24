@@ -4,24 +4,19 @@
 
 #include "game_types.h"
 
-// ============================================================
 // KHOI TAO & RESET
-// ============================================================
 
 // Khoi tao ban co moi - dat tat ca o ve 0
 void boardInit(GameState& state);
 
-// Reset van moi trong cung 1 tran (giu ten, doi luot di truoc)
-// V2: loserPlayerId = id cua nguoi thua van vua roi (1 = P1, 2 = P2, 0 = hoa)
-// Nguoi thua di truoc van sau va luon danh ky hieu X
+// Reset van moi trong cung tran. V2: loserPlayerId (1=P1, 2=P2, 0=hoa).
+// Nguoi thua di truoc o van sau va luon danh ky hieu X.
 void boardResetRound(GameState& state, int loserPlayerId = 0);
 
 // Reset hoan toan (xoa ca thong ke)
 void boardResetAll(GameState& state);
 
-// ============================================================
 // DANH DAU & DI CHUYEN
-// ============================================================
 
 // Dat quan tai vi tri (row, col) cho nguoi choi hien tai
 // Tra ve: true neu dat thanh cong, false neu o da co quan
@@ -33,9 +28,7 @@ void boardSwitchTurn(GameState& state);
 // Di chuyen cursor (kiem tra bien)
 void boardMoveCursor(GameState& state, int dRow, int dCol);
 
-// ============================================================
 // KIEM TRA THANG / HOA
-// ============================================================
 
 // Kiem tra nguoi choi vua danh tai (row, col) co thang khong
 // Neu thang: dien thong tin vao winLine va tra ve true
@@ -48,23 +41,17 @@ bool boardCheckDraw(const GameState& state);
 // Tra ve GameResult tuong ung
 GameResult boardEvaluateResult(const GameState& state, int lastRow, int lastCol, WinLine& winLine);
 
-// ============================================================
 // UNDO
-// ============================================================
 
-// Huy nuoc di cuoi cung
-// PvP: huy 1 nuoc, PvC: huy 2 nuoc (nguoi + may)
-// Tra ve: so nuoc da huy (0 neu khong co gi de huy)
+// Huy nuoc di cuoi (PvP: huy 1 nuoc, PvC: huy 2 nuoc)
+// Tra ve so nuoc da huy (0 neu khong the huy them)
 int boardUndo(GameState& state);
 
-// ============================================================
 // TIEN ICH
-// ============================================================
 
 // Kiem tra o (row, col) co trong khong
 bool boardIsEmpty(const GameState& state, int row, int col);
 
-// Luu y: boardIsValid da duoc chuyen sang utils.h thanh ham inBounds
-// (dung chung voi bot.cpp - DRY)
+// Luu y: boardIsValid da duoc chuyen sang utils.h thanh ham inBounds (DRY)
 
 #endif // BOARD_H
