@@ -19,10 +19,9 @@ void langToggle() {
     currentLanguage = (currentLanguage == LANG_ENGLISH) ? LANG_VIETNAMESE : LANG_ENGLISH;
 }
 
-// Lấy bộ văn bản theo ngôn ngữ đã chọn
-TextStrings langGetText(Language lang) {
-    TextStrings t;
-
+// Build noi bo: dien toan bo string vao t theo ngon ngu.
+// Tach rieng de langGetText cache 2 ban static (3.1).
+static void langBuild(Language lang, TextStrings& t) {
     if (lang == LANG_ENGLISH) {
         // Main menu
         t.title = "CARO GAME";
@@ -59,15 +58,11 @@ TextStrings langGetText(Language lang) {
         // Nhập tên
         t.enterName1 = "Enter Player 1 Name:";
         t.enterName2 = "Enter Player 2 Name:";
-        t.nameError = "Name cannot be empty!";
         t.nameDuplicate = "Name already taken!";
 
         // Gameplay
-        t.turn = "Turn: ";
         t.moves = "Moves: ";
         t.wins = "Wins: ";
-        t.hintText = "Press H for Hint";
-        t.undoText = "Press Z to Undo";
 
         // Kết quả
         t.playerWin = " wins!";
@@ -78,13 +73,7 @@ TextStrings langGetText(Language lang) {
 
         // Save/Load
         t.enterSaveName = "Enter save file name:";
-        t.saveSuccess = "Game saved successfully!";
-        t.loadSuccess = "Game loaded successfully!";
         t.fileNotFound = "Empty list!";
-        t.fileExists = "File already exists!";
-        t.maxSaveReached = "Max save slots reached!";
-        t.deleteFile = "Delete File";
-        t.renameFile = "Rename File";
 
         // Cài đặt
         t.language = "Language:";
@@ -98,11 +87,6 @@ TextStrings langGetText(Language lang) {
         t.resume = "RESUME";
         t.saveGame = "SAVE GAME";
         t.returnMenu = "MAIN MENU";
-
-        // Timer
-        t.gameTime = "Time: ";
-        t.turnTime = "Turn: ";
-        t.timeUp = "Time's up!";
 
         // Hướng dẫn điều khiển
         t.guideMove = "W/A/S/D: Move";
@@ -125,6 +109,7 @@ TextStrings langGetText(Language lang) {
 
         t.inputNameHintPvP = "Tab: Switch field | Enter: Confirm";
         t.inputNameHintPvC = "Enter: Confirm";
+        t.nameTooLong = "Player name can be at most 15 characters!";
         t.botName = "Computer";
 
         // Panel + timer
@@ -137,8 +122,7 @@ TextStrings langGetText(Language lang) {
         // Save/Load messages
         t.msgSaveOK = "Game saved successfully!";
         t.msgSaveError = "Save file error!";
-        t.msgFileExists = "File already exists!";
-        t.msgMaxFiles = "Max 12 save files reached!";
+        t.msgFileExists = "File exists - press Enter again to overwrite!";
         t.msgFileDeleted = "File deleted!";
         t.msgLoadError = "Failed to load file!";
     }
@@ -178,15 +162,11 @@ TextStrings langGetText(Language lang) {
         // Nhập tên
         t.enterName1 = u8"Nhập tên Người chơi 1:";
         t.enterName2 = u8"Nhập tên Người chơi 2:";
-        t.nameError = u8"Tên không được để trống!";
         t.nameDuplicate = u8"Tên đã bị trùng!";
 
         // Gameplay
-        t.turn = u8"Lượt: ";
         t.moves = u8"Số bước: ";
         t.wins = u8"Thắng: ";
-        t.hintText = u8"Nhấn H để xem gợi ý";
-        t.undoText = u8"Nhấn Z để đi lại";
 
         // Kết quả
         t.playerWin = u8" thắng!";
@@ -197,13 +177,7 @@ TextStrings langGetText(Language lang) {
 
         // Save/Load
         t.enterSaveName = u8"Nhập tên file lưu:";
-        t.saveSuccess = u8"Lưu game thành công!";
-        t.loadSuccess = u8"Tải game thành công!";
         t.fileNotFound = u8"Danh sách trống!";
-        t.fileExists = u8"File đã tồn tại!";
-        t.maxSaveReached = u8"Đã đạt giới hạn số lượng file lưu tối đa!";
-        t.deleteFile = u8"Xóa File";
-        t.renameFile = u8"Đổi tên File";
 
         // Cài đặt
         t.language = u8"Ngôn ngữ:";
@@ -217,11 +191,6 @@ TextStrings langGetText(Language lang) {
         t.resume = u8"TIẾP TỤC";
         t.saveGame = u8"LƯU GAME";
         t.returnMenu = u8"TRỞ VỀ MENU CHÍNH";
-
-        // Timer
-        t.gameTime = u8"Thời gian: ";
-        t.turnTime = u8"Lượt: ";
-        t.timeUp = u8"Hết giờ!";
 
         // Hướng dẫn điều khiển
         t.guideMove = u8"W/A/S/D: Di chuyển";
@@ -244,6 +213,7 @@ TextStrings langGetText(Language lang) {
 
         t.inputNameHintPvP = u8"Tab: Chuyển ô | Enter: Xác nhận";
         t.inputNameHintPvC = u8"Enter: Xác nhận";
+        t.nameTooLong = u8"Tên người chơi chỉ tối đa là 15 kí tự!";
         t.botName = u8"Máy";
 
         // Panel + timer
@@ -256,11 +226,23 @@ TextStrings langGetText(Language lang) {
         // Save/Load messages
         t.msgSaveOK = u8"Lưu thành công!";
         t.msgSaveError = u8"Lỗi lưu file!";
-        t.msgFileExists = u8"File đã tồn tại!";
-        t.msgMaxFiles = u8"Đã đạt giới hạn 12 file!";
+        t.msgFileExists = u8"File đã tồn tại — Enter lần nữa để ghi đè!";
         t.msgFileDeleted = u8"Đã xóa file!";
         t.msgLoadError = u8"Lỗi tải file!";
     }
+}
 
-    return t;
+// Lay bo van ban theo ngon ngu - tra const& (3.1: tranh copy ~75 string moi
+// lan goi, truoc day gan ~300-400 cap phat heap/frame). 2 ban EN/VI build 1
+// lan (lazy), song suot vong doi chuong trinh -> tra tham chieu an toan.
+const TextStrings& langGetText(Language lang) {
+    static TextStrings en;
+    static TextStrings vi;
+    static bool built = false;
+    if (!built) {
+        langBuild(LANG_ENGLISH, en);
+        langBuild(LANG_VIETNAMESE, vi);
+        built = true;
+    }
+    return (lang == LANG_VIETNAMESE) ? vi : en;
 }

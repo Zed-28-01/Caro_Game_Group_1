@@ -67,7 +67,4 @@ bool boardIsEmpty(const GameState& state, int row, int col);
 // Luu y: boardIsValid da duoc chuyen sang utils.h thanh ham inBounds
 // (dung chung voi bot.cpp - DRY)
 
-// Dem so o trong con lai
-int boardCountEmpty(const GameState& state);
-
 #endif // BOARD_H

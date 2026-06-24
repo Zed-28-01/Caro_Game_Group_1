@@ -3,6 +3,7 @@
 #define RENDER_H
 
 #include "game_types.h"
+#include <vector> // ConfettiSystem + saveList params (game_types.h khong con keo <vector>)
 
 // ============================================================
 // WINDOW RESIZE / LETTERBOX
@@ -26,15 +27,6 @@ bool handleCommonEvent(sf::RenderWindow& window, sf::Event& event);
 // Load tat ca font, texture, sound tu thu muc assets/
 // Tra ve true neu thanh cong, false neu thieu file
 bool renderLoadResources(GameResources& res);
-
-// ============================================================
-// VE MAN HINH CHINH (GOI TRONG GAME LOOP)
-// ============================================================
-
-// Ve man hinh tuong ung voi trang thai hien tai
-// Ham nay la "dispatcher" - goi cac ham ve cu the ben duoi
-void renderScreen(sf::RenderWindow& window, const GameState& state,
-                  const GameResources& res, GameScreen screen);
 
 // ============================================================
 // VE MENU
@@ -178,14 +170,6 @@ void renderBotThinking(sf::RenderWindow& window, const GameResources& res);
 void renderPlaceEffect(sf::RenderWindow& window, int row, int col,
                        int player, float progress);
 
-// Hieu ung khi thang (nhap nhay, phan hoa, ...)
-void renderWinEffect(sf::RenderWindow& window, const WinLine& winLine,
-                     const GameResources& res, float progress);
-
-// Hieu ung khi hoa
-void renderDrawEffect(sf::RenderWindow& window, const GameResources& res,
-                      float progress);
-
 // ============================================================
 // V2 #32 - CONFETTI (particle system, batched VertexArray)
 // ============================================================
@@ -217,9 +201,6 @@ void confettiUpdate(ConfettiSystem& sys, float dt);
 
 // Ve toan bo confetti bang 1 sf::VertexArray (Quads) -> 1 draw call.
 void confettiDraw(sf::RenderWindow& window, const ConfettiSystem& sys);
-
-// Con hat dang song khong (de biet con can ve nua khong).
-bool confettiActive(const ConfettiSystem& sys);
 
 // ============================================================
 // V2 #33 - VICTORY SHOCKWAVE (fragment shader, isAvailable-guarded)

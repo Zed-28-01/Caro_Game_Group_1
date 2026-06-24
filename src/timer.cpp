@@ -65,14 +65,6 @@ float timerGetTurnPercent(const TimerState &timer) {
   return timer.turnTimeLeft / MAX_TURN_TIME;
 }
 
-float timerGetGamePercentP1(const TimerState &timer) {
-  return timer.gameTimeLeftP1 / MAX_GAME_TIME;
-}
-
-float timerGetGamePercentP2(const TimerState &timer) {
-  return timer.gameTimeLeftP2 / MAX_GAME_TIME;
-}
-
 bool timerIsTurnExpired(const TimerState &timer) {
   return timer.turnTimeLeft <= 0;
 }

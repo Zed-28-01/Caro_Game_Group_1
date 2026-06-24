@@ -5,22 +5,20 @@
 #include "game_types.h"
 
 // ============================================================
-// KHOI TAO
-// ============================================================
-
-// Load tat ca file am thanh tu assets/sounds/
-// Tra ve true neu load thanh cong
-bool soundLoadAll(GameResources& res);
-
-// ============================================================
 // NHAC NEN
 // ============================================================
 
 // V2 #27: track nhac nen theo man (menu vs gameplay)
 enum BGMTrack { BGM_MENU = 0, BGM_GAME = 1 };
 
-// Bat/tat nhac nen (pause/resume track hien tai)
-void soundPlayBGM(GameResources& res, bool play);
+// V2 #6 (audit): load cac SoundBuffer SFX (truoc day nam trong renderLoadResources
+// - sai module). Goi 1 lan trong main() sau renderLoadResources.
+void soundLoadResources(GameResources& res);
+
+// V2 R8 (audit): dung + go buffer khoi soundPool static TRUOC khi thoat
+// (sf::Sound static co the song lau hon audio device -> SFML khuyen cao tranh).
+// Goi cuoi main() truoc khi res va device teardown.
+void soundShutdown();
 
 // V2 #27: chuyen sang track BGM tuong ung (mo file + loop + play).
 // Goi lap lai cung track = no-op (khong mo lai) -> an toan goi moi frame.

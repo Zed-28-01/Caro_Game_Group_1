@@ -12,17 +12,6 @@ bool boardIsEmpty(const GameState &state, int row, int col) {
   return state.board[row][col].value == 0;
 }
 
-int boardCountEmpty(const GameState &state) {
-  int count = 0;
-  for (int r = 0; r < BOARD_SIZE; r++) {
-    for (int c = 0; c < BOARD_SIZE; c++) {
-      if (state.board[r][c].value == 0)
-        count++;
-    }
-  }
-  return count;
-}
-
 // ============================================================
 // KHOI TAO & RESET
 // ============================================================
@@ -91,7 +80,7 @@ bool boardPlacePiece(GameState &state, int row, int col) {
   if (!boardIsEmpty(state, row, col))
     return false;
 
-  int value = state.isPlayer1Turn ? -1 : 1;
+  int value = state.isPlayer1Turn ? CELL_P1 : CELL_P2;
   state.board[row][col].value = value;
 
   state.moveHistory[state.moveCount] = {row, col, value};
@@ -177,7 +166,7 @@ bool boardCheckDraw(const GameState &state) {
 GameResult boardEvaluateResult(const GameState &state, int lastRow, int lastCol,
                                WinLine &winline) {
   if (boardCheckWin(state, lastRow, lastCol, winline)) {
-    if (state.board[lastRow][lastCol].value == -1)
+    if (state.board[lastRow][lastCol].value == CELL_P1)
       return RESULT_PLAYER1_WIN;
     else
       return RESULT_PLAYER2_WIN;
@@ -209,7 +198,7 @@ int boardUndo(GameState &state) {
 
     state.board[lastMove.row][lastMove.col].value = 0;
 
-    if (lastMove.player == -1)
+    if (lastMove.player == CELL_P1)
       state.player1.moves--;
     else
       state.player2.moves--;
