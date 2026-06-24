@@ -1,3 +1,0 @@
-language=0
-bgm_volume=100
-sfx_enabled=1

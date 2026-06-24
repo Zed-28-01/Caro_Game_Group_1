@@ -4,17 +4,13 @@
 
 #include "game_types.h"
 
-// ============================================================
 // GAME LOOP CHINH
-// ============================================================
 
 // Vong lap chinh cua game - xu ly moi thu
 // Goi tu main(), chay cho den khi nguoi choi thoat
 void gameRun(sf::RenderWindow& window, GameResources& res);
 
-// ============================================================
 // XU LY TUNG MAN HINH
-// ============================================================
 
 // Xu ly Main Menu: New Game, Load, Settings, Help, About, Exit
 // Tra ve GameScreen tiep theo can chuyen sang
@@ -41,13 +37,10 @@ GameScreen handleCharSelect(sf::RenderWindow& window, GameResources& res,
 GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
                             GameState& state);
 
-// ============================================================
 // XU LY GAMEPLAY
-// ============================================================
 
-// Vong lap gameplay chinh (choi game)
-// Xu ly: input (WASD/Enter/Z/ESC/H), bot turn, timer, win/draw check
-// Tra ve GameScreen tiep theo khi game ket thuc hoac ESC
+// Vong lap gameplay chinh: xu ly input, bot turn, timer, win/draw check
+// Tra ve GameScreen tiep theo khi game ket thuc hoac an ESC
 GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                           GameState& state);
 
@@ -57,18 +50,13 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
                            GameState& state);
 
 // Xu ly man hinh ket thuc van
-// Tra ve: GameScreen (choi tiep, ve menu, ...)
-// menu.h
+// Tra ve: GameScreen tiep theo (choi tiep, ve menu, ...)
 GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
     GameState& state, GameResult result, const WinLine& winLine);
-// ============================================================
 // XU LY SAVE / LOAD / SETTINGS
-// ============================================================
 
-// exitTarget = man hinh dieu huong toi khi nguoi choi nhan Back/ESC roi man Luu.
-//   - Mac dinh SCREEN_PLAYING: mo tu trong van DANG choi -> quay lai ban co.
-//   - Mo tu Game Over (van da KET THUC) -> truyen SCREEN_MAIN_MENU de ket thuc
-//     vong doi van, tranh quay lai man ket thuc da "chet".
+// exitTarget = man hinh dieu huong toi khi nhan Back/ESC roi man Luu (mac dinh SCREEN_PLAYING).
+// Neu mo tu Game Over thi truyen SCREEN_MAIN_MENU de tranh quay lai man da ket thuc.
 GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
                             GameState& state,
                             GameScreen exitTarget = SCREEN_PLAYING);

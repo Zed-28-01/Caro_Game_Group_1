@@ -4,20 +4,12 @@
 
 #include "game_types.h"
 
-// ============================================================
-// TIMER CHESS-CLOCK: moi nguoi co thoi gian rieng (gameTimeLeftP1/P2)
-// + 1 turn timer dung chung cho luot hien tai
-// ============================================================
+// TIMER CHESS-CLOCK: moi nguoi co thoi gian rieng (gameTimeLeftP1/P2) + 1 turn timer
 
-// Khoi tao / reset timer cho van moi
-// gameTime: thoi gian van CUA MOI NGUOI (vd 600s = 10 phut/nguoi)
-// turnTime: thoi gian luot (vd 20s)
+// Khoi tao timer (gameTime: thoi gian moi nguoi, turnTime: thoi gian luot)
 void timerStart(TimerState& timer, float gameTime, float turnTime);
 
-// Cap nhat timer moi frame (goi trong game loop)
-// deltaTime: thoi gian da troi qua tu frame truoc (giay)
-// isPlayer1Turn: dang la luot cua P1? Chi tru thoi gian van CUA NGUOI DANG DI
-// Kiem tra hat thoi gian dung timerIsGameExpiredP1/P2 (clean separation)
+// Cap nhat timer moi frame, tru thoi gian cua nguoi dang di.
 void timerUpdate(TimerState& timer, float deltaTime, bool isPlayer1Turn);
 
 // Reset thoi gian luot moi (goi khi nguoi choi vua danh xong)
@@ -33,12 +25,9 @@ void timerResume(TimerState& timer);
 void timerConsumeP1(TimerState& timer, float seconds);
 void timerConsumeP2(TimerState& timer, float seconds);
 
-// ============================================================
 // TRUY VAN TRANG THAI
-// ============================================================
 
-// Lay phan tram thoi gian luot con lai (0.0 - 1.0)
-// Dung de ve progress bar
+// Lay phan tram thoi gian luot con lai de ve progress bar
 float timerGetTurnPercent(const TimerState& timer);
 
 // Kiem tra luot hien tai het thoi gian chua

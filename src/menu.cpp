@@ -1,4 +1,4 @@
-﻿#include "menu.h"
+#include "menu.h"
 #include "board.h"
 #include "render.h"
 #include "timer.h"
@@ -7,13 +7,10 @@
 #include "save_load.h"
 #include "sound.h"
 
-
-// GAME LOOP CHINH
 void gameRun(sf::RenderWindow& window, GameResources& res) {
     GameState state;
     boardResetAll(state);
 
-    // Phat nhac nen menu (soundPlayBGMTrack tu mo file + setLoop + setVolume)
     soundPlayBGMTrack(res, BGM_MENU);
 
     GameScreen currentScreen = SCREEN_MAIN_MENU;
@@ -21,7 +18,6 @@ void gameRun(sf::RenderWindow& window, GameResources& res) {
     while (window.isOpen()) {
         GameScreen nextScreen = currentScreen;
 
-        // V2 #27: nhac nen theo man - man choi dung bgm_game, con lai dung bgm_menu
         soundPlayBGMTrack(res, (currentScreen == SCREEN_PLAYING) ? BGM_GAME : BGM_MENU);
 
         switch (currentScreen) {
@@ -59,10 +55,7 @@ void gameRun(sf::RenderWindow& window, GameResources& res) {
             nextScreen = handleLoadScreen(window, res, state);
             break;
         default:
-            // R7 (audit): man hinh khong xac dinh -> ve Main Menu thay vi tat game
-            // (tranh lo return SCREEN_GAME_OVER/PAUSE/SAVE lam dong game dot ngot).
-            // Nut Thoat o Main Menu tu goi window.close() rieng; nut X cua so dong
-            // qua handleCommonEvent -> while(window.isOpen()) thoat binh thuong.
+
             nextScreen = SCREEN_MAIN_MENU;
             break;
         }
@@ -71,14 +64,6 @@ void gameRun(sf::RenderWindow& window, GameResources& res) {
     }
 }
 
-
-
-// ============================================================
-// MAIN MENU
-// ============================================================
-
-// Helper: hit-test menu items can giua man hinh (dung cho menu chuan)
-// Tra ve index cua item duoc hover, hoac -1 neu khong trung
 static int menuHitTest(float mx, float my, float startY, float step,
     int itemCount, float halfW = 200.f, float halfH = 22.f) {
     if (mx < WINDOW_WIDTH / 2.f - halfW || mx > WINDOW_WIDTH / 2.f + halfW)
@@ -91,8 +76,6 @@ static int menuHitTest(float mx, float my, float startY, float step,
     return -1;
 }
 
-// D9 (audit): buoc dieu huong menu co wrap-around. delta = +1 (sau), -1 (truoc),
-// +cols (nhay hang trong luoi). Gom cong thuc ((i+delta)%n + n)%n lap ~7 handler.
 static int menuNavStep(int index, int count, int delta) {
     return ((index + delta) % count + count) % count;
 }
@@ -102,7 +85,6 @@ GameScreen handleMainMenu(sf::RenderWindow& window, GameResources& res,
     int menuIndex = 0;
     const int MENU_COUNT = 6;
 
-    // Lambda: thuc thi nuoc duoc chon
     auto confirm = [&]() -> GameScreen {
         soundPlaySelect(res);
         switch (menuIndex) {
@@ -121,14 +103,12 @@ GameScreen handleMainMenu(sf::RenderWindow& window, GameResources& res,
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
-            // MOUSE HOVER
             if (event.type == sf::Event::MouseMoved) {
                 int hit = menuHitTest((float)event.mouseMove.x,
                     (float)event.mouseMove.y, UI_MENU_START_Y, UI_MENU_STEP, MENU_COUNT);
                 if (hit >= 0) menuIndex = hit;
             }
 
-            // MOUSE CLICK
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Left) {
                 int hit = menuHitTest((float)event.mouseButton.x,
@@ -143,11 +123,11 @@ GameScreen handleMainMenu(sf::RenderWindow& window, GameResources& res,
                 switch (event.key.code) {
                 case sf::Keyboard::Up:
                 case sf::Keyboard::W:
-                    menuIndex = menuNavStep(menuIndex, MENU_COUNT, -1); // D9
+                    menuIndex = menuNavStep(menuIndex, MENU_COUNT, -1);
                     break;
                 case sf::Keyboard::Down:
                 case sf::Keyboard::S:
-                    menuIndex = menuNavStep(menuIndex, MENU_COUNT, +1); // D9
+                    menuIndex = menuNavStep(menuIndex, MENU_COUNT, +1);
                     break;
                 case sf::Keyboard::Enter:
                     return confirm();
@@ -162,13 +142,9 @@ GameScreen handleMainMenu(sf::RenderWindow& window, GameResources& res,
     return SCREEN_MAIN_MENU;
 }
 
-// ============================================================
-// CHON CHE DO
-// ============================================================
-
 GameScreen handleModeSelect(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
-    int menuIndex = 0; // 0 = PvP, 1 = PvC
+    int menuIndex = 0;
 
     auto confirm = [&]() -> GameScreen {
         soundPlaySelect(res);
@@ -182,7 +158,6 @@ GameScreen handleModeSelect(sf::RenderWindow& window, GameResources& res,
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
-            // V2 (11/06): 2 tile ngang (hit-test rieng) + nut Back goc trai duoi
             if (event.type == sf::Event::MouseMoved) {
                 int hit = modeSelectHitTest((float)event.mouseMove.x,
                     (float)event.mouseMove.y);
@@ -204,7 +179,7 @@ GameScreen handleModeSelect(sf::RenderWindow& window, GameResources& res,
                 switch (event.key.code) {
                 case sf::Keyboard::Left:  case sf::Keyboard::A:
                 case sf::Keyboard::Right: case sf::Keyboard::D:
-                    menuIndex = menuNavStep(menuIndex, 2, +1); // D9: 2 tile -> toggle
+                    menuIndex = menuNavStep(menuIndex, 2, +1);
                     break;
                 case sf::Keyboard::Enter:
                     return confirm();
@@ -221,13 +196,9 @@ GameScreen handleModeSelect(sf::RenderWindow& window, GameResources& res,
     return SCREEN_MAIN_MENU;
 }
 
-// ============================================================
-// CHON DO KHO AI
-// ============================================================
-
 GameScreen handleDifficultySelect(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
-    int menuIndex = 0; // 0=Easy 1=Medium 2=Hard 3=Expert
+    int menuIndex = 0;
 
     auto confirm = [&]() -> GameScreen {
         soundPlaySelect(res);
@@ -245,7 +216,6 @@ GameScreen handleDifficultySelect(sf::RenderWindow& window, GameResources& res,
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
-            // V2 (11/06): 4 tile villain ngang + nut Back goc trai duoi
             if (event.type == sf::Event::MouseMoved) {
                 int hit = diffSelectHitTest((float)event.mouseMove.x,
                     (float)event.mouseMove.y);
@@ -266,10 +236,10 @@ GameScreen handleDifficultySelect(sf::RenderWindow& window, GameResources& res,
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
                 case sf::Keyboard::Left: case sf::Keyboard::A:
-                    menuIndex = menuNavStep(menuIndex, 4, -1); // D9
+                    menuIndex = menuNavStep(menuIndex, 4, -1);
                     break;
                 case sf::Keyboard::Right: case sf::Keyboard::D:
-                    menuIndex = menuNavStep(menuIndex, 4, +1); // D9
+                    menuIndex = menuNavStep(menuIndex, 4, +1);
                     break;
                 case sf::Keyboard::Enter:
                     return confirm();
@@ -286,10 +256,6 @@ GameScreen handleDifficultySelect(sf::RenderWindow& window, GameResources& res,
     return SCREEN_MAIN_MENU;
 }
 
-// ============================================================
-// CHON KIEU CHOI
-// ============================================================
-
 GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
     int menuIndex = 0;
@@ -297,7 +263,7 @@ GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
 
     auto confirm = [&]() -> GameScreen {
         soundPlaySelect(res);
-        // V2 #34: sau khi chon kieu choi -> sang man chon nhan vat
+
         if (menuIndex == 0) { state.style = STYLE_BASIC; return SCREEN_CHAR_SELECT; }
         if (menuIndex == 1) { state.style = STYLE_SPEED; return SCREEN_CHAR_SELECT; }
         if (menuIndex == 2) {
@@ -327,11 +293,11 @@ GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
                 switch (event.key.code) {
                 case sf::Keyboard::Up:
                 case sf::Keyboard::W:
-                    menuIndex = menuNavStep(menuIndex, MENU_COUNT, -1); // D9
+                    menuIndex = menuNavStep(menuIndex, MENU_COUNT, -1);
                     break;
                 case sf::Keyboard::Down:
                 case sf::Keyboard::S:
-                    menuIndex = menuNavStep(menuIndex, MENU_COUNT, +1); // D9
+                    menuIndex = menuNavStep(menuIndex, MENU_COUNT, +1);
                     break;
                 case sf::Keyboard::Enter:
                     return confirm();
@@ -348,28 +314,22 @@ GameScreen handleStyleSelect(sf::RenderWindow& window, GameResources& res,
     return SCREEN_MAIN_MENU;
 }
 
-
-// ============================================================
-// V2 #34: CHON NHAN VAT (luoi 6 hero)
-// ============================================================
-
 GameScreen handleCharSelect(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
-    // PvP: P1 chon truoc roi P2 (khong duoc trung hero).
-    // PvC: chi P1 chon (panel bot = villain theo do kho).
+
     int pickingPlayer = 1;
-    int takenIndex = -1;                 // hero P1 da lay (phase P2)
-    int menuIndex = state.heroP1;        // bat dau tu hero da chon lan truoc
+    int takenIndex = -1;
+    int menuIndex = state.heroP1;
 
     auto confirm = [&]() -> GameScreen {
-        // Phase P2: khong cho chon trung hero cua P1
+
         if (pickingPlayer == 2 && menuIndex == takenIndex)
-            return SCREEN_CHAR_SELECT;   // sentinel "o lai man nay"
+            return SCREEN_CHAR_SELECT;
         soundPlaySelect(res);
         if (pickingPlayer == 1) {
             state.heroP1 = menuIndex;
             if (state.mode == MODE_PVC) return SCREEN_INPUT_NAMES;
-            // PvP: chuyen sang luot P2 chon
+
             pickingPlayer = 2;
             takenIndex = state.heroP1;
             menuIndex = (state.heroP2 != takenIndex) ? state.heroP2
@@ -396,7 +356,7 @@ GameScreen handleCharSelect(sf::RenderWindow& window, GameResources& res,
                 float my = (float)event.mouseButton.y;
                 if (backButtonContains(mx, my)) {
                     soundPlaySelect(res);
-                    if (pickingPlayer == 2) {  // quay ve cho P1 chon lai
+                    if (pickingPlayer == 2) {
                         pickingPlayer = 1; takenIndex = -1;
                         menuIndex = state.heroP1;
                         continue;
@@ -414,14 +374,14 @@ GameScreen handleCharSelect(sf::RenderWindow& window, GameResources& res,
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
                 case sf::Keyboard::Left: case sf::Keyboard::A:
-                    menuIndex = menuNavStep(menuIndex, 6, -1); // D9
+                    menuIndex = menuNavStep(menuIndex, 6, -1);
                     break;
                 case sf::Keyboard::Right: case sf::Keyboard::D:
-                    menuIndex = menuNavStep(menuIndex, 6, +1); // D9
+                    menuIndex = menuNavStep(menuIndex, 6, +1);
                     break;
                 case sf::Keyboard::Up:   case sf::Keyboard::W:
                 case sf::Keyboard::Down: case sf::Keyboard::S:
-                    menuIndex = menuNavStep(menuIndex, 6, +3); // D9: nhay hang tren/duoi
+                    menuIndex = menuNavStep(menuIndex, 6, +3);
                     break;
                 case sf::Keyboard::Enter: {
                     GameScreen r = confirm();
@@ -429,7 +389,7 @@ GameScreen handleCharSelect(sf::RenderWindow& window, GameResources& res,
                     break;
                 }
                 case sf::Keyboard::Escape:
-                    if (pickingPlayer == 2) {  // ve buoc P1 chon lai
+                    if (pickingPlayer == 2) {
                         pickingPlayer = 1; takenIndex = -1;
                         menuIndex = state.heroP1;
                         break;
@@ -446,11 +406,6 @@ GameScreen handleCharSelect(sf::RenderWindow& window, GameResources& res,
     return SCREEN_MAIN_MENU;
 }
 
-
-// ============================================================
-// NHAP TEN
-// ============================================================
-
 GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
     const bool isPvC = (state.mode == MODE_PVC);
@@ -458,10 +413,9 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
 
     std::string name1 = "";
     std::string name2 = "";
-    bool isEditingP1 = true;       // PvC: luon edit P1
+    bool isEditingP1 = true;
     std::string errorMsg = "";
 
-    // Helper: encode Unicode codepoint thanh UTF-8 bytes
     auto utf32ToUtf8 = [](uint32_t cp) -> std::string {
         std::string r;
         if (cp < 0x80) {
@@ -482,14 +436,13 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
         return r;
     };
 
-    // Helper: xoa 1 ky tu UTF-8 (co the 1-4 bytes) tu cuoi chuoi
     auto utf8PopBack = [](std::string& s) {
         if (s.empty()) return;
-        // Xoa cac continuation bytes (10xxxxxx) o cuoi
+
         while (!s.empty() && ((unsigned char)s.back() & 0xC0) == 0x80) {
             s.pop_back();
         }
-        // Xoa byte mo dau
+
         if (!s.empty()) s.pop_back();
     };
 
@@ -500,7 +453,7 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
         }
         return len;
         };
-  
+
     const size_t MAX_NAME_BYTES = 30;
 
     while (window.isOpen()) {
@@ -508,38 +461,35 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
-            // V2: Click nut Back o goc trai duoi
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Left) {
                 if (backButtonContains((float)event.mouseButton.x,
                                        (float)event.mouseButton.y)) {
                     soundPlaySelect(res);
-                    return SCREEN_CHAR_SELECT; // V2 #34: lui ve man chon nhan vat
+                    return SCREEN_CHAR_SELECT;
                 }
             }
 
             if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::Escape)
-                    return SCREEN_CHAR_SELECT; // V2 #34: lui ve man chon nhan vat
+                    return SCREEN_CHAR_SELECT;
 
-                // Chi cho phep Tab khi PvP (PvC chi co 1 o)
                 if (!isPvC && event.key.code == sf::Keyboard::Tab) {
                     isEditingP1 = !isEditingP1;
                     errorMsg = "";
                 }
-                    
 
                 if (event.key.code == sf::Keyboard::Enter) {
-                    // Dat ten mac dinh neu de trong
+
                     if (name1.empty()) name1 = "Player 1";
                     if (isPvC) {
-                        name2 = txt.botName;  // "May" / "Computer"
+                        name2 = txt.botName;
                     }
                     else if (name2.empty()) {
                         name2 = "Player 2";
                     }
                     if (name1 == name2) {
-                        errorMsg = txt.nameDuplicate; // Trùng tên thì bật cờ báo lỗi và nằm yên tại đây
+                        errorMsg = txt.nameDuplicate;
                     }
                     else {
                         errorMsg = "";
@@ -553,7 +503,6 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
                     }
                 }
 
-                // Xoa 1 ky tu UTF-8 (PvC: chi xoa name1)
                 if (event.key.code == sf::Keyboard::BackSpace) {
                     std::string& current = (isPvC || isEditingP1) ? name1 : name2;
                     utf8PopBack(current);
@@ -561,10 +510,9 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
                 }
             }
 
-            // Nhap ky tu (HO TRO UNICODE - tieng Viet, etc.)
             if (event.type == sf::Event::TextEntered) {
                 uint32_t cp = event.text.unicode;
-                // Bo qua control chars va DEL
+
                 if (cp >= 32 && cp != 127) {
                     std::string& current = (isPvC || isEditingP1) ? name1 : name2;
                     std::string utf8 = utf32ToUtf8(cp);
@@ -585,10 +533,6 @@ GameScreen handleInputNames(sf::RenderWindow& window, GameResources& res,
     return SCREEN_MAIN_MENU;
 }
 
-// ============================================================
-// GAMEPLAY - VONG LAP CHOI GAME
-// ============================================================
-
 GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
     sf::Clock clock;
@@ -597,37 +541,24 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
     bool showHint = false;
     int hintRow = -1, hintCol = -1;
 
-    // Bien cho animation dat quan (POLISH)
     int lastPlaceRow = -1, lastPlaceCol = -1;
-    float placeAnimTimer = 999.0f; // 999 = khong co animation dang chay
+    float placeAnimTimer = 999.0f;
     const float PLACE_ANIM_DURATION = 0.2f;
 
     if (state.moveCount > 0) {
         Move lastMove = state.moveHistory[state.moveCount - 1];
         result = boardEvaluateResult(state, lastMove.row, lastMove.col, winLine);
 
-        // Nếu load lên mà thấy ván cờ đã có kết quả (thắng/thua/hòa) 
-        // -> Đẩy thẳng sang màn hình Game Over luôn để hiện highlight và khóa bàn cờ
         if (result != RESULT_NONE) {
             return handleGameOver(window, res, state, result, winLine);
         }
     }
-    // ============================================================
-    // 3.4: Xa hang doi su kien tich tu trong luc bot nghi (click chuot /
-    // phim lot khe) -> tranh dat nham o frame ke tiep. Van xu ly Close/Resize
-    // qua handleCommonEvent de cua so khong bi ket.
-    // ============================================================
+
     auto flushPendingInput = [&]() {
         sf::Event ev;
         while (window.pollEvent(ev)) handleCommonEvent(window, ev);
     };
 
-    // ============================================================
-    // D6: Ghi nhan ket qua van (cong so van thang + phat am thanh).
-    // Goi sau khi 'result' da duoc set (tinh tu boardEvaluateResult hoac gan
-    // tay khi het gio). CHI cong diem + sound - KHONG dung firstPlayerOfRound
-    // (viec do o handleGameOver). RESULT_NONE -> no-op.
-    // ============================================================
     auto applyResult = [&](GameResult r) {
         if (r == RESULT_NONE) return;
         if (r == RESULT_PLAYER1_WIN) state.player1.totalWins++;
@@ -636,18 +567,13 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
         else soundPlayWin(res);
     };
 
-    // ============================================================
-    // HELPER LAMBDA: Bot di 1 nuoc + check ket qua
-    // ============================================================
     auto doBotMove = [&]() {
-        // Render frame "Bot dang suy nghi..." (Bug 1 sub fix)
+
         renderGameplay(window, state, res, nullptr, -1, -1, false);
-        // 3.3: hien o MOI che do (Basic + Speed) -> Basic/Expert khong dung im
-        // (truoc day chi Speed, de bi tuong "Not Responding" khi bot nghi lau)
+
         renderBotThinking(window, res);
         window.display();
 
-        // Do chinh xac thoi gian bot suy nghi (chess-clock fairness)
         sf::Clock botThinkClock;
 
         int botRow, botCol;
@@ -655,16 +581,14 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
         state.cursorRow = botRow;
         state.cursorCol = botCol;
 
-        // Bot la P2 trong PvC. Tru thoi gian bot tu chinh game time cua P2.
         if (state.style == STYLE_SPEED) {
             float thinkSec = botThinkClock.getElapsedTime().asSeconds();
             timerConsumeP2(state.timer, thinkSec);
 
-            // Neu bot tieu het game time trong khi nghi -> bot thua luon
             if (timerIsGameExpiredP2(state.timer)) {
                 result = RESULT_PLAYER1_WIN;
-                applyResult(result); // D6
-                flushPendingInput(); // 3.4: bo click lot khe truoc khi sang game over
+                applyResult(result);
+                flushPendingInput();
                 clock.restart();
                 return;
             }
@@ -676,7 +600,7 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
 
             result = boardEvaluateResult(state, botRow, botCol, winLine);
             if (result != RESULT_NONE) {
-                applyResult(result); // D6
+                applyResult(result);
             }
             else {
                 boardSwitchTurn(state);
@@ -684,18 +608,11 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
             }
         }
 
-        // 3.4: xa click/phim nguoi choi lo bam trong luc bot nghi
         flushPendingInput();
 
-        // Bug 1 main fix: restart clock de bo thoi gian bot da troi qua,
-        // tranh tru vao turn timer + game time cua P1 o frame ke tiep
         clock.restart();
     };
 
-    // ============================================================
-    // HELPER LAMBDA: Nguoi choi dat quan tai (row, col)
-    // Goi tu ca phim Enter va Mouse Click
-    // ============================================================
     auto doPlayerPlace = [&](int row, int col) {
         if (result != RESULT_NONE) return;
         if (boardPlacePiece(state, row, col)) {
@@ -705,13 +622,12 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
 
             result = boardEvaluateResult(state, row, col, winLine);
             if (result != RESULT_NONE) {
-                applyResult(result); // D6
+                applyResult(result);
             }
             else {
                 boardSwitchTurn(state);
                 if (state.style == STYLE_SPEED) timerResetTurn(state.timer);
 
-                // Bot phan ung neu PvC
                 if (state.mode == MODE_PVC && !state.isPlayer1Turn) {
                     doBotMove();
                 }
@@ -719,9 +635,6 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
         }
     };
 
-    // D5: mo 1 man con (Pause/Save) tu trong gameplay - gom pre/post lap 4 lan:
-    // pause timer (Speed) -> goi handler -> resume timer -> clock.restart.
-    // Tra ve GameScreen cua handler de moi call site tu quyet dinh forward hay bo qua.
     auto openNestedScreen = [&](auto&& fn) -> GameScreen {
         if (state.style == STYLE_SPEED) timerPause(state.timer);
         GameScreen next = fn(window, res, state);
@@ -730,7 +643,6 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
         return next;
     };
 
-    // ===== BOT DI TRUOC NEU LA LUOT CUA BOT (vd: van 2+ trong PvC) =====
     if (state.mode == MODE_PVC && !state.isPlayer1Turn) {
         doBotMove();
     }
@@ -738,50 +650,41 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
     while (window.isOpen()) {
         float deltaTime = clock.restart().asSeconds();
 
-        // Update animation timer
         if (placeAnimTimer < PLACE_ANIM_DURATION)
             placeAnimTimer += deltaTime;
 
-        // Cap nhat timer (che do Speed) - chess-clock: chi tru thoi gian nguoi dang di
         if (state.style == STYLE_SPEED && result == RESULT_NONE) {
             timerUpdate(state.timer, deltaTime, state.isPlayer1Turn);
 
-            // V2 #27: chuong canh bao khi luot sap het gio (reo 1 lan moi luot)
             if (!state.timer.turnAlarmFired &&
                 timerGetTurnSecondsLeft(state.timer) <= TURN_ALARM_SECONDS) {
                 soundPlayAlarm(res);
                 state.timer.turnAlarmFired = true;
             }
 
-            // --- XỬ LÝ HẾT GIỜ LƯỢT NÀY ---
             if (timerIsTurnExpired(state.timer)) {
                 result = state.isPlayer1Turn ? RESULT_PLAYER2_WIN : RESULT_PLAYER1_WIN;
-                applyResult(result); // D6
+                applyResult(result);
                 return handleGameOver(window, res, state, result, winLine);
             }
 
-            // --- KIỂM TRA HẾT GIỜ VAN CUA TUNG NGUOI (chess-clock) ---
-            // Ai het thoi gian van -> nguoi do THUA (giong cờ vua)
             if (timerIsGameExpiredP1(state.timer)) {
                 result = RESULT_PLAYER2_WIN;
-                applyResult(result); // D6
+                applyResult(result);
                 return handleGameOver(window, res, state, result, winLine);
             }
             if (timerIsGameExpiredP2(state.timer)) {
                 result = RESULT_PLAYER1_WIN;
-                applyResult(result); // D6
+                applyResult(result);
                 return handleGameOver(window, res, state, result, winLine);
             }
 
         }
 
-        // Xu ly su kien
         sf::Event event;
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
-            // ===== MOUSE SUPPORT =====
-            // Hover: di cursor theo chuot
             if (event.type == sf::Event::MouseMoved && result == RESULT_NONE) {
                 int r, c;
                 if (renderPixelToBoard((float)event.mouseMove.x,
@@ -791,27 +694,22 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                 }
             }
 
-            // Click trai: nut Save/Exit hoac dat quan
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Left
                 && result == RESULT_NONE) {
                 float mx = (float)event.mouseButton.x;
                 float my = (float)event.mouseButton.y;
 
-                // V2: Click nut Save trong panel
                 if (gameplaySaveBtnContains(mx, my)) {
                     soundPlaySelect(res);
-                    // Wrap lambda: openNestedScreen lay con tro ham -> default arg
-                    // exitTarget khong song qua con tro, nen goi tuong minh 3 tham so
-                    // (exitTarget = SCREEN_PLAYING: luu xong -> ve lai ban co).
+
                     openNestedScreen([](sf::RenderWindow& w, GameResources& r,
                         GameState& s) { return handleSaveScreen(w, r, s); });
                 }
-                // V2: Click nut Exit trong panel -> mo Pause menu
-                // (giong nhan ESC: khong out thang ra Menu chinh nua)
+
                 else if (gameplayExitBtnContains(mx, my)) {
                     soundPlaySelect(res);
-                    GameScreen pauseResult = openNestedScreen(handlePauseMenu); // D5
+                    GameScreen pauseResult = openNestedScreen(handlePauseMenu);
                     if (pauseResult != SCREEN_PLAYING) return pauseResult;
                 }
                 else {
@@ -822,14 +720,13 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                 }
             }
 
-            // Click khi da ket thuc → chuyen GameOver
             if (event.type == sf::Event::MouseButtonPressed && result != RESULT_NONE) {
                 return handleGameOver(window, res, state, result, winLine);
             }
 
             if (event.type == sf::Event::KeyPressed && result == RESULT_NONE) {
                 switch (event.key.code) {
-                    // Di chuyen cursor
+
                 case sf::Keyboard::W: case sf::Keyboard::Up:
                     boardMoveCursor(state, -1, 0); break;
                 case sf::Keyboard::S: case sf::Keyboard::Down:
@@ -839,17 +736,14 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                 case sf::Keyboard::D: case sf::Keyboard::Right:
                     boardMoveCursor(state, 0, 1); break;
 
-                    // Dat quan
                 case sf::Keyboard::Enter:
                     doPlayerPlace(state.cursorRow, state.cursorCol);
                     break;
 
-                    // Undo
                 case sf::Keyboard::Z:
                     if (boardUndo(state) > 0) {
                         soundPlayUndo(res);
-                        // Undo -> reset thanh thoi gian luot ve 20s (Speed mode)
-                        // (timerResetTurn cung re-arm chuong canh bao cho luot moi)
+
                         if (state.style == STYLE_SPEED) timerResetTurn(state.timer);
                     }
                     showHint = false;
@@ -863,17 +757,14 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                     }
                     break;
 
-                    // Save nhanh
                 case sf::Keyboard::L:
-                    // Wrap lambda (xem giai thich o nut Save panel): luu trong van
-                    // -> exitTarget mac dinh SCREEN_PLAYING -> ve lai ban co.
+
                     openNestedScreen([](sf::RenderWindow& w, GameResources& r,
                         GameState& s) { return handleSaveScreen(w, r, s); });
                     break;
 
-                    // Pause
                 case sf::Keyboard::Escape: {
-                    GameScreen pauseResult = openNestedScreen(handlePauseMenu); // D5
+                    GameScreen pauseResult = openNestedScreen(handlePauseMenu);
                     if (pauseResult != SCREEN_PLAYING) return pauseResult;
                     break;
                 }
@@ -882,18 +773,15 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
                 }
             }
 
-            // Nhan bat ky phim nao khi da ket thuc → chuyen GameOver
             if (event.type == sf::Event::KeyPressed && result != RESULT_NONE) {
                 return handleGameOver(window, res, state, result, winLine);
             }
         }
 
-        // Ve
         renderGameplay(window, state, res,
             (result != RESULT_NONE) ? &winLine : nullptr,
             hintRow, hintCol, showHint);
 
-        // ===== PLACE ANIMATION =====
         if (placeAnimTimer < PLACE_ANIM_DURATION && lastPlaceRow >= 0) {
             float progress = placeAnimTimer / PLACE_ANIM_DURATION;
             int player = state.board[lastPlaceRow][lastPlaceCol].value;
@@ -905,28 +793,13 @@ GameScreen handleGameplay(sf::RenderWindow& window, GameResources& res,
     return SCREEN_MAIN_MENU;
 }
 
-
-
-// ============================================================
-// PAUSE MENU
-// ============================================================
-
-// ============================================================
-// D1 (audit): slider am luong dung chung Settings + Pause
-// ============================================================
-// Geometry truyen vao (TRACK_X/W/Y/HIT_H) vi 2 man khac kich thuoc + vi tri.
-// soundSetBGMVolume goi ngay (preview am thanh). settingsSave() KHONG goi moi buoc
-// keo nua -> goi 1 lan khi tha chuot (MouseButtonReleased) de tranh ghi file ~20
-// lan/lan keo (side-effect-1). sliderNudge (phim) van save ngay (roi rac, 1/phim).
-
-// Dat volume theo x chuot, snap moi 5%. Tra true neu volume thay doi (chua ghi file).
 static bool sliderSetFromX(GameResources& res, float trackX, float trackW,
                            int& volume, float mx) {
     float ratio = (mx - trackX) / trackW;
     if (ratio < 0.f) ratio = 0.f;
     if (ratio > 1.f) ratio = 1.f;
     int newVol = (int)(ratio * 100.f + 0.5f);
-    newVol = (newVol / 5) * 5; // snap moi 5%
+    newVol = (newVol / 5) * 5;
     if (newVol != volume) {
         volume = newVol;
         soundSetBGMVolume(res, volume);
@@ -935,14 +808,12 @@ static bool sliderSetFromX(GameResources& res, float trackX, float trackW,
     return false;
 }
 
-// (mx,my) co nam trong vung hit cua slider khong (rong them 20px moi dau).
 static bool sliderContains(float trackX, float trackW, float y, float hitH,
                            float mx, float my) {
     return my >= y - hitH && my <= y + hitH
         && mx >= trackX - 20.f && mx <= trackX + trackW + 20.f;
 }
 
-// Tang/giam volume (phim Left/Right), clamp 0..100. Chi save khi thuc su doi.
 static void sliderNudge(GameResources& res, int& volume, int delta) {
     int v = volume + delta;
     if (v < 0) v = 0;
@@ -958,14 +829,11 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
     int menuIndex = 0;
     const int MENU_COUNT = 6;
-    // V2: 0=Resume 1=Save 2=Language 3=Volume(slider) 4=SFX 5=Main Menu
 
-    // Doc gia tri hien tai cua audio (giong handleSettings)
     int volume = soundGetBGMVolume();
     bool sfxOn = soundIsSFXEnabled();
     bool isDraggingVolume = false;
 
-    // D10: hang Pause lay tu game_types.h (1 nguon, khop voi renderPauseMenu)
     const float PAUSE_START_Y = UI_PAUSE_START_Y;
     const float PAUSE_STEP    = UI_PAUSE_STEP;
     const float TRACK_W       = 300.f;
@@ -974,34 +842,32 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
     const float SLIDER_HIT_H  = 20.f;
 
     auto setVolumeFromX = [&](float mx) {
-        sliderSetFromX(res, TRACK_X, TRACK_W, volume, mx); // D1
+        sliderSetFromX(res, TRACK_X, TRACK_W, volume, mx);
     };
 
     auto isOnSlider = [&](float mx, float my) -> bool {
-        return sliderContains(TRACK_X, TRACK_W, SLIDER_Y, SLIDER_HIT_H, mx, my); // D1
+        return sliderContains(TRACK_X, TRACK_W, SLIDER_Y, SLIDER_HIT_H, mx, my);
     };
 
-    // Confirm = thuc thi action tren menuIndex hien tai.
-    // Tra ve cap (exitPauseLoop, nextScreen). exitPauseLoop=false -> stay in pause.
     auto confirm = [&](GameScreen& outNext) -> bool {
         soundPlaySelect(res);
         switch (menuIndex) {
-        case 0:                                  // Resume
+        case 0:
             outNext = SCREEN_PLAYING; return true;
-        case 1:                                  // Save
+        case 1:
             handleSaveScreen(window, res, state);
             outNext = SCREEN_PLAYING; return true;
-        case 2:                                  // Language toggle - stay
+        case 2:
             langToggle();
             settingsSave();
             return false;
-        // case 3: Volume - khong dung confirm, dung mui ten
-        case 4:                                  // SFX toggle - stay
+
+        case 4:
             sfxOn = !sfxOn;
             soundSetSFXEnabled(sfxOn);
             settingsSave();
             return false;
-        case 5:                                  // Main menu
+        case 5:
             outNext = SCREEN_MAIN_MENU; return true;
         default: return false;
         }
@@ -1012,7 +878,6 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
-            // MOUSE MOVE - hover + drag slider
             if (event.type == sf::Event::MouseMoved) {
                 float mx = (float)event.mouseMove.x;
                 float my = (float)event.mouseMove.y;
@@ -1027,14 +892,12 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
                 }
             }
 
-            // MOUSE RELEASE - thoat drag + luu volume 1 lan (side-effect-1)
             if (event.type == sf::Event::MouseButtonReleased
                 && event.mouseButton.button == sf::Mouse::Left) {
                 if (isDraggingVolume) settingsSave();
                 isDraggingVolume = false;
             }
 
-            // MOUSE CLICK
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Left) {
                 float mx = (float)event.mouseButton.x;
@@ -1061,20 +924,20 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
                 switch (event.key.code) {
                 case sf::Keyboard::Up:
                 case sf::Keyboard::W:
-                    menuIndex = menuNavStep(menuIndex, MENU_COUNT, -1); // D9
+                    menuIndex = menuNavStep(menuIndex, MENU_COUNT, -1);
                     break;
                 case sf::Keyboard::Down:
                 case sf::Keyboard::S:
-                    menuIndex = menuNavStep(menuIndex, MENU_COUNT, +1); // D9
+                    menuIndex = menuNavStep(menuIndex, MENU_COUNT, +1);
                     break;
                 case sf::Keyboard::Left:
-                    if (menuIndex == 3) sliderNudge(res, volume, -10); // D1
+                    if (menuIndex == 3) sliderNudge(res, volume, -10);
                     break;
                 case sf::Keyboard::Right:
-                    if (menuIndex == 3) sliderNudge(res, volume, +10); // D1
+                    if (menuIndex == 3) sliderNudge(res, volume, +10);
                     break;
                 case sf::Keyboard::Enter: {
-                    if (menuIndex == 3) break; // volume khong dung Enter
+                    if (menuIndex == 3) break;
                     GameScreen next;
                     if (confirm(next)) return next;
                     break;
@@ -1093,14 +956,10 @@ GameScreen handlePauseMenu(sf::RenderWindow& window, GameResources& res,
     return SCREEN_MAIN_MENU;
 }
 
-// ============================================================
-// GAME OVER
-// ============================================================
-
 GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
     GameState& state, GameResult result, const WinLine& winLine) {
     int menuIndex = 0;
-    bool askingSave = false; // Cờ theo dõi trạng thái đang hỏi cái gì
+    bool askingSave = false;
 
     const float panelX = UI_BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE + UI_PANEL_GAP_LEFT;
     const float panelW = WINDOW_WIDTH - panelX - UI_PANEL_GAP_RIGHT;
@@ -1111,9 +970,8 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
     const float btnHalfW = UI_GAMEOVER_BTN_HALF_W;
     const float btnHalfH = UI_GAMEOVER_BTN_HALF_H;
 
-    // V2 #32/#33: confetti + shockwave khi co nguoi thang (khong tinh hoa co)
     bool hasWinner = (result == RESULT_PLAYER1_WIN || result == RESULT_PLAYER2_WIN);
-    // Tam hieu ung = giua duong thang thang (fallback = giua ban co)
+
     float fxCx = UI_BOARD_OFFSET_X + BOARD_SIZE * CELL_SIZE * 0.5f;
     float fxCy = UI_BOARD_OFFSET_Y + BOARD_SIZE * CELL_SIZE * 0.5f;
     if (hasWinner && winLine.count > 0) {
@@ -1132,7 +990,6 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
-            // Mouse hover
             if (event.type == sf::Event::MouseMoved) {
                 float mx = (float)event.mouseMove.x;
                 float my = (float)event.mouseMove.y;
@@ -1142,7 +999,6 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
                 }
             }
 
-            // Mouse click
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Left) {
                 float mx = (float)event.mouseButton.x;
@@ -1150,7 +1006,7 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
                 if (my > btnY - btnHalfH && my < btnY + btnHalfH) {
                     if (mx > yesX - btnHalfW && mx < yesX + btnHalfW) {
                         menuIndex = 0;
-                        goto DO_CONFIRM; // Dùng goto nhẹ xuống khối Enter để tận dụng code
+                        goto DO_CONFIRM;
                     }
                     if (mx > noX - btnHalfW && mx < noX + btnHalfW) {
                         menuIndex = 1;
@@ -1166,11 +1022,7 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
                 case sf::Keyboard::Right: case sf::Keyboard::D:
                     menuIndex = 1; break;
                 case sf::Keyboard::L:
-                    // V2 (navigation fix): CHI cho luu nhanh khi DA qua cau hoi
-                    // "Choi tiep?" -> dang o cau hoi "Luu game?" (askingSave==true).
-                    // Luc nay luong dong bo voi "Luu game? -> Co": luu xong roi
-                    // thoat -> ve Menu chinh. Khi con dang hoi "Choi tiep?" thi
-                    // phim L khong lam gi (tranh bo qua quyet dinh choi tiep).
+
                     if (askingSave)
                         return handleSaveScreen(window, res, state, SCREEN_MAIN_MENU);
                     break;
@@ -1178,16 +1030,13 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
                     return SCREEN_MAIN_MENU;
 
                 case sf::Keyboard::Enter:
-                DO_CONFIRM: // Điểm đến khi dùng chuột Click
+                DO_CONFIRM:
                     soundPlaySelect(res);
 
                     if (!askingSave) {
-                        // 1. ĐANG HỎI CHƠI TIẾP
-                        if (menuIndex == 0) { // Có -> Reset bàn cờ và đánh tiếp
-                            // V2: nguoi thua van vua roi di truoc van moi (va danh X)
-                            // result == RESULT_PLAYER1_WIN -> P2 thua (loserId=2)
-                            // result == RESULT_PLAYER2_WIN -> P1 thua (loserId=1)
-                            // result == RESULT_DRAW        -> giu firstPlayer cu (loserId=0)
+
+                        if (menuIndex == 0) {
+
                             int loserId = 0;
                             if (result == RESULT_PLAYER1_WIN) loserId = 2;
                             else if (result == RESULT_PLAYER2_WIN) loserId = 1;
@@ -1195,23 +1044,19 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
                             if (state.style == STYLE_SPEED) timerStart(state.timer, MAX_GAME_TIME, MAX_TURN_TIME);
                             return SCREEN_PLAYING;
                         }
-                        else { // Không -> Sang hỏi lưu
+                        else {
                             askingSave = true;
-                            menuIndex = 0; // Mặc định nhảy về nút "Có" cho câu hỏi sau
+                            menuIndex = 0;
                         }
                     }
                     else {
-                        // 2. ĐANG HỎI LƯU GAME
-                        if (menuIndex == 0) { // Có -> mo man hinh Luu
-                            // V2 (navigation fix): man Luu mo tu Game Over -> khi
-                            // nhan Back/ESC dieu huong THANG ve Menu chinh (ket thuc
-                            // vong doi van). Truyen exitTarget = SCREEN_MAIN_MENU va
-                            // forward return -> khong quay lai cau hoi "Luu game?",
-                            // khong re-trigger logic man ket thuc.
+
+                        if (menuIndex == 0) {
+
                             return handleSaveScreen(window, res, state,
                                 SCREEN_MAIN_MENU);
                         }
-                        else { // Không -> về Menu chính
+                        else {
                             return SCREEN_MAIN_MENU;
                         }
                     }
@@ -1221,32 +1066,24 @@ GameScreen handleGameOver(sf::RenderWindow& window, GameResources& res,
             }
         }
 
-        // V2 #32/#33: cap nhat hieu ung (clamp dt tranh nhay sau khi vao nested screen)
         float dt = fxClock.restart().asSeconds();
         if (dt > 0.1f) dt = 0.1f;
         fxElapsed += dt;
         confettiUpdate(confetti, dt);
 
-        // Vẽ màn hình
         renderGameplay(window, state, res, (result != RESULT_DRAW) ? &winLine : nullptr, -1, -1, false, result);
-        renderGameOver(window, state, res, result, menuIndex, askingSave); // Truyền biến askingSave vào đây
+        renderGameOver(window, state, res, result, menuIndex, askingSave);
         if (hasWinner) {
-            // V2 #33: vong song nang luong lan tu o thang (shader, tu tat 0.8s)
+
             renderShockwave(window, res, fxCx, fxCy, fxElapsed);
-            // V2 #32: confetti phun tu o thang, len tren cung
+
             confettiDraw(window, confetti);
         }
         window.display();
     }
     return SCREEN_MAIN_MENU;
 }
-// ============================================================
-// HELPER DUNG CHUNG CHO SAVE + LOAD SCREEN (V2 DRY: D2, D4)
-// ============================================================
-// Gom logic list/scroll bi lap giua handleSaveScreen va handleLoadScreen.
-// Cac hang so UI_LIST_* la #define (game_types.h) nen ham free thay duoc.
 
-// D2: ghim scrollTop sao cho selectedIndex luon nam trong cua so cuon.
 static void ensureVisibleIn(int selectedIndex, int& scrollTop, int count) {
     int maxTop = count - UI_LIST_VISIBLE; if (maxTop < 0) maxTop = 0;
     if (selectedIndex < scrollTop) scrollTop = selectedIndex;
@@ -1256,9 +1093,6 @@ static void ensureVisibleIn(int selectedIndex, int& scrollTop, int count) {
     if (scrollTop < 0) scrollTop = 0;
 }
 
-// D2: map toa do chuot -> index file trong cua so cuon (tinh ca scroll).
-// startY khac nhau giua Save (UI_SAVE_LIST_START_Y) va Load (UI_LOAD_LIST_START_Y).
-// Tra -1 neu khong trung hang nao.
 static int hitTestListAt(float mx, float my, int scrollTop, int count, float startY) {
     for (int row = 0; row < UI_LIST_VISIBLE; row++) {
         int i = scrollTop + row;
@@ -1273,7 +1107,6 @@ static int hitTestListAt(float mx, float my, int scrollTop, int count, float sta
     return -1;
 }
 
-// D4: cuon list theo con lan chuot (delta), ghim scrollTop trong [0, maxTop].
 static void scrollListBy(int& scrollTop, int delta, int count) {
     int maxTop = count - UI_LIST_VISIBLE; if (maxTop < 0) maxTop = 0;
     scrollTop -= delta;
@@ -1281,54 +1114,40 @@ static void scrollListBy(int& scrollTop, int delta, int count) {
     if (scrollTop > maxTop) scrollTop = maxTop;
 }
 
-// ============================================================
-// SAVE SCREEN
-// ============================================================
-
 GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
     GameState& state, GameScreen exitTarget) {
-    // Fix (13/06) - input-bleed: phim mo man nay (vd 'L' quick-save) sinh ra CA
-    // KeyPressed lan TextEntered. Caller an KeyPressed roi vao day, nhung
-    // TextEntered('l') con ket trong hang doi -> o ten file tu them ky tu 'l' o
-    // dau. Tieu thu het su kien ton dong truoc vong lap (van xu ly Close/Resize
-    // qua handleCommonEvent). Cung dong nghia "bo input cu khi chuyen man".
+
     { sf::Event drain; while (window.pollEvent(drain)) handleCommonEvent(window, drain); }
 
-    // V2 #29: directory scan thay vi Gamelist.txt manifest, khong gioi han so file
     std::vector<std::string> saveList = saveScanFiles();
     int selectedIndex = 0;
-    int scrollTop = 0; // V2 #30: index file dau tien dang hien thi
+    int scrollTop = 0;
     std::string inputName = "";
     std::string message = "";
     sf::Clock messageClock;
-    // Fix R5 (audit 12/06): ten file dang cho xac nhan ghi de.
-    // Enter lan 1 voi ten trung -> hien cau hoi; Enter lan 2 (van ten do) -> ghi de.
-    // Doi ten (go them/xoa/click file khac) -> tu dong hoi lai tu dau.
+
     std::string pendingOverwrite = "";
 
-    // V2 #30: dam bao item dang chon nam trong cua so cuon
     auto ensureVisible = [&]() {
-        ensureVisibleIn(selectedIndex, scrollTop, (int)saveList.size()); // D2
+        ensureVisibleIn(selectedIndex, scrollTop, (int)saveList.size());
     };
 
-    // V2 #30: map toa do chuot -> index file trong list (tinh ca scroll). -1 neu trat.
-    auto hitTestList = [&](float mx, float my) -> int { // D2
+    auto hitTestList = [&](float mx, float my) -> int {
         return hitTestListAt(mx, my, scrollTop, (int)saveList.size(),
             UI_SAVE_LIST_START_Y);
     };
 
-    // Lambda: thuc hien luu (Enter hoac click nut Save)
     auto doSave = [&]() {
         if (inputName.empty()) return;
         const TextStrings& txt = langGetText(langGetCurrent());
         if (saveFileExists(inputName) && pendingOverwrite != inputName) {
-            // Fix R5: ten trung lan dau -> CHUA ghi, hoi xac nhan 1 lan
+
             pendingOverwrite = inputName;
             message = txt.msgFileExists;
         }
         else if (saveGame(state, inputName)) {
             message = txt.msgSaveOK;
-            saveList = saveScanFiles(); // refresh list + cache
+            saveList = saveScanFiles();
             inputName = "";
             pendingOverwrite = "";
         }
@@ -1339,8 +1158,6 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
         messageClock.restart();
     };
 
-    // D3: xoa file tai index (dung cho ca right-click lan phim Delete).
-    // Bao ve idx; refresh list + ghim selectedIndex + scroll; hien toast da xoa.
     auto deleteSaveAt = [&](int idx) {
         if (idx < 0 || idx >= (int)saveList.size()) return;
         saveDeleteFile(saveList[idx]);
@@ -1348,7 +1165,7 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
         int count = (int)saveList.size();
         if (selectedIndex >= count && count > 0) selectedIndex = count - 1;
         ensureVisible();
-        // Fix R5 quirk: xoa file lam thay doi danh sach -> huy trang thai cho ghi de
+
         pendingOverwrite = "";
         message = langGetText(langGetCurrent()).msgFileDeleted;
         messageClock.restart();
@@ -1359,21 +1176,16 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
-            // V2 #30: cuon bang con lan chuot
             if (event.type == sf::Event::MouseWheelScrolled) {
                 scrollListBy(scrollTop, (int)event.mouseWheelScroll.delta,
-                    (int)saveList.size()); // D4
+                    (int)saveList.size());
             }
 
-            // Mouse: click vao file trong list → copy ten vao input (de re-save / rename)
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Left) {
                 float mx = (float)event.mouseButton.x;
                 float my = (float)event.mouseButton.y;
 
-                // V2: Click nut Back -> roi man hinh Luu (giong ESC).
-                // Dieu huong theo ngu canh goi (exitTarget): dang choi -> ban co,
-                // tu Game Over -> Menu chinh.
                 if (backButtonContains(mx, my)) {
                     soundPlaySelect(res);
                     return exitTarget;
@@ -1382,23 +1194,22 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
                 int hit = hitTestList(mx, my);
                 if (hit >= 0) {
                     selectedIndex = hit;
-                    inputName = saveList[hit];  // Copy ten de re-save
-                    pendingOverwrite = ""; // A1: doi ten (click file khac) -> hoi lai truoc khi ghi de
+                    inputName = saveList[hit];
+                    pendingOverwrite = "";
                 }
             }
 
-            // Right click: xoa file dang tro chuot
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Right) {
                 deleteSaveAt(hitTestList((float)event.mouseButton.x,
-                    (float)event.mouseButton.y)); // D3
+                    (float)event.mouseButton.y));
             }
 
             if (event.type == sf::Event::KeyPressed) {
                 int count = (int)saveList.size();
                 switch (event.key.code) {
                 case sf::Keyboard::Escape:
-                    return exitTarget; // dieu huong theo ngu canh (xem backButton)
+                    return exitTarget;
 
                 case sf::Keyboard::Up:
                     if (selectedIndex > 0) { selectedIndex--; ensureVisible(); }
@@ -1412,19 +1223,18 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
                     break;
 
                 case sf::Keyboard::Delete:
-                    deleteSaveAt(selectedIndex); // D3
+                    deleteSaveAt(selectedIndex);
                     break;
 
                 case sf::Keyboard::BackSpace:
                     if (!inputName.empty()) inputName.pop_back();
-                    pendingOverwrite = ""; // A1: sua ten -> huy cho ghi de (hoi lai tu dau)
+                    pendingOverwrite = "";
                     break;
 
                 default: break;
                 }
             }
 
-            // Nhap ten file
             if (event.type == sf::Event::TextEntered) {
                 if (event.text.unicode >= 32 && event.text.unicode < 128
                     && event.text.unicode != '\r' && event.text.unicode != '\b') {
@@ -1434,7 +1244,7 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
                         && ch != '|') {
                         if (inputName.size() < 20) {
                             inputName += ch;
-                            pendingOverwrite = ""; // A1: go them ky tu -> huy cho ghi de
+                            pendingOverwrite = "";
                         }
                     }
                 }
@@ -1443,8 +1253,6 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
 
         renderSaveScreen(window, res, saveList, inputName, selectedIndex, scrollTop);
 
-        // Fix R5: dang cho xac nhan ghi de -> giu cau hoi tren man hinh
-        // (khong de tu tat sau 2s nhu message thuong)
         bool waitingConfirm = !pendingOverwrite.empty()
             && pendingOverwrite == inputName;
         if (!message.empty() && (waitingConfirm
@@ -1458,20 +1266,15 @@ GameScreen handleSaveScreen(sf::RenderWindow& window, GameResources& res,
     return SCREEN_MAIN_MENU;
 }
 
-// ============================================================
-// LOAD SCREEN
-// ============================================================
-
 GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
     GameState& state) {
-    // V2 #29: directory scan thay vi Gamelist.txt manifest, khong gioi han so file
+
     std::vector<std::string> saveList = saveScanFiles();
     int selectedIndex = 0;
-    int scrollTop = 0; // V2 #30: index file dau tien dang hien thi
+    int scrollTop = 0;
     std::string message = "";
     sf::Clock messageClock;
 
-    // Double-click detection
     sf::Clock dblClickClock;
     int lastClickIndex = -1;
     const float DBL_CLICK_TIME = 0.4f;
@@ -1488,18 +1291,15 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
         return false;
     };
 
-    // V2 #30: dam bao item dang chon nam trong cua so cuon
     auto ensureVisible = [&]() {
-        ensureVisibleIn(selectedIndex, scrollTop, (int)saveList.size()); // D2
+        ensureVisibleIn(selectedIndex, scrollTop, (int)saveList.size());
     };
 
-    // V2 #30: map toa do chuot -> index file trong list (tinh ca scroll). -1 neu trat.
-    auto hitTestList = [&](float mx, float my) -> int { // D2
+    auto hitTestList = [&](float mx, float my) -> int {
         return hitTestListAt(mx, my, scrollTop, (int)saveList.size(),
             UI_LOAD_LIST_START_Y);
     };
 
-    // D3: xoa file tai index. Ban Load KHONG hien toast (giu hanh vi cu).
     auto deleteSaveAt = [&](int idx) {
         if (idx < 0 || idx >= (int)saveList.size()) return;
         saveDeleteFile(saveList[idx]);
@@ -1514,26 +1314,22 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
-            // V2 #30: cuon bang con lan chuot
             if (event.type == sf::Event::MouseWheelScrolled) {
                 scrollListBy(scrollTop, (int)event.mouseWheelScroll.delta,
-                    (int)saveList.size()); // D4
+                    (int)saveList.size());
             }
 
-            // Mouse hover: highlight item (khong auto-scroll)
             if (event.type == sf::Event::MouseMoved) {
                 int hit = hitTestList((float)event.mouseMove.x,
                     (float)event.mouseMove.y);
                 if (hit >= 0) selectedIndex = hit;
             }
 
-            // Click trai: chon, double-click → load
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Left) {
                 float mx = (float)event.mouseButton.x;
                 float my = (float)event.mouseButton.y;
 
-                // V2: Click nut Back -> ve Menu chinh
                 if (backButtonContains(mx, my)) {
                     soundPlaySelect(res);
                     return SCREEN_MAIN_MENU;
@@ -1543,13 +1339,13 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
                 if (hit >= 0) {
                     if (lastClickIndex == hit
                         && dblClickClock.getElapsedTime().asSeconds() < DBL_CLICK_TIME) {
-                        // Double-click → load
+
                         selectedIndex = hit;
                         if (doLoad()) return SCREEN_PLAYING;
                         lastClickIndex = -1;
                     }
                     else {
-                        // Single click → select
+
                         selectedIndex = hit;
                         lastClickIndex = hit;
                         dblClickClock.restart();
@@ -1557,11 +1353,10 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
                 }
             }
 
-            // Click phai: xoa file dang tro chuot
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Right) {
                 deleteSaveAt(hitTestList((float)event.mouseButton.x,
-                    (float)event.mouseButton.y)); // D3
+                    (float)event.mouseButton.y));
             }
 
             if (event.type == sf::Event::KeyPressed) {
@@ -1582,7 +1377,7 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
                     break;
 
                 case sf::Keyboard::Delete:
-                    deleteSaveAt(selectedIndex); // D3
+                    deleteSaveAt(selectedIndex);
                     break;
 
                 default: break;
@@ -1602,34 +1397,26 @@ GameScreen handleLoadScreen(sf::RenderWindow& window, GameResources& res,
     return SCREEN_MAIN_MENU;
 }
 
-// ============================================================
-// SETTINGS
-// ============================================================
-
 GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
     int menuIndex = 0;
-    // Doc gia tri hien tai tu sound module (da load tu file lúc khoi dong)
+
     int volume = soundGetBGMVolume();
     bool sfxOn = soundIsSFXEnabled();
     bool isDraggingVolume = false;
 
-    // Hang so slider (PHAI khop voi renderSettings)
     const float TRACK_W = 360.f;
     const float TRACK_X = WINDOW_WIDTH / 2.f - TRACK_W / 2.f;
     const float SLIDER_Y = UI_SETTINGS_START_Y + 1 * UI_SETTINGS_STEP + 15.f;
-    const float SLIDER_HIT_HEIGHT = 20.f;  // hit-area generous cho click slider
+    const float SLIDER_HIT_HEIGHT = 20.f;
 
-    // Lambda: dat volume theo vi tri x cua chuot, snap moi 5%
     auto setVolumeFromX = [&](float mx) {
-        sliderSetFromX(res, TRACK_X, TRACK_W, volume, mx); // D1
+        sliderSetFromX(res, TRACK_X, TRACK_W, volume, mx);
     };
 
-    // Lambda: kiem tra (mx,my) co nam trong vung slider khong
     auto isOnSlider = [&](float mx, float my) -> bool {
-        return sliderContains(TRACK_X, TRACK_W, SLIDER_Y, SLIDER_HIT_HEIGHT, mx, my); // D1
+        return sliderContains(TRACK_X, TRACK_W, SLIDER_Y, SLIDER_HIT_HEIGHT, mx, my);
     };
 
-    // Lambda: thuc hien action tren menuIndex hien tai
     auto confirm = [&]() -> GameScreen {
         soundPlaySelect(res);
         if (menuIndex == 0) {
@@ -1641,7 +1428,7 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
             soundSetSFXEnabled(sfxOn);
             settingsSave();
         }
-        return SCREEN_SETTINGS;  // stay in settings
+        return SCREEN_SETTINGS;
     };
 
     while (window.isOpen()) {
@@ -1649,12 +1436,10 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
 
-            // Mouse hover: update menuIndex - Settings items
             if (event.type == sf::Event::MouseMoved) {
                 float mx = (float)event.mouseMove.x;
                 float my = (float)event.mouseMove.y;
 
-                // Neu dang keo slider: update volume theo chuot
                 if (isDraggingVolume) {
                     setVolumeFromX(mx);
                     menuIndex = 1;
@@ -1664,31 +1449,27 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
                         UI_SETTINGS_START_Y, UI_SETTINGS_STEP, 3,
                         UI_SETTINGS_HALF_WIDTH, 25.f);
                     if (hit >= 0) menuIndex = hit;
-                    // Hover len slider area cung select volume row
+
                     else if (isOnSlider(mx, my)) menuIndex = 1;
                 }
             }
 
-            // Mouse release: thoat che do keo + luu volume 1 lan (side-effect-1)
             if (event.type == sf::Event::MouseButtonReleased
                 && event.mouseButton.button == sf::Mouse::Left) {
                 if (isDraggingVolume) settingsSave();
                 isDraggingVolume = false;
             }
 
-            // Mouse click trai
             if (event.type == sf::Event::MouseButtonPressed
                 && event.mouseButton.button == sf::Mouse::Left) {
                 float mx = (float)event.mouseButton.x;
                 float my = (float)event.mouseButton.y;
 
-                // V2: Click nut Back goc trai duoi -> ve Menu chinh
                 if (backButtonContains(mx, my)) {
                     soundPlaySelect(res);
                     return SCREEN_MAIN_MENU;
                 }
 
-                // 1) Click vao slider area → set volume + bat dau drag
                 if (isOnSlider(mx, my)) {
                     menuIndex = 1;
                     isDraggingVolume = true;
@@ -1700,7 +1481,7 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
                         UI_SETTINGS_HALF_WIDTH, 25.f);
                     if (hit >= 0) {
                         menuIndex = hit;
-                        // 2) Click khac → confirm action (lang, sfx)
+
                         if (menuIndex != 1) {
                             GameScreen next = confirm();
                             if (next != SCREEN_SETTINGS) return next;
@@ -1713,11 +1494,11 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
                 switch (event.key.code) {
                 case sf::Keyboard::Up:
                 case sf::Keyboard::W:
-                    menuIndex = menuNavStep(menuIndex, 3, -1); // D9
+                    menuIndex = menuNavStep(menuIndex, 3, -1);
                     break;
                 case sf::Keyboard::Down:
                 case sf::Keyboard::S:
-                    menuIndex = menuNavStep(menuIndex, 3, +1); // D9
+                    menuIndex = menuNavStep(menuIndex, 3, +1);
                     break;
                 case sf::Keyboard::Enter: {
                     GameScreen next = confirm();
@@ -1725,10 +1506,10 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
                     break;
                 }
                 case sf::Keyboard::Left:
-                    if (menuIndex == 1) sliderNudge(res, volume, -10); // D1
+                    if (menuIndex == 1) sliderNudge(res, volume, -10);
                     break;
                 case sf::Keyboard::Right:
-                    if (menuIndex == 1) sliderNudge(res, volume, +10); // D1
+                    if (menuIndex == 1) sliderNudge(res, volume, +10);
                     break;
                 case sf::Keyboard::Escape:
                     return SCREEN_MAIN_MENU;
@@ -1739,16 +1520,10 @@ GameScreen handleSettings(sf::RenderWindow& window, GameResources& res) {
 
         renderSettings(window, res, menuIndex, langGetCurrent(), volume, sfxOn);
 
-        // (Hint Volume da duoc render trong renderSettings)
-
         window.display();
     }
     return SCREEN_MAIN_MENU;
 }
-
-// ============================================================
-// HELP & ABOUT
-// ============================================================
 
 GameScreen handleHelp(sf::RenderWindow& window, GameResources& res) {
     while (window.isOpen()) {
@@ -1760,7 +1535,7 @@ GameScreen handleHelp(sf::RenderWindow& window, GameResources& res) {
                 soundPlaySelect(res);
                 return SCREEN_MAIN_MENU;
             }
-            // Click bat ky (gom nut Back) → ve menu chinh
+
             if (event.type == sf::Event::MouseButtonPressed) {
                 soundPlaySelect(res);
                 return SCREEN_MAIN_MENU;
@@ -1777,7 +1552,7 @@ GameScreen handleAbout(sf::RenderWindow& window, GameResources& res) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (handleCommonEvent(window, event)) continue;
-            // Click bat ky (gom nut Back) → ve menu chinh
+
             if (event.type == sf::Event::MouseButtonPressed) {
                 soundPlaySelect(res);
                 return SCREEN_MAIN_MENU;

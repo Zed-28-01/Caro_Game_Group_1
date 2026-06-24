@@ -4,20 +4,17 @@
 
 #include "game_types.h"
 
-// ============================================================
 // NHAC NEN
-// ============================================================
 
 // V2 #27: track nhac nen theo man (menu vs gameplay)
 enum BGMTrack { BGM_MENU = 0, BGM_GAME = 1 };
 
-// V2 #6 (audit): load cac SoundBuffer SFX (truoc day nam trong renderLoadResources
-// - sai module). Goi 1 lan trong main() sau renderLoadResources.
+// Load cac SoundBuffer SFX
+// Goi 1 lan trong main() sau renderLoadResources.
 void soundLoadResources(GameResources& res);
 
-// V2 R8 (audit): dung + go buffer khoi soundPool static TRUOC khi thoat
-// (sf::Sound static co the song lau hon audio device -> SFML khuyen cao tranh).
-// Goi cuoi main() truoc khi res va device teardown.
+// Dung va go buffer khoi soundPool truoc khi thoat an toan
+// Goi o cuoi main().
 void soundShutdown();
 
 // V2 #27: chuyen sang track BGM tuong ung (mo file + loop + play).
@@ -27,9 +24,7 @@ void soundPlayBGMTrack(GameResources& res, int track);
 // Thay doi am luong nhac nen (0 - 100)
 void soundSetBGMVolume(GameResources& res, int volume);
 
-// ============================================================
 // HIEU UNG AM THANH
-// ============================================================
 
 // Phat am thanh dat quan co
 void soundPlayPlace(GameResources& res);
@@ -57,9 +52,7 @@ bool soundIsSFXEnabled();
 // Lay am luong BGM hien tai (0-100)
 int soundGetBGMVolume();
 
-// ============================================================
-// LUU / TAI SETTINGS (persist giua cac lan chay game)
-// ============================================================
+// LUU / TAI SETTINGS
 
 // Doc settings.txt va apply vao language/sound modules
 // Goi 1 lan trong main() sau khi loadResources

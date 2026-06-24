@@ -7,20 +7,12 @@ namespace fs = std::filesystem;
 
 static const std::string SETTINGS_FILE = "../saves/settings.txt";
 
-// ============================================================
-// BIEN STATIC NOI BO
-// ============================================================
-// Pool 8 sf::Sound de phat nhieu am thanh chong cheo nhau
-// sf::Sound PHAI ton tai trong khi phat → dung mang static
-static const int SOUND_POOL_SIZE = 8; // so sf::Sound chay luan phien (chong cheo am)
+static const int SOUND_POOL_SIZE = 8;
 static sf::Sound soundPool[SOUND_POOL_SIZE];
 static int soundIndex = 0;
 static bool sfxEnabled = true;
 static int bgmVolume = 50;
 
-// ============================================================
-// NHAC NEN (BGM)
-// ============================================================
 void soundSetBGMVolume(GameResources& res, int volume) {
     if (volume < 0) volume = 0;
     if (volume > 100) volume = 100;
@@ -28,14 +20,13 @@ void soundSetBGMVolume(GameResources& res, int volume) {
     res.bgMusic.setVolume((float)volume);
 }
 
-// V2 #27: track BGM dang phat (-1 = chua co). Tranh mo lai file moi frame.
 static int currentBGMTrack = -1;
 
 void soundPlayBGMTrack(GameResources& res, int track) {
-    if (track == currentBGMTrack) return; // dang phat track nay roi -> bo qua
+    if (track == currentBGMTrack) return;
     const char* file = (track == BGM_GAME) ? "../assets/sounds/bgm_game.ogg"
                                            : "../assets/sounds/bgm_menu.ogg";
-    if (!fs::exists(file)) return; // thieu file -> bo qua (tranh loi console)
+    if (!fs::exists(file)) return;
     currentBGMTrack = track;
     res.bgMusic.stop();
     if (res.bgMusic.openFromFile(file)) {
@@ -45,14 +36,9 @@ void soundPlayBGMTrack(GameResources& res, int track) {
     }
 }
 
-// ============================================================
-// HIEU UNG AM THANH (SFX)
-// ============================================================
-
-// Ham noi bo: phat 1 sfx tu pool
 static void playSfx(const sf::SoundBuffer& buffer) {
     if (!sfxEnabled) return;
-    if (buffer.getSampleCount() == 0) return; // file chua load → bo qua
+    if (buffer.getSampleCount() == 0) return;
 
     soundPool[soundIndex].setBuffer(buffer);
     soundPool[soundIndex].play();
@@ -71,8 +57,6 @@ void soundSetSFXEnabled(bool enabled) { sfxEnabled = enabled; }
 bool soundIsSFXEnabled() { return sfxEnabled; }
 int soundGetBGMVolume() { return bgmVolume; }
 
-// V2 #6 (audit): load cac SFX buffer (truoc day o renderLoadResources - sai module).
-// loadFromFile khong check ket qua: file thieu -> getSampleCount()==0 -> playSfx bo qua.
 void soundLoadResources(GameResources& res) {
     res.placeSfx.loadFromFile("../assets/sounds/place.wav");
     res.winSfx.loadFromFile("../assets/sounds/win.wav");
@@ -83,21 +67,14 @@ void soundLoadResources(GameResources& res) {
     res.alarmSfx.loadFromFile("../assets/sounds/alarm.wav");
 }
 
-// V2 R8 (audit): dung + go buffer khoi pool truoc khi static teardown.
 void soundShutdown() {
     for (int i = 0; i < SOUND_POOL_SIZE; i++) {
         soundPool[i].stop();
         soundPool[i].resetBuffer();
     }
-    // side-effect-2: reset guard BGM. soundShutdown chi chay luc thoat app nen
-    // hien tai vo hai, nhung giu bat bien "currentBGMTrack phan anh nhac dang phat"
-    // -> neu sau nay co code mo lai BGM sau shutdown thi khong bi bo qua nham.
     currentBGMTrack = -1;
 }
 
-// ============================================================
-// LUU / TAI SETTINGS
-// ============================================================
 void settingsLoad(GameResources& res) {
     std::ifstream f(SETTINGS_FILE);
     if (!f.is_open()) return;
@@ -120,12 +97,11 @@ void settingsLoad(GameResources& res) {
                 soundSetSFXEnabled(std::stoi(val) == 1);
             }
         }
-        catch (...) { /* bo qua line loi */ }
+        catch (...) {}
     }
 }
 
 void settingsSave() {
-    // Dam bao thu muc saves/ ton tai
     try {
         fs::create_directories("../saves");
     }
